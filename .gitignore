@@ -1,9 +1,68 @@
+# Dependencies
 /vendor/
 /node_modules/
+
+# Environment files
 .env
 .env.backup
+.env.local
+.env.production
+
+# IDE and Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Laravel specific
+/bootstrap/cache/*
+!/bootstrap/cache/.gitkeep
+/storage/*.key
+/storage/app/*
+!/storage/app/.gitkeep
+!/storage/app/public/
+/storage/framework/cache/*
+!/storage/framework/cache/.gitkeep
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+/storage/framework/testing/*
+!/storage/framework/testing/.gitkeep
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+/storage/logs/*
+!/storage/logs/.gitkeep
+/public/hot
+/public/storage
+
+# Testing
 .phpunit.result.cache
+/coverage/
+/.phpunit.cache
+
+# Build files
+/public/build/
+/public/mix-manifest.json
+/public/css/
+/public/js/
+
+# Database
+/database/*.sqlite
+/database/*.sqlite-journal
+
+# Homestead
 Homestead.json
 Homestead.yaml
+auth.json
+
+# NPM
 npm-debug.log
 yarn-error.log
+yarn.lock
+package-lock.json
+
+# Test scripts
+/tests/test-*.php
+!/tests/verify-users.php

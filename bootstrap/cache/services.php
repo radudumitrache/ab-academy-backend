@@ -23,9 +23,12 @@
     19 => 'Illuminate\\Translation\\TranslationServiceProvider',
     20 => 'Illuminate\\Validation\\ValidationServiceProvider',
     21 => 'Illuminate\\View\\ViewServiceProvider',
-    22 => 'Carbon\\Laravel\\ServiceProvider',
-    23 => 'Termwind\\Laravel\\TermwindServiceProvider',
-    24 => 'App\\Providers\\RouteServiceProvider',
+    22 => 'Laravel\\Passport\\PassportServiceProvider',
+    23 => 'Carbon\\Laravel\\ServiceProvider',
+    24 => 'Termwind\\Laravel\\TermwindServiceProvider',
+    25 => 'App\\Providers\\RouteServiceProvider',
+    26 => 'App\\Providers\\AppServiceProvider',
+    27 => 'Laravel\\Passport\\PassportServiceProvider',
   ),
   'eager' => 
   array (
@@ -39,9 +42,12 @@
     7 => 'Illuminate\\Pagination\\PaginationServiceProvider',
     8 => 'Illuminate\\Session\\SessionServiceProvider',
     9 => 'Illuminate\\View\\ViewServiceProvider',
-    10 => 'Carbon\\Laravel\\ServiceProvider',
-    11 => 'Termwind\\Laravel\\TermwindServiceProvider',
-    12 => 'App\\Providers\\RouteServiceProvider',
+    10 => 'Laravel\\Passport\\PassportServiceProvider',
+    11 => 'Carbon\\Laravel\\ServiceProvider',
+    12 => 'Termwind\\Laravel\\TermwindServiceProvider',
+    13 => 'App\\Providers\\RouteServiceProvider',
+    14 => 'App\\Providers\\AppServiceProvider',
+    15 => 'Laravel\\Passport\\PassportServiceProvider',
   ),
   'deferred' => 
   array (
