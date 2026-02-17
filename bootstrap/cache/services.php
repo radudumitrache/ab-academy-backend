@@ -28,7 +28,8 @@
     24 => 'Termwind\\Laravel\\TermwindServiceProvider',
     25 => 'App\\Providers\\RouteServiceProvider',
     26 => 'App\\Providers\\AppServiceProvider',
-    27 => 'Laravel\\Passport\\PassportServiceProvider',
+    27 => 'App\\Providers\\AuthServiceProvider',
+    28 => 'Laravel\\Passport\\PassportServiceProvider',
   ),
   'eager' => 
   array (
@@ -47,7 +48,8 @@
     12 => 'Termwind\\Laravel\\TermwindServiceProvider',
     13 => 'App\\Providers\\RouteServiceProvider',
     14 => 'App\\Providers\\AppServiceProvider',
-    15 => 'Laravel\\Passport\\PassportServiceProvider',
+    15 => 'App\\Providers\\AuthServiceProvider',
+    16 => 'Laravel\\Passport\\PassportServiceProvider',
   ),
   'deferred' => 
   array (

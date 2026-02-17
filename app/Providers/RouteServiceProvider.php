@@ -21,11 +21,17 @@ class RouteServiceProvider extends ServiceProvider
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));
 
-            // Admin routes
+            // Admin auth routes (public)
             Route::middleware('api')
                 ->prefix('api/admin')
                 ->group(function () {
                     require base_path('routes/admin/auth.php');
+                });
+                
+            // Protected admin routes
+            Route::middleware(['api', 'auth:api'])
+                ->prefix('api/admin')
+                ->group(function () {
                     require base_path('routes/admin/dashboard.php');
                     require base_path('routes/admin/users.php');
                     require base_path('routes/admin/logs.php');

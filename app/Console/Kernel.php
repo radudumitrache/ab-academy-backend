@@ -7,7 +7,9 @@ use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
 class Kernel extends ConsoleKernel
 {
-    protected $commands = [];
+    protected $commands = [
+        \App\Console\Commands\CheckPassportKeys::class,
+    ];
 
     protected function schedule(Schedule $schedule)
     {
