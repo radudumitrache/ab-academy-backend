@@ -7,11 +7,10 @@ use Illuminate\Support\Facades\Route;
  * Prefix: /api/admin
  */
 
-Route::middleware('auth:api')->group(function () {
-    Route::get('/dashboard', function () {
-        return response()->json([
-            'message' => 'Admin Dashboard',
-            'role' => 'admin'
-        ]);
-    });
-});
+Route::get('/dashboard', function () {
+    return response()->json([
+        'message' => 'Admin Dashboard',
+        'user' => auth()->user(),
+        'role' => 'admin'
+    ]);
+})->middleware('auth:api');

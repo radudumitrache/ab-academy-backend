@@ -8,7 +8,5 @@ use App\Http\Controllers\Admin\DatabaseLogController;
  * Prefix: /api/admin
  */
 
-Route::middleware('auth:api')->group(function () {
-    Route::get('/logs', [DatabaseLogController::class, 'index']);
-    Route::get('/logs/{id}', [DatabaseLogController::class, 'show']);
-});
+Route::get('/logs', [DatabaseLogController::class, 'index'])->middleware('auth:api');
+Route::get('/logs/{id}', [DatabaseLogController::class, 'show'])->middleware('auth:api');

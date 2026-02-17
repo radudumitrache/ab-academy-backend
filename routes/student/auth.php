@@ -9,6 +9,4 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [App\Http\Controllers\Student\AuthController::class, 'login']);
 
-Route::middleware('auth:api')->group(function () {
-    Route::post('/logout', [App\Http\Controllers\Student\AuthController::class, 'logout']);
-});
+Route::post('/logout', [App\Http\Controllers\Student\AuthController::class, 'logout'])->middleware('auth:api');

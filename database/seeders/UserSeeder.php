@@ -15,21 +15,26 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create Admin
-        Admin::create([
-            'username' => 'admin',
-            'password' => Hash::make('password'),
-        ]);
+        $superAdminUsername = env('SUPER_ADMIN_USERNAME', 'admin');
+        $superAdminPassword = env('SUPER_ADMIN_PASSWORD', 'password');
+
+        // Create or update Super Admin from environment credentials
+        Admin::updateOrCreate(
+            ['username' => $superAdminUsername],
+            ['password' => Hash::make($superAdminPassword)]
+        );
 
         // Create Teacher
-        Teacher::create([
+        Teacher::firstOrCreate([
             'username' => 'teacher',
+        ], [
             'password' => Hash::make('password'),
         ]);
 
         // Create Student
-        Student::create([
+        Student::firstOrCreate([
             'username' => 'student',
+        ], [
             'password' => Hash::make('password'),
         ]);
     }

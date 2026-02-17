@@ -8,14 +8,12 @@ use App\Http\Controllers\Admin\UserManagementController;
  * Prefix: /api/admin
  */
 
-Route::middleware('auth:api')->group(function () {
-    // Teacher management
-    Route::post('/teachers', [UserManagementController::class, 'createTeacher']);
-    Route::get('/teachers', [UserManagementController::class, 'listTeachers']);
-    Route::delete('/teachers/{id}', [UserManagementController::class, 'deleteTeacher']);
+// Teacher management
+Route::post('/teachers', [UserManagementController::class, 'createTeacher'])->middleware('auth:api');
+Route::get('/teachers', [UserManagementController::class, 'listTeachers'])->middleware('auth:api');
+Route::delete('/teachers/{id}', [UserManagementController::class, 'deleteTeacher'])->middleware('auth:api');
 
-    // Student management
-    Route::post('/students', [UserManagementController::class, 'createStudent']);
-    Route::get('/students', [UserManagementController::class, 'listStudents']);
-    Route::delete('/students/{id}', [UserManagementController::class, 'deleteStudent']);
-});
+// Student management
+Route::post('/students', [UserManagementController::class, 'createStudent'])->middleware('auth:api');
+Route::get('/students', [UserManagementController::class, 'listStudents'])->middleware('auth:api');
+Route::delete('/students/{id}', [UserManagementController::class, 'deleteStudent'])->middleware('auth:api');

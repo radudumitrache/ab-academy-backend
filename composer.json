@@ -4,6 +4,8 @@
     "type": "project",
     "require": {
         "php": "^8.1",
+        "anthropic-ai/sdk": "^0.5.0",
+        "guzzlehttp/guzzle": "7.8",
         "laravel/framework": "^10.0",
         "laravel/passport": "^11.0"
     },
@@ -11,12 +13,18 @@
         "psr-4": {
             "App\\": "app/",
             "Database\\Seeders\\": "database/seeders/"
-        }
+        },
+        "classmap": [
+            "services/claude.php"
+        ]
     },
     "config": {
         "optimize-autoloader": true,
         "preferred-install": "dist",
-        "sort-packages": true
+        "sort-packages": true,
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
     },
     "minimum-stability": "stable",
     "prefer-stable": true

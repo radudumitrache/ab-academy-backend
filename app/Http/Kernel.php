@@ -17,5 +17,10 @@ class Kernel extends HttpKernel
         'api' => [],
     ];
 
-    protected $middlewareAliases = [];
+    protected $middlewareAliases = [
+        'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
+        'role.admin' => \App\Http\Middleware\Role\AdminMiddleware::class,
+        'role.teacher' => \App\Http\Middleware\Role\TeacherMiddleware::class,
+        'role.student' => \App\Http\Middleware\Role\StudentMiddleware::class,
+    ];
 }

@@ -7,11 +7,9 @@ use Illuminate\Support\Facades\Route;
  * Prefix: /api/student
  */
 
-Route::middleware('auth:api')->group(function () {
-    Route::get('/dashboard', function () {
-        return response()->json([
-            'message' => 'Student Dashboard',
-            'role' => 'student'
-        ]);
-    });
-});
+Route::get('/dashboard', function () {
+    return response()->json([
+        'message' => 'Student Dashboard',
+        'role' => 'student'
+    ]);
+})->middleware('auth:api');

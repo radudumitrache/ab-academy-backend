@@ -13,13 +13,11 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login', [App\Http\Controllers\Student\AuthController::class, 'login']);
 
 // Protected routes (require authentication)
-Route::middleware('auth:api')->group(function () {
-    Route::post('/logout', [App\Http\Controllers\Student\AuthController::class, 'logout']);
-    
-    Route::get('/dashboard', function () {
-        return response()->json([
-            'message' => 'Student Dashboard',
-            'role' => 'student'
-        ]);
-    });
-});
+Route::post('/logout', [App\Http\Controllers\Student\AuthController::class, 'logout'])->middleware('auth:api');
+
+Route::get('/dashboard', function () {
+    return response()->json([
+        'message' => 'Student Dashboard',
+        'role' => 'student'
+    ]);
+})->middleware('auth:api');

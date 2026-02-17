@@ -13,13 +13,11 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login', [App\Http\Controllers\Teacher\AuthController::class, 'login']);
 
 // Protected routes (require authentication)
-Route::middleware('auth:api')->group(function () {
-    Route::post('/logout', [App\Http\Controllers\Teacher\AuthController::class, 'logout']);
-    
-    Route::get('/dashboard', function () {
-        return response()->json([
-            'message' => 'Teacher Dashboard',
-            'role' => 'teacher'
-        ]);
-    });
-});
+Route::post('/logout', [App\Http\Controllers\Teacher\AuthController::class, 'logout'])->middleware('auth:api');
+
+Route::get('/dashboard', function () {
+    return response()->json([
+        'message' => 'Teacher Dashboard',
+        'role' => 'teacher'
+    ]);
+})->middleware('auth:api');

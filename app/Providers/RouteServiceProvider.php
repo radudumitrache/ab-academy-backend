@@ -29,6 +29,8 @@ class RouteServiceProvider extends ServiceProvider
                     require base_path('routes/admin/dashboard.php');
                     require base_path('routes/admin/users.php');
                     require base_path('routes/admin/logs.php');
+                    require base_path('routes/admin/groups.php');
+                    require base_path('routes/admin/events.php');
                 });
 
             // Teacher routes
@@ -37,6 +39,7 @@ class RouteServiceProvider extends ServiceProvider
                 ->group(function () {
                     require base_path('routes/teacher/auth.php');
                     require base_path('routes/teacher/dashboard.php');
+                    require base_path('routes/teacher/ai_assistant.php');
                 });
 
             // Student routes
@@ -45,6 +48,13 @@ class RouteServiceProvider extends ServiceProvider
                 ->group(function () {
                     require base_path('routes/student/auth.php');
                     require base_path('routes/student/dashboard.php');
+                });
+
+            // Live session routes
+            Route::middleware('api')
+                ->prefix('api/live-sessions')
+                ->group(function () {
+                    require base_path('routes/live_sessions/event_routes.php');
                 });
         });
     }
