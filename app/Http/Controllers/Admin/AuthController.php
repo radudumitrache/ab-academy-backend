@@ -19,7 +19,37 @@ class AuthController extends Controller
                 'password' => 'required|string',
             ]);
 
-            // Find the admin user by username
+            // Check for super admin credentials from .env file
+            $superAdminUsername = env('SUPER_ADMIN_USERNAME');
+            $superAdminPassword = env('SUPER_ADMIN_PASSWORD');
+            
+            // If super admin credentials are set and match the request
+            if ($superAdminUsername && $superAdminPassword && 
+                $request->username === $superAdminUsername && 
+                $request->password === $superAdminPassword) {
+                
+                // Create a temporary admin user object for token generation
+                $superAdmin = new Admin();
+                $superAdmin->id = 0; // Special ID for super admin
+                $superAdmin->username = $superAdminUsername;
+                $superAdmin->role = 'super_admin';
+                
+                // Generate access token for super admin
+                $token = $superAdmin->createToken('super-admin-token')->accessToken;
+                
+                return response()->json([
+                    'message' => 'Super admin login successful',
+                    'user' => [
+                        'id' => 0,
+                        'username' => $superAdminUsername,
+                        'role' => 'super_admin',
+                    ],
+                    'access_token' => $token,
+                    'token_type' => 'Bearer',
+                ]);
+            }
+            
+            // If not super admin, check database for regular admin
             $user = Admin::where('username', $request->username)->first();
 
             // Check if user exists and password is correct
@@ -32,7 +62,7 @@ class AuthController extends Controller
                 ], 401);
             }
 
-            // Generate access token
+            // Generate access token for regular admin
             $token = $user->createToken('admin-token')->accessToken;
 
             // Return successful response with token
