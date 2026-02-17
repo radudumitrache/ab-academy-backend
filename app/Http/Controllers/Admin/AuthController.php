@@ -12,30 +12,30 @@ class AuthController extends Controller
 {
     public function login(Request $request)
     {
-        // Simplified login method for testing
         try {
-            // Return a basic response to test if the controller method is being called
-            return response()->json([
-                'message' => 'AuthController login method reached successfully',
-                'request_data' => $request->all()
-            ]);
-            
-            /* Original code commented out for testing
+            // Validate the request
             $request->validate([
                 'username' => 'required|string',
                 'password' => 'required|string',
             ]);
 
+            // Find the admin user by username
             $user = Admin::where('username', $request->username)->first();
 
+            // Check if user exists and password is correct
             if (!$user || !Hash::check($request->password, $user->password)) {
-                throw ValidationException::withMessages([
-                    'username' => ['The provided credentials are incorrect.'],
-                ]);
+                return response()->json([
+                    'message' => 'Invalid credentials',
+                    'errors' => [
+                        'username' => ['The provided credentials are incorrect.']
+                    ]
+                ], 401);
             }
 
+            // Generate access token
             $token = $user->createToken('admin-token')->accessToken;
 
+            // Return successful response with token
             return response()->json([
                 'message' => 'Admin login successful',
                 'user' => [
@@ -46,14 +46,17 @@ class AuthController extends Controller
                 'access_token' => $token,
                 'token_type' => 'Bearer',
             ]);
-            */
-        } catch (\Exception $e) {
-            // Catch any exceptions and return them as a response for debugging
+        } catch (ValidationException $e) {
+            // Handle validation errors
             return response()->json([
-                'error' => 'Exception in login method',
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            // Handle any other exceptions
+            return response()->json([
+                'message' => 'An error occurred during login',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
