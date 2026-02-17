@@ -12,12 +12,9 @@ Route::get('/test', function() {
     return response()->json(['message' => 'Admin routes are working!']);
 });
 
-// Original login route
-// Route::post('/login', [App\Http\Controllers\Admin\AuthController::class, 'login']);
+// Use fully qualified namespace to avoid any namespace issues
+use App\Http\Controllers\Admin\AuthController;
 
-// Test login route with direct closure
-Route::post('/login', function() {
-    return response()->json(['message' => 'Login route is working!']);
-});
+Route::post('/login', [AuthController::class, 'login']);
 
 Route::post('/logout', [App\Http\Controllers\Admin\AuthController::class, 'logout'])->middleware('auth:api');
