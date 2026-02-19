@@ -14,4 +14,7 @@ Route::middleware('auth:api')->group(function () {
     
     // Dashboard KPI endpoint
     Route::get('/dashboard/kpi', [DashboardController::class, 'getKpi']);
+    
+    // Dashboard activities endpoint
+    Route::get('/dashboard/activities', [DashboardController::class, 'getActivities']);
 });

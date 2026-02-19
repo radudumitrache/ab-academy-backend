@@ -878,6 +878,82 @@ The command validates that:
   }
   ```
 
+### KPI Data
+
+- **URL**: `/api/admin/dashboard/kpi` 
+- **Method**: `GET` 
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  ```
+- **Description**: Returns key performance indicators for the dashboard
+- **Success Response**:
+  ```json
+  {
+    "message": "KPI data retrieved successfully",
+    "kpi_data": {
+      "students": {
+        "total": 320,
+        "active": 247,
+        "new_this_month": 12,
+        "growth_percentage": 5.2
+      },
+      "revenue": {
+        "total": "$125,000",
+        "this_month": "$18,500",
+        "last_month": "$17,200",
+        "growth_percentage": 7.5
+      },
+      "classes": {
+        "total": 42,
+        "this_week": 18,
+        "attendance_rate": 92
+      },
+      "teachers": {
+        "total": 24,
+        "active": 18
+      }
+    }
+  }
+  ```
+
+### Recent Activities
+
+- **URL**: `/api/admin/dashboard/activities` 
+- **Method**: `GET` 
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  ```
+- **Query Parameters**: `limit` (optional) - Number of activities to return
+- **Description**: Returns recent activities for the dashboard
+- **Success Response**:
+  ```json
+  {
+    "message": "Activities retrieved successfully",
+    "activities": [
+      {
+        "id": 1,
+        "type": "exam",
+        "description": "New exam scheduled - IELTS Speaking - Maria Santos",
+        "user_id": 5,
+        "user_name": "Admin User",
+        "timestamp": "2023-06-15T14:30:00Z"
+      },
+      {
+        "id": 2,
+        "type": "homework",
+        "description": "Homework uploaded - Grammar Unit 5 - Advanced Group A",
+        "user_id": 8,
+        "user_name": "Teacher Smith",
+        "timestamp": "2023-06-15T13:45:00Z"
+      }
+    ]
+  }
+  ```
+
 ## Frontend Integration Examples
 
 ### React Integration for Admin Panel
@@ -1021,6 +1097,29 @@ export const getDashboard = async () => {
   try {
     const response = await axios.get(`${API_URL}/dashboard`, {
       headers: authHeader()
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response.data;
+  }
+};
+
+export const getDashboardKpi = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/dashboard/kpi`, {
+      headers: authHeader()
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response.data;
+  }
+};
+
+export const getDashboardActivities = async (limit = 10) => {
+  try {
+    const response = await axios.get(`${API_URL}/dashboard/activities`, {
+      headers: authHeader(),
+      params: { limit }
     });
     return response.data;
   } catch (error) {
