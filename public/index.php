@@ -1,8 +1,5 @@
 <?php
 
-// Include CORS handler
-require_once __DIR__.'/cors.php';
-
 use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));

@@ -1,43 +1,30 @@
 <?php
-// This file handles CORS for all requests
-// It should be included at the top of index.php
+// Simple CORS handler - sets headers once at the beginning of the request
 
-// Only set headers if they haven't been set already
-if (!function_exists('header_sent')) {
-    function header_sent($header_name) {
-        foreach (headers_list() as $header) {
-            if (strpos(strtolower($header), strtolower($header_name) . ':') === 0) {
-                return true;
-            }
-        }
-        return false;
-    }
-}
-
-// Allow from any origin
-if (isset($_SERVER['HTTP_ORIGIN'])) {
-    if (!header_sent('Access-Control-Allow-Origin')) {
-        header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
-    }
-    if (!header_sent('Access-Control-Allow-Credentials')) {
-        header('Access-Control-Allow-Credentials: true');
-    }
-    if (!header_sent('Access-Control-Max-Age')) {
-        header('Access-Control-Max-Age: 86400');    // cache for 1 day
-    }
-}
-
-// Access-Control headers are received during OPTIONS requests
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD']) && !header_sent('Access-Control-Allow-Methods')) {
-        header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS");
+// For preflight OPTIONS requests
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    // Set the specific origin from the request
+    if (isset($_SERVER['HTTP_ORIGIN']) && $_SERVER['HTTP_ORIGIN'] === 'http://127.0.0.1:8081') {
+        header('Access-Control-Allow-Origin: http://127.0.0.1:8081');
+    } else {
+        header('Access-Control-Allow-Origin: *');
     }
     
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']) && !header_sent('Access-Control-Allow-Headers')) {
-        header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
-    }
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-CSRF-TOKEN');
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Max-Age: 86400'); // 24 hours
     
-    // Exit early so the page isn't fully loaded for OPTIONS requests
-    exit(0);
+    // Stop processing - just return 200 OK for preflight
+    http_response_code(200);
+    exit;
 }
+
+// For actual requests (non-OPTIONS)
+if (isset($_SERVER['HTTP_ORIGIN']) && $_SERVER['HTTP_ORIGIN'] === 'http://127.0.0.1:8081') {
+    header('Access-Control-Allow-Origin: http://127.0.0.1:8081');
+} else {
+    header('Access-Control-Allow-Origin: *');
+}
+
+header('Access-Control-Allow-Credentials: true');
