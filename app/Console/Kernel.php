@@ -10,6 +10,8 @@ class Kernel extends ConsoleKernel
     protected $commands = [
         \App\Console\Commands\CheckPassportKeys::class,
         \App\Console\Commands\CreateAdminUser::class,
+        \App\Console\Commands\CreateStorageDirectories::class,
+        \App\Console\Commands\FixViewCachePath::class,
     ];
 
     protected function schedule(Schedule $schedule)
