@@ -12,6 +12,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\CreateAdminUser::class,
         \App\Console\Commands\CreateStorageDirectories::class,
         \App\Console\Commands\FixViewCachePath::class,
+        \App\Console\Commands\FixPassportInstallation::class,
     ];
 
     protected function schedule(Schedule $schedule)
