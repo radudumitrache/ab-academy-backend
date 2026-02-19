@@ -1,16 +1,17 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\DashboardController;
 
 /**
  * Admin Dashboard Routes
  * Prefix: /api/admin
  */
 
-Route::get('/dashboard', function () {
-    return response()->json([
-        'message' => 'Admin Dashboard',
-        'user' => auth()->user(),
-        'role' => 'admin'
-    ]);
-})->middleware('auth:api');
+Route::middleware('auth:api')->group(function () {
+    // Main dashboard endpoint
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+    
+    // Dashboard KPI endpoint
+    Route::get('/dashboard/kpi', [DashboardController::class, 'getKpi']);
+});
