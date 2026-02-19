@@ -5,7 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Carbon;
+use App\Models\User;
+use App\Models\Student;
+use App\Models\Teacher;
 
 class DashboardController extends Controller
 {
@@ -28,30 +33,77 @@ class DashboardController extends Controller
      */
     public function getKpi()
     {
-        // Mock KPI data - replace with actual data from your database
+        // Get real data from database
+        
+        // Student statistics
+        $totalStudents = Student::count();
+        $activeStudents = Student::where('active', true)->count();
+        if ($activeStudents === 0) {
+            // If active field doesn't exist or no active students, assume all students are active
+            $activeStudents = $totalStudents;
+        }
+        
+        // Count students created this month
+        $startOfMonth = Carbon::now()->startOfMonth();
+        $newStudentsThisMonth = Student::where('created_at', '>=', $startOfMonth)->count();
+        
+        // Calculate growth percentage
+        $lastMonthStart = Carbon::now()->subMonth()->startOfMonth();
+        $lastMonthEnd = Carbon::now()->subMonth()->endOfMonth();
+        $studentsLastMonth = Student::whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])->count();
+        
+        $growthPercentage = 0;
+        if ($studentsLastMonth > 0) {
+            $growthPercentage = (($newStudentsThisMonth - $studentsLastMonth) / $studentsLastMonth) * 100;
+        }
+        
+        // Teacher statistics
+        $totalTeachers = Teacher::count();
+        $activeTeachers = Teacher::where('active', true)->count();
+        if ($activeTeachers === 0) {
+            // If active field doesn't exist or no active teachers, assume all teachers are active
+            $activeTeachers = $totalTeachers;
+        }
+        
+        // Group/Class statistics
+        $totalGroups = 0;
+        if (Schema::hasTable('groups')) {
+            $totalGroups = DB::table('groups')->count();
+        }
+        
+        // This week's classes
+        $startOfWeek = Carbon::now()->startOfWeek();
+        $classesThisWeek = 0;
+        if (Schema::hasTable('events') && Schema::hasColumn('events', 'event_date')) {
+            $classesThisWeek = DB::table('events')
+                ->where('type', 'class')
+                ->where('event_date', '>=', $startOfWeek)
+                ->count();
+        }
+        
         $kpiData = [
             'message' => 'KPI data retrieved successfully',
             'kpi_data' => [
                 'students' => [
-                    'total' => 320,
-                    'active' => 247,
-                    'new_this_month' => 12,
-                    'growth_percentage' => 5.2
+                    'total' => $totalStudents,
+                    'active' => $activeStudents,
+                    'new_this_month' => $newStudentsThisMonth,
+                    'growth_percentage' => round($growthPercentage, 2)
                 ],
                 'revenue' => [
-                    'total' => '$125,000',
-                    'this_month' => '$18,500',
-                    'last_month' => '$17,200',
-                    'growth_percentage' => 7.5
+                    'total' => '$0',
+                    'this_month' => '$0',
+                    'last_month' => '$0',
+                    'growth_percentage' => 0
                 ],
                 'classes' => [
-                    'total' => 42,
-                    'this_week' => 18,
-                    'attendance_rate' => 92
+                    'total' => $totalGroups,
+                    'this_week' => $classesThisWeek,
+                    'attendance_rate' => 0
                 ],
                 'teachers' => [
-                    'total' => 24,
-                    'active' => 18
+                    'total' => $totalTeachers,
+                    'active' => $activeTeachers
                 ]
             ]
         ];
