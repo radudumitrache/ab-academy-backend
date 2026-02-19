@@ -9,6 +9,7 @@ class Kernel extends ConsoleKernel
 {
     protected $commands = [
         \App\Console\Commands\CheckPassportKeys::class,
+        \App\Console\Commands\CreateAdminUser::class,
     ];
 
     protected function schedule(Schedule $schedule)
