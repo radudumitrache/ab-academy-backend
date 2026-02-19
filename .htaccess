@@ -5,18 +5,7 @@
 </IfModule>
 # php -- END cPanel-generated handler, do not edit
 
-<IfModule mod_headers.c>
-    Header always set Access-Control-Allow-Origin "*"
-    Header always set Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, X-CSRF-TOKEN"
-    Header always set Access-Control-Max-Age "1000"
-    Header always set Access-Control-Allow-Credentials "true"
-    
-    # Handle preflight OPTIONS requests
-    RewriteEngine On
-    RewriteCond %{REQUEST_METHOD} OPTIONS
-    RewriteRule ^(.*)$ $1 [R=200,L]
-</IfModule>
+# CORS is now handled in PHP to prevent duplicate headers
 
 # Redirect all requests to public folder
 RewriteEngine On
