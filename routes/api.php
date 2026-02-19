@@ -50,3 +50,27 @@ Route::get('/auth-info', function() {
         ],
     ]);
 });
+
+/**
+ * CORS Test Route
+ * 
+ * Used to verify CORS configuration is working properly
+ */
+Route::options('/cors-test', function() {
+    return response()->json(['message' => 'CORS preflight request successful']);
+});
+
+Route::get('/cors-test', function() {
+    return response()->json([
+        'message' => 'CORS is working properly',
+        'headers' => collect(request()->headers->all())
+            ->map(function($item) {
+                return is_array($item) ? implode(', ', $item) : $item;
+            })
+            ->toArray(),
+        'cors_headers' => [
+            'origin' => request()->header('Origin'),
+            'access_control_request_method' => request()->header('Access-Control-Request-Method'),
+        ],
+    ]);
+});
