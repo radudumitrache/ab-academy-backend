@@ -65,6 +65,13 @@ class RouteServiceProvider extends ServiceProvider
                 ->group(function () {
                     require base_path('routes/live_sessions/event_routes.php');
                 });
+
+            // Chat routes
+            Route::middleware('api')
+                ->prefix('api')
+                ->group(function () {
+                    require base_path('routes/api/chat.php');
+                });
         });
     }
 

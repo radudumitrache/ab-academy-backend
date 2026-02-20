@@ -12,6 +12,11 @@ use App\Http\Controllers\Admin\GroupController;
 // Group CRUD operations
 Route::get('/groups', [GroupController::class, 'index'])->middleware('auth:api');
 Route::post('/groups', [GroupController::class, 'store'])->middleware('auth:api');
+
+// Group schedule options - must be before the {id} route to avoid conflicts
+Route::get('/groups/schedule/options', [GroupController::class, 'getScheduleOptions'])->middleware('auth:api');
+
+// Group detail routes
 Route::get('/groups/{id}', [GroupController::class, 'show'])->middleware('auth:api');
 Route::put('/groups/{id}', [GroupController::class, 'update'])->middleware('auth:api');
 Route::delete('/groups/{id}', [GroupController::class, 'destroy'])->middleware('auth:api');

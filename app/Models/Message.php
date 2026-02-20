@@ -11,10 +11,14 @@ class Message extends Model
 
     protected $fillable = [
         'chat_id',
-        'message',
-        'author',
-        'message_text',
-        'message_author',
+        'content',
+        'sender_id',
+        'sender_type',
+        'read_at',
+    ];
+
+    protected $casts = [
+        'read_at' => 'datetime',
     ];
 
     public function chat()
@@ -22,8 +26,13 @@ class Message extends Model
         return $this->belongsTo(Chat::class);
     }
 
-    public function authorUser()
+    public function sender()
     {
-        return $this->belongsTo(User::class, 'message_author');
+        return $this->morphTo();
+    }
+    
+    public function scopeUnread($query)
+    {
+        return $query->whereNull('read_at');
     }
 }

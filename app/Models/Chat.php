@@ -10,23 +10,25 @@ class Chat extends Model
     use HasFactory;
 
     protected $fillable = [
-        'student_recipient',
-        'admin_recipient',
-        'date_created',
+        'student_id',
+        'teacher_id',
+        'last_message_at',
+        'is_active',
     ];
 
     protected $casts = [
-        'date_created' => 'datetime',
+        'last_message_at' => 'datetime',
+        'is_active' => 'boolean',
     ];
 
-    public function studentRecipient()
+    public function student()
     {
-        return $this->belongsTo(User::class, 'student_recipient');
+        return $this->belongsTo(Student::class, 'student_id');
     }
 
-    public function adminRecipient()
+    public function teacher()
     {
-        return $this->belongsTo(User::class, 'admin_recipient');
+        return $this->belongsTo(Teacher::class, 'teacher_id');
     }
 
     public function messages()
@@ -34,13 +36,23 @@ class Chat extends Model
         return $this->hasMany(Message::class);
     }
 
-    public function scopeFilterStudentRecipient($query, $studentRecipient)
+    public function scopeForStudent($query, $studentId)
     {
-        return $query->where('student_recipient', $studentRecipient);
+        return $query->where('student_id', $studentId);
     }
 
-    public function scopeFilterDateCreated($query, $date)
+    public function scopeForTeacher($query, $teacherId)
     {
-        return $query->whereDate('date_created', $date);
+        return $query->where('teacher_id', $teacherId);
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeFilterByDate($query, $date)
+    {
+        return $query->whereDate('last_message_at', $date);
     }
 }

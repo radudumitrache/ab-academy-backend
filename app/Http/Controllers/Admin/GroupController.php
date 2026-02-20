@@ -17,10 +17,27 @@ class GroupController extends Controller
     public function index()
     {
         $groups = Group::with(['teacher', 'students'])->get();
+        
+        // Add formatted_schedule to each group
+        $groups->each(function ($group) {
+            $group->append('formatted_schedule');
+        });
 
         return response()->json([
             'message' => 'Groups retrieved successfully',
             'groups' => $groups
+        ], 200);
+    }
+    
+    /**
+     * Get available schedule options.
+     */
+    public function getScheduleOptions()
+    {
+        return response()->json([
+            'message' => 'Schedule options retrieved successfully',
+            'days' => Group::getAvailableDays(),
+            'times' => Group::getAvailableTimes(),
         ], 200);
     }
 
@@ -33,7 +50,8 @@ class GroupController extends Controller
             'group_name' => 'required|string|max:255',
             'group_teacher' => 'required|exists:users,id',
             'description' => 'nullable|string',
-            'normal_schedule' => 'required|date',
+            'schedule_day' => 'required|string|in:' . implode(',', Group::getAvailableDays()),
+            'schedule_time' => 'required|date_format:H:i',
             'group_members' => 'nullable|array',
             'group_members.*' => 'exists:users,id',
         ]);
@@ -89,6 +107,9 @@ class GroupController extends Controller
                 'message' => 'Group not found'
             ], 404);
         }
+        
+        // Add formatted schedule to the response
+        $group->append('formatted_schedule');
 
         return response()->json([
             'message' => 'Group retrieved successfully',
@@ -113,7 +134,8 @@ class GroupController extends Controller
             'group_name' => 'sometimes|string|max:255',
             'group_teacher' => 'sometimes|exists:users,id',
             'description' => 'nullable|string',
-            'normal_schedule' => 'sometimes|date',
+            'schedule_day' => 'sometimes|string|in:' . implode(',', Group::getAvailableDays()),
+            'schedule_time' => 'sometimes|date_format:H:i',
             'group_members' => 'sometimes|array',
             'group_members.*' => 'exists:users,id',
         ]);
