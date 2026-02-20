@@ -960,6 +960,47 @@ The command validates that:
   }
   ```
 
+### Search
+
+- **URL**: `/api/admin/dashboard/search` 
+- **Method**: `GET` 
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  ```
+- **Query Parameters**: 
+  - `query` (required) - The search term to look for (min 2 characters)
+  - `type` (optional) - Type of entities to search: 'all', 'users', 'events', or 'groups'. Default: 'all'
+  - `limit` (optional) - Maximum number of results to return. Default: 10, Max: 50
+- **Description**: Searches for users, events, and groups based on name similarity using the Levenshtein algorithm
+- **Success Response**:
+  ```json
+  {
+    "message": "Search results retrieved successfully",
+    "query": "john",
+    "count": 2,
+    "results": [
+      {
+        "id": 5,
+        "name": "John Smith",
+        "email": "john.smith@example.com",
+        "type": "user",
+        "role": "student",
+        "relevance": 100
+      },
+      {
+        "id": 3,
+        "name": "English with John",
+        "type": "event",
+        "event_type": "class",
+        "event_date": "2026-03-15",
+        "relevance": 75
+      }
+    ]
+  }
+  ```
+
 ## Frontend Integration Examples
 
 ### React Integration for Admin Panel
@@ -1126,6 +1167,18 @@ export const getDashboardActivities = async (limit = 10) => {
     const response = await axios.get(`${API_URL}/dashboard/activities`, {
       headers: authHeader(),
       params: { limit }
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response.data;
+  }
+};
+
+export const searchDashboard = async (query, type = 'all', limit = 10) => {
+  try {
+    const response = await axios.get(`${API_URL}/dashboard/search`, {
+      headers: authHeader(),
+      params: { query, type, limit }
     });
     return response.data;
   } catch (error) {

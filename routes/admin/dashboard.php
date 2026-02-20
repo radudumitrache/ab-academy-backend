@@ -17,4 +17,7 @@ Route::middleware('auth:api')->group(function () {
     
     // Dashboard activities endpoint
     Route::get('/dashboard/activities', [DashboardController::class, 'getActivities']);
+    
+    // Dashboard search endpoint
+    Route::get('/dashboard/search', [DashboardController::class, 'search']);
 });

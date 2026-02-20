@@ -91,6 +91,68 @@ class UserManagementController extends Controller
         ]);
     }
 
+    public function getTeacher($id)
+    {
+        $teacher = Teacher::findOrFail($id);
+        
+        return response()->json([
+            'message' => 'Teacher retrieved successfully',
+            'teacher' => [
+                'id' => $teacher->id,
+                'username' => $teacher->username,
+                'email' => $teacher->email,
+                'telephone' => $teacher->telephone,
+                'role' => $teacher->role,
+                'created_at' => $teacher->created_at,
+                'updated_at' => $teacher->updated_at,
+            ],
+        ]);
+    }
+    
+    public function updateTeacher(Request $request, $id)
+    {
+        $teacher = Teacher::findOrFail($id);
+        
+        $request->validate([
+            'username' => 'sometimes|required|string|unique:users,username,' . $teacher->id,
+            'email' => 'sometimes|required|email|unique:users,email,' . $teacher->id,
+            'telephone' => 'nullable|string|max:20',
+            'password' => 'nullable|string|min:6',
+        ]);
+        
+        // Update basic fields
+        if ($request->has('username')) {
+            $teacher->username = $request->username;
+        }
+        
+        if ($request->has('email')) {
+            $teacher->email = $request->email;
+        }
+        
+        if ($request->has('telephone')) {
+            $teacher->telephone = $request->telephone;
+        }
+        
+        // Update password if provided
+        if ($request->has('password')) {
+            $teacher->password = Hash::make($request->password);
+        }
+        
+        $teacher->save();
+        
+        return response()->json([
+            'message' => 'Teacher updated successfully',
+            'teacher' => [
+                'id' => $teacher->id,
+                'username' => $teacher->username,
+                'email' => $teacher->email,
+                'telephone' => $teacher->telephone,
+                'role' => $teacher->role,
+                'updated_at' => $teacher->updated_at,
+            ],
+        ]);
+    }
+    
     public function deleteTeacher($id)
     {
         $teacher = Teacher::findOrFail($id);
@@ -102,6 +164,68 @@ class UserManagementController extends Controller
         ]);
     }
 
+    public function getStudent($id)
+    {
+        $student = Student::findOrFail($id);
+        
+        return response()->json([
+            'message' => 'Student retrieved successfully',
+            'student' => [
+                'id' => $student->id,
+                'username' => $student->username,
+                'email' => $student->email,
+                'telephone' => $student->telephone,
+                'role' => $student->role,
+                'created_at' => $student->created_at,
+                'updated_at' => $student->updated_at,
+            ],
+        ]);
+    }
+    
+    public function updateStudent(Request $request, $id)
+    {
+        $student = Student::findOrFail($id);
+        
+        $request->validate([
+            'username' => 'sometimes|required|string|unique:users,username,' . $student->id,
+            'email' => 'sometimes|required|email|unique:users,email,' . $student->id,
+            'telephone' => 'nullable|string|max:20',
+            'password' => 'nullable|string|min:6',
+        ]);
+        
+        // Update basic fields
+        if ($request->has('username')) {
+            $student->username = $request->username;
+        }
+        
+        if ($request->has('email')) {
+            $student->email = $request->email;
+        }
+        
+        if ($request->has('telephone')) {
+            $student->telephone = $request->telephone;
+        }
+        
+        // Update password if provided
+        if ($request->has('password')) {
+            $student->password = Hash::make($request->password);
+        }
+        
+        $student->save();
+        
+        return response()->json([
+            'message' => 'Student updated successfully',
+            'student' => [
+                'id' => $student->id,
+                'username' => $student->username,
+                'email' => $student->email,
+                'telephone' => $student->telephone,
+                'role' => $student->role,
+                'updated_at' => $student->updated_at,
+            ],
+        ]);
+    }
+    
     public function deleteStudent($id)
     {
         $student = Student::findOrFail($id);
