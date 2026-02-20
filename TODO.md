@@ -1,45 +1,22 @@
-# API Endpoints Needed
+# Endpoints Needed for User Detail View
 
-## Users & Groups Panel
+## User Details
+- **GET** `/api/admin/students/{id}` - Get detailed information about a specific student
+- **GET** `/api/admin/teachers/{id}` - Get detailed information about a specific teacher
 
-### Students Endpoints
-- ✅ GET `/api/admin/students` - Get all students
-- ✅ POST `/api/admin/students` - Create a new student
-- ✅ GET `/api/admin/students/:id` - Get student details
-- ✅ PUT `/api/admin/students/:id` - Update student information
-- ✅ DELETE `/api/admin/students/:id` - Delete a student
+## User Groups
+- **GET** `/api/admin/students/{id}/groups` - Get groups a specific student belongs to
 
-### Teachers Endpoints
-- ✅ GET `/api/admin/teachers` - Get all teachers
-- ✅ POST `/api/admin/teachers` - Create a new teacher
-- ✅ GET `/api/admin/teachers/:id` - Get teacher details
-- ✅ PUT `/api/admin/teachers/:id` - Update teacher information
-- ✅ DELETE `/api/admin/teachers/:id` - Delete a teacher
+## Exam Summary
+- **GET** `/api/admin/students/{id}/exams` - Get exam data for a specific student (upcoming, completed, next exam)
 
-### Groups Endpoints
-- ✅ GET `/api/admin/groups` - Get all groups
-- ✅ POST `/api/admin/groups` - Create a new group
-- ✅ GET `/api/admin/groups/:id` - Get group details
-- ✅ PUT `/api/admin/groups/:id` - Update group information
-- ✅ DELETE `/api/admin/groups/:id` - Delete a group
-- ✅ PUT `/api/admin/groups/:id/members` - Update group members
-- 🔄 PUT `/api/admin/groups/:id` - Update group information
-- 🔄 DELETE `/api/admin/groups/:id` - Delete a group
-- 🔄 PUT `/api/admin/groups/:id/members` - Update group members
+## Payment Summary
+- **GET** `/api/admin/students/{id}/payments` - Get payment information for a specific student
 
-### Courses Endpoints
-- 🔄 GET `/api/admin/courses` - Get all courses
-- 🔄 POST `/api/admin/courses` - Create a new course
-- 🔄 GET `/api/admin/courses/:id` - Get course details
-- 🔄 PUT `/api/admin/courses/:id` - Update course information
-- 🔄 DELETE `/api/admin/courses/:id` - Delete a course
+## Admin Notes
+- **GET** `/api/admin/users/{id}/notes` - Get admin notes for a specific user
+- **POST** `/api/admin/users/{id}/notes` - Save admin notes for a specific user
 
-### Archive Endpoints
-- 🔄 GET `/api/admin/archived/courses` - Get archived courses
-- 🔄 GET `/api/admin/archived/groups` - Get archived groups
-- 🔄 PUT `/api/admin/archived/courses/:id/restore` - Restore an archived course
-- 🔄 PUT `/api/admin/archived/groups/:id/restore` - Restore an archived group
-
-Legend:
-- ✅ Implemented and working
-- 🔄 Needs to be implemented
+## Update User Profile
+- **PUT** `/api/admin/students/{id}` - Update student information
+- **PUT** `/api/admin/teachers/{id}` - Update teacher information
