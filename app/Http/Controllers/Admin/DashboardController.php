@@ -113,52 +113,35 @@ class DashboardController extends Controller
         // Validate limit is a positive integer
         $limit = max(1, min(50, (int) $limit));
         
-        // Mock activities data - replace with actual data from your database
-        $activities = [
-            [
-                'id' => 1,
-                'type' => 'exam',
-                'description' => 'New exam scheduled - IELTS Speaking - Maria Santos',
-                'user_id' => 5,
-                'user_name' => 'Admin User',
-                'timestamp' => Carbon::now()->subHours(2)->toIso8601String()
-            ],
-            [
-                'id' => 2,
-                'type' => 'homework',
-                'description' => 'Homework uploaded - Grammar Unit 5 - Advanced Group A',
-                'user_id' => 8,
-                'user_name' => 'Teacher Smith',
-                'timestamp' => Carbon::now()->subHours(5)->toIso8601String()
-            ],
-            [
-                'id' => 3,
-                'type' => 'enrollment',
-                'description' => 'New student enrolled - John Doe - Beginner English',
-                'user_id' => 5,
-                'user_name' => 'Admin User',
-                'timestamp' => Carbon::now()->subHours(8)->toIso8601String()
-            ],
-            [
-                'id' => 4,
-                'type' => 'payment',
-                'description' => 'Payment received - $500 - Advanced English Course',
-                'user_id' => 5,
-                'user_name' => 'Admin User',
-                'timestamp' => Carbon::now()->subHours(12)->toIso8601String()
-            ],
-            [
-                'id' => 5,
-                'type' => 'attendance',
-                'description' => 'Attendance marked - Intermediate Spanish - 15 students present',
-                'user_id' => 9,
-                'user_name' => 'Teacher Garcia',
-                'timestamp' => Carbon::now()->subHours(24)->toIso8601String()
-            ],
-        ];
-        
-        // Limit the number of activities
-        $activities = array_slice($activities, 0, $limit);
+        // Get real activities from database logs
+        $logs = DB::table('database_logs')
+            ->select('id', 'action as type', 'description', 'user_id', 'user_role', 'created_at as timestamp', 'model')
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get();
+            
+        // Format logs as activities
+        $activities = [];
+        foreach ($logs as $log) {
+            // Try to get the user name if user_id exists
+            $userName = 'Unknown User';
+            if ($log->user_id) {
+                $user = User::find($log->user_id);
+                if ($user) {
+                    $userName = $user->username;
+                }
+            }
+            
+            $activities[] = [
+                'id' => $log->id,
+                'type' => $log->type,
+                'description' => $log->description,
+                'user_id' => $log->user_id,
+                'user_name' => $userName,
+                'model' => $log->model,
+                'timestamp' => Carbon::parse($log->timestamp)->toIso8601String()
+            ];
+        }
         
         return response()->json([
             'message' => 'Activities retrieved successfully',
