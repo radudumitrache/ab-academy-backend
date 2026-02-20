@@ -15,11 +15,15 @@ class UserManagementController extends Controller
     {
         $request->validate([
             'username' => 'required|string|unique:users,username',
+            'email' => 'required|email|unique:users,email',
+            'telephone' => 'nullable|string|max:20',
             'password' => 'required|string|min:6',
         ]);
 
         $teacher = Teacher::create([
             'username' => $request->username,
+            'email' => $request->email,
+            'telephone' => $request->telephone,
             'password' => Hash::make($request->password),
         ]);
 
@@ -28,6 +32,8 @@ class UserManagementController extends Controller
             'teacher' => [
                 'id' => $teacher->id,
                 'username' => $teacher->username,
+                'email' => $teacher->email,
+                'telephone' => $teacher->telephone,
                 'role' => $teacher->role,
                 'created_at' => $teacher->created_at,
             ],
@@ -38,11 +44,15 @@ class UserManagementController extends Controller
     {
         $request->validate([
             'username' => 'required|string|unique:users,username',
+            'email' => 'required|email|unique:users,email',
+            'telephone' => 'nullable|string|max:20',
             'password' => 'required|string|min:6',
         ]);
 
         $student = Student::create([
             'username' => $request->username,
+            'email' => $request->email,
+            'telephone' => $request->telephone,
             'password' => Hash::make($request->password),
         ]);
 
@@ -51,6 +61,8 @@ class UserManagementController extends Controller
             'student' => [
                 'id' => $student->id,
                 'username' => $student->username,
+                'email' => $student->email,
+                'telephone' => $student->telephone,
                 'role' => $student->role,
                 'created_at' => $student->created_at,
             ],
@@ -59,7 +71,7 @@ class UserManagementController extends Controller
 
     public function listTeachers()
     {
-        $teachers = Teacher::all(['id', 'username', 'created_at']);
+        $teachers = Teacher::all(['id', 'username', 'email', 'telephone', 'created_at']);
 
         return response()->json([
             'message' => 'Teachers retrieved successfully',
@@ -70,7 +82,7 @@ class UserManagementController extends Controller
 
     public function listStudents()
     {
-        $students = Student::all(['id', 'username', 'created_at']);
+        $students = Student::all(['id', 'username', 'email', 'telephone', 'created_at']);
 
         return response()->json([
             'message' => 'Students retrieved successfully',

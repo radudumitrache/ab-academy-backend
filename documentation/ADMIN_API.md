@@ -704,6 +704,8 @@ The command validates that:
   ```json
   {
     "username": "new_student",
+    "email": "student@example.com",
+    "telephone": "+1234567890", // Optional
     "password": "password123",
     "name": "New Student",
     "birthday": "2000-01-01"
@@ -716,9 +718,10 @@ The command validates that:
     "student": {
       "id": 6,
       "username": "new_student",
+      "email": "student@example.com",
+      "telephone": "+1234567890",
       "role": "student",
-      "name": "New Student",
-      "birthday": "2000-01-01"
+      "created_at": "2026-02-20T00:00:00.000000Z"
     }
   }
   ```
@@ -736,20 +739,21 @@ The command validates that:
   ```json
   {
     "message": "Students retrieved successfully",
+    "count": 2,
     "students": [
       {
         "id": 3,
         "username": "student1",
-        "role": "student",
-        "name": "Student One",
-        "birthday": "2001-05-15"
+        "email": "student1@example.com",
+        "telephone": "+1234567890",
+        "created_at": "2026-02-20T00:00:00.000000Z"
       },
       {
         "id": 4,
         "username": "student2",
-        "role": "student",
-        "name": "Student Two",
-        "birthday": "2002-03-22"
+        "email": "student2@example.com",
+        "telephone": "+0987654321",
+        "created_at": "2026-02-20T00:00:00.000000Z"
       }
     ]
   }
@@ -784,9 +788,9 @@ The command validates that:
   ```json
   {
     "username": "new_teacher",
-    "password": "password123",
-    "name": "New Teacher",
-    "date_joined": "2026-01-15"
+    "email": "teacher@example.com",
+    "telephone": "+1234567890", // Optional
+    "password": "password123"
   }
   ```
 - **Success Response**:
@@ -796,9 +800,10 @@ The command validates that:
     "teacher": {
       "id": 5,
       "username": "new_teacher",
+      "email": "teacher@example.com",
+      "telephone": "+1234567890",
       "role": "teacher",
-      "name": "New Teacher",
-      "date_joined": "2026-01-15"
+      "created_at": "2026-02-20T00:00:00.000000Z"
     }
   }
   ```
@@ -816,20 +821,23 @@ The command validates that:
   ```json
   {
     "message": "Teachers retrieved successfully",
+    "count": 2,
     "teachers": [
       {
         "id": 2,
         "username": "teacher1",
+        "email": "teacher1@example.com",
+        "telephone": "+1234567890",
         "role": "teacher",
-        "name": "Teacher One",
-        "date_joined": "2025-09-01"
+        "created_at": "2026-02-20T00:00:00.000000Z"
       },
       {
         "id": 5,
         "username": "new_teacher",
+        "email": "new_teacher@example.com",
+        "telephone": "+0987654321",
         "role": "teacher",
-        "name": "New Teacher",
-        "date_joined": "2026-01-15"
+        "created_at": "2026-02-20T00:00:00.000000Z"
       }
     ]
   }
