@@ -93,7 +93,41 @@ class UserManagementController extends Controller
 
     public function getTeacher($id)
     {
-        $teacher = Teacher::findOrFail($id);
+        $teacher = Teacher::with(['groups.students', 'exams'])->findOrFail($id);
+        
+        // Format groups with schedule information
+        $createdGroups = $teacher->groups->map(function ($group) {
+            return [
+                'id' => $group->id,
+                'group_name' => $group->group_name,
+                'description' => $group->description,
+                'schedule_day' => $group->schedule_day,
+                'schedule_time' => $group->schedule_time ? $group->schedule_time->format('H:i') : null,
+                'formatted_schedule' => $group->formatted_schedule,
+                'students_count' => $group->students->count(),
+                'students' => $group->students->map(function ($student) {
+                    return [
+                        'id' => $student->id,
+                        'username' => $student->username,
+                        'role' => $student->role
+                    ];
+                })
+            ];
+        });
+        
+        // Calculate teaching stats
+        $uniqueStudentIds = [];
+        foreach ($teacher->groups as $group) {
+            foreach ($group->students as $student) {
+                $uniqueStudentIds[$student->id] = true;
+            }
+        }
+        
+        $teachingStats = [
+            'total_students' => count($uniqueStudentIds),
+            'total_groups' => $teacher->groups->count(),
+            'total_exams' => $teacher->exams->count()
+        ];
         
         return response()->json([
             'message' => 'Teacher retrieved successfully',
@@ -106,6 +140,8 @@ class UserManagementController extends Controller
                 'created_at' => $teacher->created_at,
                 'updated_at' => $teacher->updated_at,
             ],
+            'teaching_stats' => $teachingStats,
+            'created_groups' => $createdGroups
         ]);
     }
     
@@ -166,7 +202,42 @@ class UserManagementController extends Controller
 
     public function getStudent($id)
     {
-        $student = Student::findOrFail($id);
+        $student = Student::with(['groups.teacher', 'enrolledExams.teacher'])->findOrFail($id);
+        
+        // Format enrolled groups
+        $enrolledGroups = $student->groups->map(function ($group) {
+            return [
+                'id' => $group->id,
+                'group_name' => $group->group_name,
+                'group_teacher' => $group->group_teacher,
+                'description' => $group->description,
+                'schedule_day' => $group->schedule_day,
+                'schedule_time' => $group->schedule_time ? $group->schedule_time->format('H:i') : null,
+                'formatted_schedule' => $group->formatted_schedule,
+                'teacher' => [
+                    'id' => $group->teacher->id,
+                    'username' => $group->teacher->username,
+                    'role' => $group->teacher->role
+                ]
+            ];
+        });
+        
+        // Format enrolled exams
+        $enrolledExams = $student->enrolledExams->map(function ($exam) {
+            return [
+                'id' => $exam->id,
+                'name' => $exam->name,
+                'date' => $exam->date,
+                'status' => $exam->status,
+                'teacher' => [
+                    'id' => $exam->teacher->id,
+                    'username' => $exam->teacher->username,
+                    'role' => $exam->teacher->role
+                ],
+                'score' => $exam->pivot->score,
+                'feedback' => $exam->pivot->feedback
+            ];
+        });
         
         return response()->json([
             'message' => 'Student retrieved successfully',
@@ -176,9 +247,12 @@ class UserManagementController extends Controller
                 'email' => $student->email,
                 'telephone' => $student->telephone,
                 'role' => $student->role,
+                'admin_notes' => $student->admin_notes,
                 'created_at' => $student->created_at,
                 'updated_at' => $student->updated_at,
             ],
+            'enrolled_groups' => $enrolledGroups,
+            'enrolled_exams' => $enrolledExams
         ]);
     }
     

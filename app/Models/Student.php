@@ -28,6 +28,14 @@ class Student extends User
                     ->withPivot('score', 'feedback')
                     ->withTimestamps();
     }
+    
+    /**
+     * Get the groups that the student belongs to.
+     */
+    public function groups(): BelongsToMany
+    {
+        return $this->belongsToMany(Group::class, 'group_student', 'student_id', 'group_id');
+    }
 
     public function isAdmin(): bool
     {

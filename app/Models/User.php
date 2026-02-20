@@ -21,6 +21,7 @@ class User extends Authenticatable
         'telephone',
         'password',
         'role',
+        'admin_notes',
     ];
 
     /**
