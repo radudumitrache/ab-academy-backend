@@ -37,11 +37,6 @@ class DashboardController extends Controller
         
         // Student statistics
         $totalStudents = Student::count();
-        $activeStudents = Student::where('active', true)->count();
-        if ($activeStudents === 0) {
-            // If active field doesn't exist or no active students, assume all students are active
-            $activeStudents = $totalStudents;
-        }
         
         // Count students created this month
         $startOfMonth = Carbon::now()->startOfMonth();
@@ -59,11 +54,6 @@ class DashboardController extends Controller
         
         // Teacher statistics
         $totalTeachers = Teacher::count();
-        $activeTeachers = Teacher::where('active', true)->count();
-        if ($activeTeachers === 0) {
-            // If active field doesn't exist or no active teachers, assume all teachers are active
-            $activeTeachers = $totalTeachers;
-        }
         
         // Group/Class statistics
         $totalGroups = 0;
@@ -86,7 +76,6 @@ class DashboardController extends Controller
             'kpi_data' => [
                 'students' => [
                     'total' => $totalStudents,
-                    'active' => $activeStudents,
                     'new_this_month' => $newStudentsThisMonth,
                     'growth_percentage' => round($growthPercentage, 2)
                 ],
@@ -102,8 +91,7 @@ class DashboardController extends Controller
                     'attendance_rate' => 0
                 ],
                 'teachers' => [
-                    'total' => $totalTeachers,
-                    'active' => $activeTeachers
+                    'total' => $totalTeachers
                 ]
             ]
         ];

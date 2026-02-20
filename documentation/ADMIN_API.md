@@ -895,7 +895,6 @@ The command validates that:
     "kpi_data": {
       "students": {
         "total": 320,
-        "active": 247,
         "new_this_month": 12,
         "growth_percentage": 5.2
       },
@@ -911,8 +910,7 @@ The command validates that:
         "attendance_rate": 92
       },
       "teachers": {
-        "total": 24,
-        "active": 18
+        "total": 24
       }
     }
   }
