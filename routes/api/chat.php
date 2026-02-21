@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\AdminChatController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,6 +36,13 @@ Route::middleware('auth:api')->group(function () {
     
     // Archive a chat
     Route::put('/chats/{id}/archive', [ChatController::class, 'archive']);
+    
+    // Admin Chat Routes
+    // Create a new admin chat
+    Route::post('/admin-chats', [AdminChatController::class, 'store']);
+    
+    // Send a message in an admin chat
+    Route::post('/admin-chats/{id}/messages', [AdminChatController::class, 'sendMessage']);
 });
 
 // Broadcasting authentication route

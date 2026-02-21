@@ -14,10 +14,11 @@ This documentation provides comprehensive details about the AB Academy admin API
 8. [Archive](08-archive.md)
 9. [Student Details](09-student-details.md)
 10. [Chat System](10-chat-system.md)
-11. [Frontend Integration Examples](11-frontend-integration.md)
-12. [Products](12-products.md)
-13. [Student Purchases](13-student-purchases.md)
-14. [Invoices](14-invoices.md)
+11. [Admin Chat System](11-admin-chat-system.md)
+12. [Homework System](12-homework-system.md)
+13. [Products](12-products.md)
+14. [Student Purchases](13-student-purchases.md)
+15. [Invoices](14-invoices.md)
 
 ## Base URL
 
@@ -31,6 +32,7 @@ The AB Academy Admin API provides a comprehensive set of endpoints for managing 
 - Group and class management
 - Course management
 - Exam scheduling and grading
+- Homework assignment and management
 - Event scheduling
 - Dashboard analytics
 - Chat functionality

@@ -12,6 +12,7 @@ class Chat extends Model
     protected $fillable = [
         'student_id',
         'teacher_id',
+        'admin_id',
         'last_message_at',
         'is_active',
     ];
@@ -30,6 +31,11 @@ class Chat extends Model
     {
         return $this->belongsTo(Teacher::class, 'teacher_id');
     }
+    
+    public function admin()
+    {
+        return $this->belongsTo(Admin::class, 'admin_id');
+    }
 
     public function messages()
     {
@@ -44,6 +50,11 @@ class Chat extends Model
     public function scopeForTeacher($query, $teacherId)
     {
         return $query->where('teacher_id', $teacherId);
+    }
+    
+    public function scopeForAdmin($query, $adminId)
+    {
+        return $query->where('admin_id', $adminId);
     }
 
     public function scopeActive($query)
