@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Group;
 use App\Models\Student;
+use App\Models\Teacher;
 use App\Models\DatabaseLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use DateTime;
 
 class GroupController extends Controller
 {
@@ -64,6 +66,15 @@ class GroupController extends Controller
         }
 
         $payload = $request->except('group_members');
+        
+        // Set normal_schedule based on schedule_day and schedule_time
+        if (isset($payload['schedule_day']) && isset($payload['schedule_time'])) {
+            // Create a datetime string for normal_schedule
+            $nextOccurrence = $this->getNextDayOccurrence($payload['schedule_day']);
+            $timeString = $payload['schedule_time'];
+            $payload['normal_schedule'] = $nextOccurrence->format('Y-m-d') . ' ' . $timeString . ':00';
+        }
+        
         $group = Group::create($payload);
 
         if ($request->filled('group_members')) {
@@ -83,8 +94,6 @@ class GroupController extends Controller
             'created',
             'Group',
             $group->group_id,
-            auth()->id(),
-            auth()->user()->role,
             'Admin created a new group',
             $group->toArray()
         );
@@ -149,6 +158,15 @@ class GroupController extends Controller
 
         $oldData = $group->toArray();
         $payload = $request->except('group_members');
+        
+        // Set normal_schedule based on schedule_day and schedule_time
+        if (isset($payload['schedule_day']) && isset($payload['schedule_time'])) {
+            // Create a datetime string for normal_schedule
+            $nextOccurrence = $this->getNextDayOccurrence($payload['schedule_day']);
+            $timeString = $payload['schedule_time'];
+            $payload['normal_schedule'] = $nextOccurrence->format('Y-m-d') . ' ' . $timeString . ':00';
+        }
+        
         $group->update($payload);
 
         if ($request->has('group_members')) {
@@ -168,8 +186,6 @@ class GroupController extends Controller
             'updated',
             'Group',
             $group->group_id,
-            auth()->id(),
-            auth()->user()->role,
             'Admin updated group',
             ['old' => $oldData, 'new' => $group->toArray()]
         );
@@ -200,29 +216,9 @@ class GroupController extends Controller
             'deleted',
             'Group',
             $id,
-            auth()->id(),
-            auth()->user()->role,
             'Admin deleted group',
             $groupData
         );
-
-        return response()->json([
-            'message' => 'Group deleted successfully'
-        ], 200);
-    }
-
-    /**
-     * Add a student to a group.
-     */
-    public function addStudent(Request $request, $id)
-    {
-        $group = Group::find($id);
-
-        if (!$group) {
-            return response()->json([
-                'message' => 'Group not found'
-            ], 404);
-        }
 
         $validator = Validator::make($request->all(), [
             'student_id' => 'required|exists:users,id',
@@ -251,20 +247,17 @@ class GroupController extends Controller
         }
 
         $group->students()->attach($request->student_id);
-
+        
         DatabaseLog::logAction(
             'updated',
             'Group',
             $group->group_id,
-            auth()->id(),
-            auth()->user()->role,
             'Admin added student to group',
-            ['group_id' => $group->group_id, 'student_id' => $request->student_id]
+            ['student_id' => $request->student_id]
         );
-
+        
         return response()->json([
-            'message' => 'Student added to group successfully',
-            'group' => $group->load(['teacher', 'students'])
+            'message' => 'Student added to group successfully'
         ], 200);
     }
 
@@ -293,8 +286,6 @@ class GroupController extends Controller
             'updated',
             'Group',
             $group->group_id,
-            auth()->id(),
-            auth()->user()->role,
             'Admin removed student from group',
             ['group_id' => $group->group_id, 'student_id' => $studentId]
         );
@@ -347,8 +338,6 @@ class GroupController extends Controller
             'updated',
             'Group',
             $group->group_id,
-            auth()->id(),
-            auth()->user()->role,
             'Admin updated group members',
             ['old' => $oldMembers, 'new' => $newMembers]
         );
@@ -357,5 +346,38 @@ class GroupController extends Controller
             'message' => 'Group members updated successfully',
             'group' => $group->load(['teacher', 'students'])
         ], 200);
+    }
+    
+    /**
+     * Get the next occurrence of a specific day of the week.
+     *
+     * @param string $dayName The name of the day (e.g., 'Monday', 'Tuesday', etc.)
+     * @return DateTime
+     */
+    private function getNextDayOccurrence(string $dayName): DateTime
+    {
+        $today = new DateTime();
+        $dayOfWeek = array_search($dayName, ['Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3, 'Thursday' => 4, 'Friday' => 5, 'Saturday' => 6, 'Sunday' => 7]);
+        
+        if ($dayOfWeek === false) {
+            // Default to today if day name is invalid
+            return $today;
+        }
+        
+        $todayDayOfWeek = (int)$today->format('N'); // 1 (Monday) to 7 (Sunday)
+        
+        if ($todayDayOfWeek <= $dayOfWeek) {
+            // The target day is later this week
+            $daysToAdd = $dayOfWeek - $todayDayOfWeek;
+        } else {
+            // The target day is in the next week
+            $daysToAdd = 7 - ($todayDayOfWeek - $dayOfWeek);
+        }
+        
+        // Clone today and add the required number of days
+        $nextOccurrence = clone $today;
+        $nextOccurrence->modify("+{$daysToAdd} days");
+        
+        return $nextOccurrence;
     }
 }
