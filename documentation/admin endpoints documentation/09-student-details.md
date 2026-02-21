@@ -60,6 +60,32 @@ Retrieves detailed information about a student, including their groups and exams
         "score": null,
         "feedback": null
       }
+    ],
+    "invoices": [
+      {
+        "id": 1,
+        "title": "Course Payment",
+        "series": "INV",
+        "number": "000001",
+        "value": "499.99",
+        "currency": "EUR",
+        "due_date": "2026-03-15",
+        "status": "paid",
+        "created_at": "2026-02-21T10:00:00.000000Z",
+        "updated_at": "2026-02-21T10:00:00.000000Z"
+      },
+      {
+        "id": 3,
+        "title": "Course Materials",
+        "series": "INV",
+        "number": "000003",
+        "value": "75.50",
+        "currency": "EUR",
+        "due_date": "2026-04-01",
+        "status": "draft",
+        "created_at": "2026-02-21T12:00:00.000000Z",
+        "updated_at": "2026-02-21T12:00:00.000000Z"
+      }
     ]
   }
   ```
@@ -72,6 +98,7 @@ The student details endpoint now includes all the necessary information about a 
 - Admin notes
 - Enrolled groups with schedule information
 - Enrolled exams with scores and feedback
+- Student invoices with payment status
 
 This consolidated approach reduces the number of API calls needed to build a complete student profile view.
 

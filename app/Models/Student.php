@@ -36,6 +36,16 @@ class Student extends User
     {
         return $this->belongsToMany(Group::class, 'group_student', 'student_id', 'group_id');
     }
+    
+    /**
+     * Get the products that the student has purchased.
+     */
+    public function purchasedProducts(): BelongsToMany
+    {
+        return $this->belongsToMany(Product::class, 'student_product', 'student_id', 'product_id')
+                    ->withPivot('purchased_at', 'purchase_price')
+                    ->withTimestamps();
+    }
 
     public function isAdmin(): bool
     {

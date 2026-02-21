@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Teacher;
 use App\Models\Student;
+use App\Models\Teacher;
+use App\Models\User;
+use App\Models\Invoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -211,6 +213,9 @@ class UserManagementController extends Controller
     {
         $student = Student::with(['groups.teacher', 'enrolledExams.teacher'])->findOrFail($id);
         
+        // Get student invoices
+        $invoices = Invoice::where('student_id', $student->id)->orderBy('created_at', 'desc')->get();
+        
         // Format enrolled groups
         $enrolledGroups = $student->groups->map(function ($group) {
             return [
@@ -246,6 +251,22 @@ class UserManagementController extends Controller
             ];
         });
         
+        // Format invoices
+        $formattedInvoices = $invoices->map(function ($invoice) {
+            return [
+                'id' => $invoice->id,
+                'title' => $invoice->title,
+                'series' => $invoice->series,
+                'number' => $invoice->number,
+                'value' => $invoice->value,
+                'currency' => $invoice->currency,
+                'due_date' => $invoice->due_date->format('Y-m-d'),
+                'status' => $invoice->status,
+                'created_at' => $invoice->created_at,
+                'updated_at' => $invoice->updated_at,
+            ];
+        });
+        
         return response()->json([
             'message' => 'Student retrieved successfully',
             'student' => [
@@ -253,13 +274,15 @@ class UserManagementController extends Controller
                 'username' => $student->username,
                 'email' => $student->email,
                 'telephone' => $student->telephone,
+                'address' => $student->address,
                 'role' => $student->role,
                 'admin_notes' => $student->admin_notes,
                 'created_at' => $student->created_at,
                 'updated_at' => $student->updated_at,
             ],
             'enrolled_groups' => $enrolledGroups,
-            'enrolled_exams' => $enrolledExams
+            'enrolled_exams' => $enrolledExams,
+            'invoices' => $formattedInvoices
         ]);
     }
     

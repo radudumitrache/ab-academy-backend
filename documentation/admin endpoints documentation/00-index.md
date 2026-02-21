@@ -15,6 +15,9 @@ This documentation provides comprehensive details about the AB Academy admin API
 9. [Student Details](09-student-details.md)
 10. [Chat System](10-chat-system.md)
 11. [Frontend Integration Examples](11-frontend-integration.md)
+12. [Products](12-products.md)
+13. [Student Purchases](13-student-purchases.md)
+14. [Invoices](14-invoices.md)
 
 ## Base URL
 

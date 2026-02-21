@@ -11,6 +11,7 @@ use Illuminate\Support\Carbon;
 use App\Models\User;
 use App\Models\Student;
 use App\Models\Teacher;
+use App\Models\Invoice;
 
 class DashboardController extends Controller
 {
@@ -55,6 +56,59 @@ class DashboardController extends Controller
         // Teacher statistics
         $totalTeachers = Teacher::count();
         
+        // Revenue statistics from paid invoices
+        $totalRevenue = 0;
+        $revenueThisMonth = 0;
+        $revenueLastMonth = 0;
+        $revenueGrowthPercentage = 0;
+        
+        if (Schema::hasTable('invoices')) {
+            // Calculate total revenue from paid invoices
+            $paidInvoices = Invoice::where('status', 'paid')->get();
+            
+            // Calculate total revenue
+            foreach ($paidInvoices as $invoice) {
+                // Convert all values to EUR for consistency
+                if ($invoice->currency === 'RON') {
+                    // Assuming 1 EUR = 4.9 RON (you may want to use a real exchange rate service)
+                    $totalRevenue += $invoice->value / 4.9;
+                } else {
+                    $totalRevenue += $invoice->value;
+                }
+            }
+            
+            // Calculate revenue this month
+            $paidInvoicesThisMonth = Invoice::where('status', 'paid')
+                ->where('updated_at', '>=', $startOfMonth)
+                ->get();
+                
+            foreach ($paidInvoicesThisMonth as $invoice) {
+                if ($invoice->currency === 'RON') {
+                    $revenueThisMonth += $invoice->value / 4.9;
+                } else {
+                    $revenueThisMonth += $invoice->value;
+                }
+            }
+            
+            // Calculate revenue last month
+            $paidInvoicesLastMonth = Invoice::where('status', 'paid')
+                ->whereBetween('updated_at', [$lastMonthStart, $lastMonthEnd])
+                ->get();
+                
+            foreach ($paidInvoicesLastMonth as $invoice) {
+                if ($invoice->currency === 'RON') {
+                    $revenueLastMonth += $invoice->value / 4.9;
+                } else {
+                    $revenueLastMonth += $invoice->value;
+                }
+            }
+            
+            // Calculate revenue growth percentage
+            if ($revenueLastMonth > 0) {
+                $revenueGrowthPercentage = (($revenueThisMonth - $revenueLastMonth) / $revenueLastMonth) * 100;
+            }
+        }
+        
         // Group/Class statistics
         $totalGroups = 0;
         if (Schema::hasTable('groups')) {
@@ -80,10 +134,10 @@ class DashboardController extends Controller
                     'growth_percentage' => round($growthPercentage, 2)
                 ],
                 'revenue' => [
-                    'total' => '$0',
-                    'this_month' => '$0',
-                    'last_month' => '$0',
-                    'growth_percentage' => 0
+                    'total' => '€' . number_format($totalRevenue, 2),
+                    'this_month' => '€' . number_format($revenueThisMonth, 2),
+                    'last_month' => '€' . number_format($revenueLastMonth, 2),
+                    'growth_percentage' => round($revenueGrowthPercentage, 2)
                 ],
                 'classes' => [
                     'total' => $totalGroups,
@@ -245,17 +299,17 @@ class DashboardController extends Controller
             // Check if groups table exists
             if (Schema::hasTable('groups')) {
                 // Get all groups
-                $allGroups = DB::table('groups')->select('id', 'name', 'description')->get();
+                $allGroups = DB::table('groups')->select('group_id', 'group_name', 'description')->get();
                 
                 foreach ($allGroups as $group) {
                     // Calculate Levenshtein distance for group name
-                    $distance = levenshtein(strtolower($query), strtolower($group->name));
+                    $distance = levenshtein(strtolower($query), strtolower($group->group_name));
                     
                     // If distance is within acceptable range, add to results
                     if ($distance <= $maxDistance) {
                         $groups[] = [
-                            'id' => $group->id,
-                            'name' => $group->name,
+                            'id' => $group->group_id,
+                            'name' => $group->group_name,
                             'description' => $group->description,
                             'type' => 'group',
                             'relevance' => 100 - ($distance * 25) // Higher score for closer matches
