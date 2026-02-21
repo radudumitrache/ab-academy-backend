@@ -2,11 +2,11 @@
 
 This section covers the API endpoints for accessing detailed information about students in the AB Academy platform.
 
-## Get Student Groups
+## Get Student Details
 
-Retrieves all groups a specific student belongs to.
+Retrieves detailed information about a student, including their groups and exams.
 
-- **URL**: `/api/admin/students/{id}/groups`
+- **URL**: `/api/admin/students/{id}`
 - **Method**: `GET`
 - **Auth Required**: Yes
 - **Headers**:
@@ -19,139 +19,61 @@ Retrieves all groups a specific student belongs to.
 - **Success Response**:
   ```json
   {
-    "message": "Student groups retrieved successfully",
-    "student_id": 5,
-    "groups": [
+    "message": "Student retrieved successfully",
+    "student": {
+      "id": 5,
+      "username": "student1",
+      "email": "student1@example.com",
+      "telephone": "+1212121212",
+      "role": "student",
+      "admin_notes": "Student has requested extra help with mathematics.",
+      "created_at": "2026-02-05T10:00:00.000000Z",
+      "updated_at": "2026-02-05T10:00:00.000000Z"
+    },
+    "enrolled_groups": [
       {
-        "group_id": 1,
+        "id": 1,
         "group_name": "Math Group",
         "group_teacher": 2,
         "description": "Advanced mathematics group",
         "schedule_day": "Monday",
         "schedule_time": "14:30",
         "formatted_schedule": "Monday at 14:30",
-        "created_at": "2026-02-15T10:20:30.000000Z",
-        "updated_at": "2026-02-15T10:20:30.000000Z",
         "teacher": {
           "id": 2,
-          "username": "teacher_name",
-          "email": "teacher@example.com",
+          "username": "teacher1",
           "role": "teacher"
         }
+      }
+    ],
+    "enrolled_exams": [
+      {
+        "id": 1,
+        "name": "Mathematics Midterm",
+        "date": "2026-03-15T10:00:00.000000Z",
+        "status": "upcoming",
+        "teacher": {
+          "id": 2,
+          "username": "teacher1",
+          "role": "teacher"
+        },
+        "score": null,
+        "feedback": null
       }
     ]
   }
   ```
 
-## Get Student Exams
+## Note on Student Data
 
-Retrieves exam data for a specific student, including upcoming, completed, and exams to be graded.
+The student details endpoint now includes all the necessary information about a student, including:
 
-- **URL**: `/api/admin/students/{id}/exams`
-- **Method**: `GET`
-- **Auth Required**: Yes
-- **Headers**:
-  ```
-  Authorization: Bearer {token}
-  ```
-- **URL Parameters**:
-  - `id`: The ID of the student
+- Basic student information
+- Admin notes
+- Enrolled groups with schedule information
+- Enrolled exams with scores and feedback
 
-- **Success Response**:
-  ```json
-  {
-    "message": "Student exams retrieved successfully",
-    "student_id": 5,
-    "exams_summary": {
-      "upcoming_count": 2,
-      "completed_count": 3,
-      "to_be_graded_count": 1,
-      "next_exam": {
-        "id": 8,
-        "name": "Algebra Final",
-        "date": "2026-03-15T09:00:00.000000Z",
-        "status": "upcoming",
-        "teacher": {
-          "id": 2,
-          "username": "teacher_name"
-        },
-        "score": null,
-        "feedback": null
-      }
-    },
-    "exams": {
-      "upcoming": [
-        {
-          "id": 8,
-          "name": "Algebra Final",
-          "date": "2026-03-15T09:00:00.000000Z",
-          "status": "upcoming",
-          "teacher": {
-            "id": 2,
-            "username": "teacher_name"
-          },
-          "score": null,
-          "feedback": null
-        }
-      ],
-      "completed": [
-        {
-          "id": 5,
-          "name": "Calculus Midterm",
-          "date": "2026-02-10T09:00:00.000000Z",
-          "status": "passed",
-          "teacher": {
-            "id": 2,
-            "username": "teacher_name"
-          },
-          "score": 85.5,
-          "feedback": "Good work on the derivatives section."
-        }
-      ],
-      "to_be_graded": [
-        {
-          "id": 7,
-          "name": "Statistics Quiz",
-          "date": "2026-02-18T14:00:00.000000Z",
-          "status": "to_be_corrected",
-          "teacher": {
-            "id": 3,
-            "username": "another_teacher"
-          },
-          "score": null,
-          "feedback": null
-        }
-      ]
-    }
-  }
-  ```
-
-## Get Student Payments
-
-Retrieves payment information for a specific student.
-
-- **URL**: `/api/admin/students/{id}/payments`
-- **Method**: `GET`
-- **Auth Required**: Yes
-- **Headers**:
-  ```
-  Authorization: Bearer {token}
-  ```
-- **URL Parameters**:
-  - `id`: The ID of the student
-
-- **Success Response**:
-  ```json
-  {
-    "message": "Student payments retrieved successfully",
-    "student_id": 5,
-    "payments": {
-      "status": "No payment records found",
-      "data": []
-    },
-    "note": "Payment system not yet implemented"
-  }
-  ```
+This consolidated approach reduces the number of API calls needed to build a complete student profile view.
 
 ## Get User Notes
 

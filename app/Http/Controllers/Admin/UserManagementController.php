@@ -154,6 +154,7 @@ class UserManagementController extends Controller
             'email' => 'sometimes|required|email|unique:users,email,' . $teacher->id,
             'telephone' => 'nullable|string|max:20',
             'password' => 'nullable|string|min:6',
+            'admin_notes' => 'nullable|string',
         ]);
         
         // Update basic fields
@@ -167,6 +168,11 @@ class UserManagementController extends Controller
         
         if ($request->has('telephone')) {
             $teacher->telephone = $request->telephone;
+        }
+        
+        // Update admin notes if provided
+        if ($request->has('admin_notes')) {
+            $teacher->admin_notes = $request->admin_notes;
         }
         
         // Update password if provided
@@ -184,6 +190,7 @@ class UserManagementController extends Controller
                 'email' => $teacher->email,
                 'telephone' => $teacher->telephone,
                 'role' => $teacher->role,
+                'admin_notes' => $teacher->admin_notes,
                 'updated_at' => $teacher->updated_at,
             ],
         ]);
@@ -265,6 +272,7 @@ class UserManagementController extends Controller
             'email' => 'sometimes|required|email|unique:users,email,' . $student->id,
             'telephone' => 'nullable|string|max:20',
             'password' => 'nullable|string|min:6',
+            'admin_notes' => 'nullable|string',
         ]);
         
         // Update basic fields
@@ -278,6 +286,11 @@ class UserManagementController extends Controller
         
         if ($request->has('telephone')) {
             $student->telephone = $request->telephone;
+        }
+        
+        // Update admin notes if provided
+        if ($request->has('admin_notes')) {
+            $student->admin_notes = $request->admin_notes;
         }
         
         // Update password if provided
@@ -295,6 +308,7 @@ class UserManagementController extends Controller
                 'email' => $student->email,
                 'telephone' => $student->telephone,
                 'role' => $student->role,
+                'admin_notes' => $student->admin_notes,
                 'updated_at' => $student->updated_at,
             ],
         ]);

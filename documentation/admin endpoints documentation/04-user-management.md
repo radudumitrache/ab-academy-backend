@@ -227,7 +227,8 @@ This section covers the API endpoints for managing users (teachers and students)
     "username": "updated_teacher",
     "email": "updated_teacher@example.com",
     "telephone": "+9988776655",
-    "password": "new_password"
+    "password": "new_password",
+    "admin_notes": "Teacher specializes in advanced calculus and statistics."
   }
   ```
 - **Success Response**:
@@ -438,7 +439,8 @@ This section covers the API endpoints for managing users (teachers and students)
     "username": "updated_student",
     "email": "updated_student@example.com",
     "telephone": "+5656565656",
-    "password": "new_password"
+    "password": "new_password",
+    "admin_notes": "Student has requested extra help with mathematics."
   }
   ```
 - **Success Response**:
