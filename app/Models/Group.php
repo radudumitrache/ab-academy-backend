@@ -38,7 +38,7 @@ class Group extends Model
      */
     protected $casts = [
         'normal_schedule' => 'datetime',
-        'schedule_time' => 'datetime',
+        'schedule_time' => 'time',
     ];
 
     protected $appends = [

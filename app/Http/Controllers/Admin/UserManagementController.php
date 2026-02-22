@@ -294,6 +294,12 @@ class UserManagementController extends Controller
                 'email' => $student->email,
                 'telephone' => $student->telephone,
                 'address' => $student->address,
+                'street' => $student->street,
+                'house_number' => $student->house_number,
+                'city' => $student->city,
+                'county' => $student->county,
+                'country' => $student->country,
+                'occupation' => $student->occupation,
                 'role' => $student->role,
                 'admin_notes' => $student->admin_notes,
                 'created_at' => $student->created_at,
@@ -314,6 +320,13 @@ class UserManagementController extends Controller
             'username' => 'sometimes|required|string|unique:users,username,' . $student->id,
             'email' => 'sometimes|required|email|unique:users,email,' . $student->id,
             'telephone' => 'nullable|string|max:20',
+            'address' => 'nullable|string',
+            'street' => 'nullable|string',
+            'house_number' => 'nullable|string',
+            'city' => 'nullable|string',
+            'county' => 'nullable|string',
+            'country' => 'nullable|string',
+            'occupation' => 'nullable|string',
             'password' => 'nullable|string|min:6',
             'admin_notes' => 'nullable|string',
         ]);
@@ -331,7 +344,34 @@ class UserManagementController extends Controller
             $student->telephone = $request->telephone;
         }
         
-        // Update admin notes if provided
+        if ($request->has('address')) {
+            $student->address = $request->address;
+        }
+        
+        if ($request->has('street')) {
+            $student->street = $request->street;
+        }
+        
+        if ($request->has('house_number')) {
+            $student->house_number = $request->house_number;
+        }
+        
+        if ($request->has('city')) {
+            $student->city = $request->city;
+        }
+        
+        if ($request->has('county')) {
+            $student->county = $request->county;
+        }
+        
+        if ($request->has('country')) {
+            $student->country = $request->country;
+        }
+        
+        if ($request->has('occupation')) {
+            $student->occupation = $request->occupation;
+        }
+        
         if ($request->has('admin_notes')) {
             $student->admin_notes = $request->admin_notes;
         }

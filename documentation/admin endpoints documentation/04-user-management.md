@@ -361,6 +361,12 @@ This section covers the API endpoints for managing users (teachers and students)
       "email": "student1@example.com",
       "telephone": "+1212121212",
       "address": "123 Student Street, City, Country",
+      "street": "Student Street",
+      "house_number": "123",
+      "city": "City",
+      "county": "County",
+      "country": "Country",
+      "occupation": "Student",
       "role": "student",
       "created_at": "2026-02-05T10:00:00.000000Z",
       "updated_at": "2026-02-05T10:00:00.000000Z",
@@ -474,6 +480,13 @@ This section covers the API endpoints for managing users (teachers and students)
     "username": "updated_student",
     "email": "updated_student@example.com",
     "telephone": "+5656565656",
+    "address": "123 Main Street, New City, New Country",
+    "street": "Main Street",
+    "house_number": "123",
+    "city": "New City",
+    "county": "New County",
+    "country": "New Country",
+    "occupation": "Software Developer",
     "password": "new_password",
     "admin_notes": "Student has requested extra help with mathematics."
   }
@@ -487,7 +500,15 @@ This section covers the API endpoints for managing users (teachers and students)
       "username": "updated_student",
       "email": "updated_student@example.com",
       "telephone": "+5656565656",
+      "address": "123 Main Street, New City, New Country",
+      "street": "Main Street",
+      "house_number": "123",
+      "city": "New City",
+      "county": "New County",
+      "country": "New Country",
+      "occupation": "Software Developer",
       "role": "student",
+      "admin_notes": "Student has requested extra help with mathematics.",
       "updated_at": "2026-02-20T15:00:00.000000Z"
     }
   }
