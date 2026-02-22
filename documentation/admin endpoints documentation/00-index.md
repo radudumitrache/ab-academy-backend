@@ -16,9 +16,7 @@ This documentation provides comprehensive details about the AB Academy admin API
 10. [Chat System](10-chat-system.md)
 11. [Admin Chat System](11-admin-chat-system.md)
 12. [Homework System](12-homework-system.md)
-13. [Products](12-products.md)
-14. [Student Purchases](13-student-purchases.md)
-15. [Invoices](14-invoices.md)
+13. [Invoices](14-invoices.md)
 
 ## Base URL
 
