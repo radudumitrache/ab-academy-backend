@@ -144,6 +144,70 @@ This section covers the API endpoints for the admin dashboard in the AB Academy 
   }
   ```
 
+## Get Chat Logs
+
+- **URL**: `/api/admin/dashboard/chat-logs`
+- **Method**: `GET`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  ```
+- **Query Parameters**:
+  - `limit` (optional): Number of chat logs to return (default: 20)
+  - `student_id` (optional): Filter logs by student ID
+  - `admin_id` (optional): Filter logs by admin ID
+  - `from_date` (optional): Filter logs from this date (format: YYYY-MM-DD)
+  - `to_date` (optional): Filter logs to this date (format: YYYY-MM-DD)
+- **Success Response**:
+  ```json
+  {
+    "message": "Chat logs retrieved successfully",
+    "logs": [
+      {
+        "id": 1,
+        "student_id": 5,
+        "admin_id": 1,
+        "message": "Hello, I need help with my course registration.",
+        "sender_type": "student",
+        "read": true,
+        "created_at": "2026-02-20T09:30:00.000000Z",
+        "student": {
+          "id": 5,
+          "username": "student1",
+          "role": "student"
+        },
+        "admin": {
+          "id": 1,
+          "username": "admin1",
+          "role": "admin"
+        }
+      },
+      {
+        "id": 2,
+        "student_id": 5,
+        "admin_id": 1,
+        "message": "Sure, I can help you with that. What course are you trying to register for?",
+        "sender_type": "admin",
+        "read": true,
+        "created_at": "2026-02-20T09:32:00.000000Z",
+        "student": {
+          "id": 5,
+          "username": "student1",
+          "role": "student"
+        },
+        "admin": {
+          "id": 1,
+          "username": "admin1",
+          "role": "admin"
+        }
+      }
+    ],
+    "total": 2,
+    "unread": 0
+  }
+  ```
+
 ## Frontend Integration Example
 
 ```javascript
@@ -183,6 +247,18 @@ export const getDashboardActivities = async (limit = 10) => {
     const response = await axios.get(`${API_URL}/admin/dashboard/activities`, {
       headers: authHeader(),
       params: { limit }
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response.data;
+  }
+};
+
+export const getChatLogs = async (params = {}) => {
+  try {
+    const response = await axios.get(`${API_URL}/admin/dashboard/chat-logs`, {
+      headers: authHeader(),
+      params
     });
     return response.data;
   } catch (error) {

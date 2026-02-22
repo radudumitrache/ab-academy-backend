@@ -274,15 +274,15 @@ class UserManagementController extends Controller
             ];
         });
         
-        // Format purchased products
-        $purchasedProducts = $student->purchasedProducts->map(function ($product) {
+        // Format purchased products (now using courses)
+        $purchasedProducts = $student->purchasedProducts->map(function ($course) {
             return [
-                'id' => $product->id,
-                'title' => $product->title,
-                'description' => $product->description,
-                'price' => $product->price,
-                'purchased_at' => $product->pivot->purchased_at,
-                'purchase_price' => $product->pivot->purchase_price
+                'id' => $course->id,
+                'title' => $course->title,
+                'description' => $course->description,
+                'price' => $course->price,
+                'purchased_at' => $course->pivot->purchased_at,
+                'purchase_price' => $course->pivot->purchase_price
             ];
         });
         

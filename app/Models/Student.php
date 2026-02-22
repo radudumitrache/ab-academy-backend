@@ -38,11 +38,11 @@ class Student extends User
     }
     
     /**
-     * Get the products that the student has purchased.
+     * Get the courses that the student has purchased.
      */
     public function purchasedProducts(): BelongsToMany
     {
-        return $this->belongsToMany(Product::class, 'student_product', 'student_id', 'product_id')
+        return $this->belongsToMany(Course::class, 'student_course', 'student_id', 'course_id')
                     ->withPivot('purchased_at', 'purchase_price')
                     ->withTimestamps();
     }

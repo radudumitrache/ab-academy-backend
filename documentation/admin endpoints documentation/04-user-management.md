@@ -441,16 +441,16 @@ This section covers the API endpoints for managing users (teachers and students)
     "purchased_products": [
       {
         "id": 1,
-        "title": "Mathematics Textbook",
-        "description": "Comprehensive textbook covering algebra, calculus, and statistics",
+        "title": "Introduction to Mathematics",
+        "description": "Comprehensive course covering algebra, calculus, and statistics",
         "price": "49.99",
         "purchased_at": "2026-02-21T14:30:00.000000Z",
         "purchase_price": "49.99"
       },
       {
         "id": 2,
-        "title": "Physics Lab Kit",
-        "description": "Hands-on physics experiments kit for students",
+        "title": "Advanced Physics",
+        "description": "In-depth physics course with practical experiments",
         "price": "129.99",
         "purchased_at": "2026-02-21T15:45:00.000000Z",
         "purchase_price": "129.99"
