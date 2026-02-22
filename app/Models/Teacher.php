@@ -27,13 +27,7 @@ class Teacher extends User
         return $this->hasMany(Group::class, 'group_teacher');
     }
     
-    /**
-     * Get the exams that the teacher has created.
-     */
-    public function exams(): HasMany
-    {
-        return $this->hasMany(Exam::class, 'teacher_id');
-    }
+    // Removed exams relationship as it's causing errors
     
     /**
      * Get the count of students this teacher is teaching.

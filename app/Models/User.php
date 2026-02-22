@@ -23,6 +23,7 @@ class User extends Authenticatable
         'password',
         'role',
         'admin_notes',
+        'languages_taught',
     ];
 
     /**
@@ -32,6 +33,15 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
+    ];
+    
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'languages_taught' => 'array',
     ];
 
     /**

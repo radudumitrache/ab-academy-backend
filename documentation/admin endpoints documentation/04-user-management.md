@@ -358,6 +358,7 @@ This section covers the API endpoints for managing users (teachers and students)
       "username": "student1",
       "email": "student1@example.com",
       "telephone": "+1212121212",
+      "address": "123 Student Street, City, Country",
       "role": "student",
       "created_at": "2026-02-05T10:00:00.000000Z",
       "updated_at": "2026-02-05T10:00:00.000000Z",
@@ -419,6 +420,38 @@ This section covers the API endpoints for managing users (teachers and students)
         },
         "score": 85,
         "feedback": "Good work on the theoretical questions."
+      }
+    ],
+    "invoices": [
+      {
+        "id": 1,
+        "title": "Course Payment",
+        "series": "INV",
+        "number": "000001",
+        "value": "499.99",
+        "currency": "EUR",
+        "due_date": "2026-03-15",
+        "status": "paid",
+        "created_at": "2026-02-21T10:00:00.000000Z",
+        "updated_at": "2026-02-21T10:00:00.000000Z"
+      }
+    ],
+    "purchased_products": [
+      {
+        "id": 1,
+        "title": "Mathematics Textbook",
+        "description": "Comprehensive textbook covering algebra, calculus, and statistics",
+        "price": "49.99",
+        "purchased_at": "2026-02-21T14:30:00.000000Z",
+        "purchase_price": "49.99"
+      },
+      {
+        "id": 2,
+        "title": "Physics Lab Kit",
+        "description": "Hands-on physics experiments kit for students",
+        "price": "129.99",
+        "purchased_at": "2026-02-21T15:45:00.000000Z",
+        "purchase_price": "129.99"
       }
     ]
   }

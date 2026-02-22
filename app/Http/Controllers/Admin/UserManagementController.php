@@ -95,7 +95,7 @@ class UserManagementController extends Controller
 
     public function getTeacher($id)
     {
-        $teacher = Teacher::with(['groups.students', 'exams'])->findOrFail($id);
+        $teacher = Teacher::with(['groups.students'])->findOrFail($id);
         
         // Format groups with schedule information
         $createdGroups = $teacher->groups->map(function ($group) {
@@ -127,8 +127,7 @@ class UserManagementController extends Controller
         
         $teachingStats = [
             'total_students' => count($uniqueStudentIds),
-            'total_groups' => $teacher->groups->count(),
-            'total_exams' => $teacher->exams->count()
+            'total_groups' => $teacher->groups->count()
         ];
         
         return response()->json([
@@ -139,6 +138,7 @@ class UserManagementController extends Controller
                 'email' => $teacher->email,
                 'telephone' => $teacher->telephone,
                 'role' => $teacher->role,
+                'languages_taught' => $teacher->languages_taught,
                 'created_at' => $teacher->created_at,
                 'updated_at' => $teacher->updated_at,
             ],
@@ -211,7 +211,7 @@ class UserManagementController extends Controller
 
     public function getStudent($id)
     {
-        $student = Student::with(['groups.teacher', 'enrolledExams.teacher'])->findOrFail($id);
+        $student = Student::with(['groups.teacher', 'enrolledExams.teacher', 'purchasedProducts'])->findOrFail($id);
         
         // Get student invoices
         $invoices = Invoice::where('student_id', $student->id)->orderBy('created_at', 'desc')->get();
@@ -267,6 +267,18 @@ class UserManagementController extends Controller
             ];
         });
         
+        // Format purchased products
+        $purchasedProducts = $student->purchasedProducts->map(function ($product) {
+            return [
+                'id' => $product->id,
+                'title' => $product->title,
+                'description' => $product->description,
+                'price' => $product->price,
+                'purchased_at' => $product->pivot->purchased_at,
+                'purchase_price' => $product->pivot->purchase_price
+            ];
+        });
+        
         return response()->json([
             'message' => 'Student retrieved successfully',
             'student' => [
@@ -282,7 +294,8 @@ class UserManagementController extends Controller
             ],
             'enrolled_groups' => $enrolledGroups,
             'enrolled_exams' => $enrolledExams,
-            'invoices' => $formattedInvoices
+            'invoices' => $formattedInvoices,
+            'purchased_products' => $purchasedProducts
         ]);
     }
     
