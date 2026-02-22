@@ -91,13 +91,13 @@ This section covers the API endpoints for managing users (teachers and students)
       "email": "teacher1@example.com",
       "telephone": "+1234567890",
       "role": "teacher",
+      "languages_taught": ["English", "French", "Spanish"],
       "created_at": "2026-02-01T10:00:00.000000Z",
       "updated_at": "2026-02-01T10:00:00.000000Z"
     },
     "teaching_stats": {
       "total_students": 15,
-      "total_groups": 3,
-      "total_exams": 5
+      "total_groups": 3
     },
     "created_groups": [
       {
@@ -228,6 +228,7 @@ This section covers the API endpoints for managing users (teachers and students)
     "email": "updated_teacher@example.com",
     "telephone": "+9988776655",
     "password": "new_password",
+    "languages_taught": ["English", "German", "Italian"],
     "admin_notes": "Teacher specializes in advanced calculus and statistics."
   }
   ```
@@ -241,6 +242,7 @@ This section covers the API endpoints for managing users (teachers and students)
       "email": "updated_teacher@example.com",
       "telephone": "+9988776655",
       "role": "teacher",
+      "languages_taught": ["English", "German", "Italian"],
       "updated_at": "2026-02-20T13:00:00.000000Z"
     }
   }

@@ -157,6 +157,7 @@ class UserManagementController extends Controller
             'telephone' => 'nullable|string|max:20',
             'password' => 'nullable|string|min:6',
             'admin_notes' => 'nullable|string',
+            'languages_taught' => 'nullable|array',
         ]);
         
         // Update basic fields
@@ -177,6 +178,11 @@ class UserManagementController extends Controller
             $teacher->admin_notes = $request->admin_notes;
         }
         
+        // Update languages taught if provided
+        if ($request->has('languages_taught')) {
+            $teacher->languages_taught = $request->languages_taught;
+        }
+        
         // Update password if provided
         if ($request->has('password')) {
             $teacher->password = Hash::make($request->password);
@@ -192,6 +198,7 @@ class UserManagementController extends Controller
                 'email' => $teacher->email,
                 'telephone' => $teacher->telephone,
                 'role' => $teacher->role,
+                'languages_taught' => $teacher->languages_taught,
                 'admin_notes' => $teacher->admin_notes,
                 'updated_at' => $teacher->updated_at,
             ],
