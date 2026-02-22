@@ -16,7 +16,12 @@ class CorsMiddleware
      */
     public function handle(Request $request, Closure $next)
     {
-        $response = $next($request);
+        // Handle preflight OPTIONS request
+        if ($request->isMethod('OPTIONS')) {
+            $response = response('', 200);
+        } else {
+            $response = $next($request);
+        }
 
         // Remove any existing CORS headers to prevent duplicates
         foreach (['Access-Control-Allow-Origin', 'Access-Control-Allow-Methods', 
@@ -24,11 +29,16 @@ class CorsMiddleware
             $response->headers->remove($header);
         }
         
+        // Get the origin
+        $origin = $request->header('Origin');
+        
         // Set CORS headers
-        $response->header('Access-Control-Allow-Origin', 'http://127.0.0.1:8081');
-        $response->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        $response->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-CSRF-TOKEN');
+        // Allow the specific origin or use a wildcard
+        $response->header('Access-Control-Allow-Origin', $origin ?: '*');
+        $response->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+        $response->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-CSRF-TOKEN, Accept');
         $response->header('Access-Control-Allow-Credentials', 'true');
+        $response->header('Access-Control-Max-Age', '86400'); // 24 hours
         
         return $response;
     }
