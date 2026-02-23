@@ -220,6 +220,24 @@ class GroupController extends Controller
             $groupData
         );
 
+        return response()->json([
+            'message' => 'Group deleted successfully'
+        ], 200);
+    }
+
+    /**
+     * Add a student to a group.
+     */
+    public function addStudent(Request $request, $id)
+    {
+        $group = Group::find($id);
+
+        if (!$group) {
+            return response()->json([
+                'message' => 'Group not found'
+            ], 404);
+        }
+
         $validator = Validator::make($request->all(), [
             'student_id' => 'required|exists:users,id',
         ]);
@@ -247,7 +265,7 @@ class GroupController extends Controller
         }
 
         $group->students()->attach($request->student_id);
-        
+
         DatabaseLog::logAction(
             'updated',
             'Group',
@@ -255,7 +273,7 @@ class GroupController extends Controller
             'Admin added student to group',
             ['student_id' => $request->student_id]
         );
-        
+
         return response()->json([
             'message' => 'Student added to group successfully'
         ], 200);
