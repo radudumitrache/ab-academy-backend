@@ -221,128 +221,119 @@ class DashboardController extends Controller
         $query = $request->input('query');
         $limit = $request->input('limit', 10);
         $type = $request->input('type', 'all');
-        
+
         // Initialize results arrays
         $results = [];
         $users = [];
         $events = [];
         $groups = [];
-        
-        // Maximum Levenshtein distance allowed (adjust based on query length)
-        $maxDistance = min(3, strlen($query) - 1);
-        if ($maxDistance < 1) $maxDistance = 1;
-        
+
+        $queryLower = strtolower($query);
+
+        // Allow up to 50% character difference for fuzzy matching
+        $maxDistance = max(2, (int) floor(strlen($query) * 0.5));
+
+        // Returns a relevance score (0–100) or -1 if no match.
+        // Priority: exact (100) > contains (85) > fuzzy (10–75)
+        $matchScore = function (string $field) use ($queryLower, $maxDistance): int {
+            $fieldLower = strtolower($field);
+
+            if ($fieldLower === $queryLower) {
+                return 100;
+            }
+
+            if (str_contains($fieldLower, $queryLower)) {
+                return 85;
+            }
+
+            $distance = levenshtein($queryLower, $fieldLower);
+            if ($distance <= $maxDistance) {
+                return max(10, 75 - ($distance * 15));
+            }
+
+            return -1;
+        };
+
         // Search users if type is 'all' or 'users'
         if ($type === 'all' || $type === 'users') {
-            // Get all users
             $allUsers = User::all(['id', 'username', 'email', 'role']);
-            
+
             foreach ($allUsers as $user) {
-                // Calculate Levenshtein distance for username
-                $distance = levenshtein(strtolower($query), strtolower($user->username));
-                
-                // If distance is within acceptable range, add to results
-                if ($distance <= $maxDistance) {
+                $score = $matchScore($user->username);
+
+                if ($score >= 0) {
                     $users[] = [
                         'id' => $user->id,
                         'name' => $user->username,
                         'email' => $user->email,
                         'type' => 'user',
                         'role' => $user->role,
-                        'relevance' => 100 - ($distance * 25) // Higher score for closer matches
+                        'relevance' => $score,
                     ];
                 }
             }
-            
-            // Sort users by relevance
-            usort($users, function($a, $b) {
-                return $b['relevance'] - $a['relevance'];
-            });
-            
-            // Limit results
+
+            usort($users, fn($a, $b) => $b['relevance'] - $a['relevance']);
             $users = array_slice($users, 0, $limit);
         }
-        
+
         // Search events if type is 'all' or 'events'
         if ($type === 'all' || $type === 'events') {
-            // Get all events
             $allEvents = DB::table('events')->select('id', 'title', 'type', 'event_date')->get();
-            
+
             foreach ($allEvents as $event) {
-                // Calculate Levenshtein distance for event title
-                $distance = levenshtein(strtolower($query), strtolower($event->title));
-                
-                // If distance is within acceptable range, add to results
-                if ($distance <= $maxDistance) {
+                $score = $matchScore($event->title);
+
+                if ($score >= 0) {
                     $events[] = [
                         'id' => $event->id,
                         'name' => $event->title,
                         'type' => 'event',
                         'event_type' => $event->type,
                         'event_date' => $event->event_date,
-                        'relevance' => 100 - ($distance * 25) // Higher score for closer matches
+                        'relevance' => $score,
                     ];
                 }
             }
-            
-            // Sort events by relevance
-            usort($events, function($a, $b) {
-                return $b['relevance'] - $a['relevance'];
-            });
-            
-            // Limit results
+
+            usort($events, fn($a, $b) => $b['relevance'] - $a['relevance']);
             $events = array_slice($events, 0, $limit);
         }
-        
+
         // Search groups if type is 'all' or 'groups'
         if ($type === 'all' || $type === 'groups') {
-            // Check if groups table exists
             if (Schema::hasTable('groups')) {
-                // Get all groups
                 $allGroups = DB::table('groups')->select('group_id', 'group_name', 'description')->get();
-                
+
                 foreach ($allGroups as $group) {
-                    // Calculate Levenshtein distance for group name
-                    $distance = levenshtein(strtolower($query), strtolower($group->group_name));
-                    
-                    // If distance is within acceptable range, add to results
-                    if ($distance <= $maxDistance) {
+                    $score = $matchScore($group->group_name);
+
+                    if ($score >= 0) {
                         $groups[] = [
                             'id' => $group->group_id,
                             'name' => $group->group_name,
                             'description' => $group->description,
                             'type' => 'group',
-                            'relevance' => 100 - ($distance * 25) // Higher score for closer matches
+                            'relevance' => $score,
                         ];
                     }
                 }
-                
-                // Sort groups by relevance
-                usort($groups, function($a, $b) {
-                    return $b['relevance'] - $a['relevance'];
-                });
-                
-                // Limit results
+
+                usort($groups, fn($a, $b) => $b['relevance'] - $a['relevance']);
                 $groups = array_slice($groups, 0, $limit);
             }
         }
-        
+
         // Combine results based on type
         if ($type === 'all') {
             $results = array_merge($users, $events, $groups);
-            
-            // Sort combined results by relevance
-            usort($results, function($a, $b) {
-                return $b['relevance'] - $a['relevance'];
-            });
-            
-            // Limit total results
+            usort($results, fn($a, $b) => $b['relevance'] - $a['relevance']);
             $results = array_slice($results, 0, $limit);
-        } else if ($type === 'users') {
+        } elseif ($type === 'users') {
             $results = $users;
-        } else if ($type === 'events') {
+        } elseif ($type === 'events') {
             $results = $events;
-        } else if ($type === 'groups') {
+        } elseif ($type === 'groups') {
             $results = $groups;
         }
         
