@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\TimeCast;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -38,7 +39,7 @@ class Group extends Model
      */
     protected $casts = [
         'normal_schedule' => 'datetime',
-        'schedule_time' => 'time',
+        'schedule_time' => TimeCast::class,
     ];
 
     protected $appends = [
@@ -118,7 +119,7 @@ class Group extends Model
         if ($this->schedule_day && $this->schedule_time) {
             $time = $this->schedule_time instanceof \DateTime 
                 ? $this->schedule_time->format('H:i') 
-                : date('H:i', strtotime($this->schedule_time));
+                : $this->schedule_time;
                 
             return "{$this->schedule_day} at {$time}";
         }
