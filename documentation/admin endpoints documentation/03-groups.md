@@ -2,6 +2,8 @@
 
 This section covers the API endpoints for managing student groups in the AB Academy platform.
 
+> **Note**: The `schedule_time` field is formatted as a time string in 24-hour format (HH:MM). For example, "14:30" represents 2:30 PM.
+
 ## List All Groups
 
 - **URL**: `/api/admin/groups`
@@ -86,7 +88,7 @@ This section covers the API endpoints for managing student groups in the AB Acad
     "group_teacher": 2,
     "description": "Physics and chemistry study group",
     "schedule_day": "Tuesday",
-    "schedule_time": "15:30",
+    "schedule_time": "15:30",  // Time in 24-hour format (HH:MM)
     "group_members": [3, 4, 5]
   }
   ```
@@ -170,7 +172,7 @@ This section covers the API endpoints for managing student groups in the AB Acad
     "group_name": "Updated Science Group",
     "description": "Updated description",
     "schedule_day": "Wednesday",
-    "schedule_time": "16:00"
+    "schedule_time": "16:00"  // Time in 24-hour format (HH:MM)
   }
   ```
 - **Success Response**:
