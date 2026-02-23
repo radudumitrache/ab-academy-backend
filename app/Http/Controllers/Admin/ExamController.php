@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\Student;
-use App\Models\Teacher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -17,7 +16,7 @@ class ExamController extends Controller
      */
     public function index()
     {
-        $exams = Exam::with(['teacher'])->get();
+        $exams = Exam::with(['students'])->get();
 
         return response()->json([
             'message' => 'Exams retrieved successfully',
@@ -33,8 +32,7 @@ class ExamController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'date' => 'required|date',
-            'teacher_id' => 'required|exists:users,id',
+            'date' => 'required|date_format:Y-m-d',
             'status' => 'nullable|in:upcoming,to_be_corrected,passed,failed',
             'student_ids' => 'nullable|array',
             'student_ids.*' => 'exists:users,id',
@@ -47,19 +45,9 @@ class ExamController extends Controller
             ], 422);
         }
 
-        // Verify teacher_id belongs to a teacher
-        $teacher = Teacher::find($request->teacher_id);
-        if (!$teacher) {
-            return response()->json([
-                'message' => 'The provided teacher_id does not belong to a teacher'
-            ], 422);
-        }
-
-        // Create the exam
         $exam = Exam::create([
             'name' => $request->name,
             'date' => $request->date,
-            'teacher_id' => $request->teacher_id,
             'status' => $request->status ?? Exam::STATUS_UPCOMING,
         ]);
 
@@ -78,7 +66,7 @@ class ExamController extends Controller
 
         return response()->json([
             'message' => 'Exam created successfully',
-            'exam' => $exam->load(['teacher', 'students', 'statusHistory'])
+            'exam' => $exam->load(['students', 'statusHistory'])
         ], 201);
     }
 
@@ -87,7 +75,7 @@ class ExamController extends Controller
      */
     public function show($id)
     {
-        $exam = Exam::with(['teacher', 'students', 'statusHistory'])->find($id);
+        $exam = Exam::with(['students', 'statusHistory'])->find($id);
 
         if (!$exam) {
             return response()->json([
@@ -116,8 +104,7 @@ class ExamController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|required|string|max:255',
-            'date' => 'sometimes|required|date',
-            'teacher_id' => 'sometimes|required|exists:users,id',
+            'date' => 'sometimes|required|date_format:Y-m-d',
             'status' => 'sometimes|required|in:upcoming,to_be_corrected,passed,failed',
         ]);
 
@@ -126,16 +113,6 @@ class ExamController extends Controller
                 'message' => 'Validation failed',
                 'errors' => $validator->errors()
             ], 422);
-        }
-
-        // Verify teacher_id belongs to a teacher if provided
-        if ($request->filled('teacher_id')) {
-            $teacher = Teacher::find($request->teacher_id);
-            if (!$teacher) {
-                return response()->json([
-                    'message' => 'The provided teacher_id does not belong to a teacher'
-                ], 422);
-            }
         }
 
         // Handle status update separately to track history
@@ -149,7 +126,7 @@ class ExamController extends Controller
 
         return response()->json([
             'message' => 'Exam updated successfully',
-            'exam' => $exam->fresh(['teacher', 'students', 'statusHistory'])
+            'exam' => $exam->fresh(['students', 'statusHistory'])
         ], 200);
     }
 
@@ -200,19 +177,18 @@ class ExamController extends Controller
 
         // Verify all IDs belong to students
         $studentIds = Student::whereIn('id', $request->student_ids)->pluck('id')->all();
-        
+
         if (count($studentIds) !== count($request->student_ids)) {
             return response()->json([
                 'message' => 'All student_ids must belong to students'
             ], 422);
         }
 
-        // Attach students to the exam
         $exam->students()->syncWithoutDetaching($studentIds);
 
         return response()->json([
             'message' => 'Students enrolled in exam successfully',
-            'exam' => $exam->fresh(['teacher', 'students'])
+            'exam' => $exam->fresh(['students'])
         ], 200);
     }
 
@@ -237,19 +213,17 @@ class ExamController extends Controller
             ], 404);
         }
 
-        // Check if student is enrolled in this exam
         if (!$exam->students()->where('student_id', $studentId)->exists()) {
             return response()->json([
                 'message' => 'Student is not enrolled in this exam'
             ], 404);
         }
 
-        // Detach the student from the exam
         $exam->students()->detach($studentId);
 
         return response()->json([
             'message' => 'Student removed from exam successfully',
-            'exam' => $exam->fresh(['teacher', 'students'])
+            'exam' => $exam->fresh(['students'])
         ], 200);
     }
 }

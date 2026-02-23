@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -20,7 +19,6 @@ class Exam extends Model
     protected $fillable = [
         'name',
         'date',
-        'teacher_id',
         'status',
     ];
 
@@ -30,7 +28,7 @@ class Exam extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'date' => 'datetime',
+        'date' => 'date',
     ];
 
     /**
@@ -40,14 +38,6 @@ class Exam extends Model
     const STATUS_TO_BE_CORRECTED = 'to_be_corrected';
     const STATUS_PASSED = 'passed';
     const STATUS_FAILED = 'failed';
-
-    /**
-     * Get the teacher that owns the exam.
-     */
-    public function teacher(): BelongsTo
-    {
-        return $this->belongsTo(Teacher::class, 'teacher_id');
-    }
 
     /**
      * Get the status history for the exam.
