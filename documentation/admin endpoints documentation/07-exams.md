@@ -2,6 +2,8 @@
 
 This section covers the API endpoints for managing exams in the AB Academy platform.
 
+Valid status values: `upcoming`, `to_be_corrected`, `passed`, `failed`
+
 ## List All Exams
 
 - **URL**: `/api/admin/exams`
@@ -15,28 +17,23 @@ This section covers the API endpoints for managing exams in the AB Academy platf
   ```json
   {
     "message": "Exams retrieved successfully",
+    "count": 2,
     "exams": [
       {
         "id": 1,
         "name": "Mathematics Midterm",
-        "date": "2026-03-15T10:00:00.000000Z",
-        "teacher_id": 2,
+        "date": "2026-03-15",
         "status": "upcoming",
         "created_at": "2026-02-01T10:00:00.000000Z",
         "updated_at": "2026-02-01T10:00:00.000000Z",
-        "teacher": {
-          "id": 2,
-          "username": "teacher1",
-          "role": "teacher"
-        },
         "students": [
           {
             "id": 5,
             "username": "student1",
             "role": "student",
             "pivot": {
-              "score": null,
-              "feedback": null
+              "exam_id": 1,
+              "student_id": 5
             }
           },
           {
@@ -44,8 +41,8 @@ This section covers the API endpoints for managing exams in the AB Academy platf
             "username": "student2",
             "role": "student",
             "pivot": {
-              "score": null,
-              "feedback": null
+              "exam_id": 1,
+              "student_id": 6
             }
           }
         ]
@@ -53,24 +50,18 @@ This section covers the API endpoints for managing exams in the AB Academy platf
       {
         "id": 2,
         "name": "Physics Final",
-        "date": "2026-03-20T14:00:00.000000Z",
-        "teacher_id": 3,
+        "date": "2026-03-20",
         "status": "upcoming",
         "created_at": "2026-02-02T11:00:00.000000Z",
         "updated_at": "2026-02-02T11:00:00.000000Z",
-        "teacher": {
-          "id": 3,
-          "username": "teacher2",
-          "role": "teacher"
-        },
         "students": [
           {
             "id": 7,
             "username": "student3",
             "role": "student",
             "pivot": {
-              "score": null,
-              "feedback": null
+              "exam_id": 2,
+              "student_id": 7
             }
           }
         ]
@@ -92,12 +83,16 @@ This section covers the API endpoints for managing exams in the AB Academy platf
   ```json
   {
     "name": "Chemistry Quiz",
-    "date": "2026-03-25T09:00:00",
-    "teacher_id": 2,
+    "date": "2026-03-25",
     "status": "upcoming",
-    "students": [5, 6, 7]
+    "student_ids": [5, 6, 7]
   }
   ```
+- **Field notes**:
+  - `name` (required): string
+  - `date` (required): date in `YYYY-MM-DD` format
+  - `status` (optional): defaults to `upcoming`
+  - `student_ids` (optional): array of valid student user IDs
 - **Success Response**:
   ```json
   {
@@ -105,16 +100,10 @@ This section covers the API endpoints for managing exams in the AB Academy platf
     "exam": {
       "id": 3,
       "name": "Chemistry Quiz",
-      "date": "2026-03-25T09:00:00.000000Z",
-      "teacher_id": 2,
+      "date": "2026-03-25",
       "status": "upcoming",
       "created_at": "2026-02-20T12:00:00.000000Z",
       "updated_at": "2026-02-20T12:00:00.000000Z",
-      "teacher": {
-        "id": 2,
-        "username": "teacher1",
-        "role": "teacher"
-      },
       "students": [
         {
           "id": 5,
@@ -130,6 +119,16 @@ This section covers the API endpoints for managing exams in the AB Academy platf
           "id": 7,
           "username": "student3",
           "role": "student"
+        }
+      ],
+      "status_history": [
+        {
+          "id": 1,
+          "exam_id": 3,
+          "old_status": null,
+          "new_status": "upcoming",
+          "changed_by_user_id": 1,
+          "created_at": "2026-02-20T12:00:00.000000Z"
         }
       ]
     }
@@ -152,24 +151,18 @@ This section covers the API endpoints for managing exams in the AB Academy platf
     "exam": {
       "id": 1,
       "name": "Mathematics Midterm",
-      "date": "2026-03-15T10:00:00.000000Z",
-      "teacher_id": 2,
+      "date": "2026-03-15",
       "status": "upcoming",
       "created_at": "2026-02-01T10:00:00.000000Z",
       "updated_at": "2026-02-01T10:00:00.000000Z",
-      "teacher": {
-        "id": 2,
-        "username": "teacher1",
-        "role": "teacher"
-      },
       "students": [
         {
           "id": 5,
           "username": "student1",
           "role": "student",
           "pivot": {
-            "score": null,
-            "feedback": null
+            "exam_id": 1,
+            "student_id": 5
           }
         },
         {
@@ -177,8 +170,8 @@ This section covers the API endpoints for managing exams in the AB Academy platf
           "username": "student2",
           "role": "student",
           "pivot": {
-            "score": null,
-            "feedback": null
+            "exam_id": 1,
+            "student_id": 6
           }
         }
       ],
@@ -189,13 +182,7 @@ This section covers the API endpoints for managing exams in the AB Academy platf
           "old_status": null,
           "new_status": "upcoming",
           "changed_by_user_id": 1,
-          "created_at": "2026-02-01T10:00:00.000000Z",
-          "updated_at": "2026-02-01T10:00:00.000000Z",
-          "user": {
-            "id": 1,
-            "username": "admin",
-            "role": "admin"
-          }
+          "created_at": "2026-02-01T10:00:00.000000Z"
         }
       ]
     }
@@ -211,14 +198,17 @@ This section covers the API endpoints for managing exams in the AB Academy platf
   ```
   Authorization: Bearer {token}
   ```
-- **Request Body**:
+- **Request Body** (all fields optional):
   ```json
   {
     "name": "Updated Mathematics Exam",
-    "date": "2026-03-16T11:00:00",
-    "status": "in_progress"
+    "date": "2026-03-16",
+    "status": "to_be_corrected"
   }
   ```
+- **Field notes**:
+  - `date`: must be `YYYY-MM-DD` format
+  - `status`: one of `upcoming`, `to_be_corrected`, `passed`, `failed`. Status changes are automatically recorded in `status_history`.
 - **Success Response**:
   ```json
   {
@@ -226,11 +216,29 @@ This section covers the API endpoints for managing exams in the AB Academy platf
     "exam": {
       "id": 1,
       "name": "Updated Mathematics Exam",
-      "date": "2026-03-16T11:00:00.000000Z",
-      "teacher_id": 2,
-      "status": "in_progress",
+      "date": "2026-03-16",
+      "status": "to_be_corrected",
       "created_at": "2026-02-01T10:00:00.000000Z",
-      "updated_at": "2026-02-20T13:00:00.000000Z"
+      "updated_at": "2026-02-20T13:00:00.000000Z",
+      "students": [],
+      "status_history": [
+        {
+          "id": 1,
+          "exam_id": 1,
+          "old_status": null,
+          "new_status": "upcoming",
+          "changed_by_user_id": 1,
+          "created_at": "2026-02-01T10:00:00.000000Z"
+        },
+        {
+          "id": 2,
+          "exam_id": 1,
+          "old_status": "upcoming",
+          "new_status": "to_be_corrected",
+          "changed_by_user_id": 1,
+          "created_at": "2026-02-20T13:00:00.000000Z"
+        }
+      ]
     }
   }
   ```
@@ -263,9 +271,10 @@ This section covers the API endpoints for managing exams in the AB Academy platf
 - **Request Body**:
   ```json
   {
-    "students": [5, 6, 8]
+    "student_ids": [5, 6, 8]
   }
   ```
+- **Note**: Uses `syncWithoutDetaching` — already enrolled students are not duplicated.
 - **Success Response**:
   ```json
   {
@@ -273,9 +282,8 @@ This section covers the API endpoints for managing exams in the AB Academy platf
     "exam": {
       "id": 1,
       "name": "Updated Mathematics Exam",
-      "date": "2026-03-16T11:00:00.000000Z",
-      "teacher_id": 2,
-      "status": "in_progress",
+      "date": "2026-03-16",
+      "status": "to_be_corrected",
       "created_at": "2026-02-01T10:00:00.000000Z",
       "updated_at": "2026-02-20T13:00:00.000000Z",
       "students": [
@@ -315,9 +323,8 @@ This section covers the API endpoints for managing exams in the AB Academy platf
     "exam": {
       "id": 1,
       "name": "Updated Mathematics Exam",
-      "date": "2026-03-16T11:00:00.000000Z",
-      "teacher_id": 2,
-      "status": "in_progress",
+      "date": "2026-03-16",
+      "status": "to_be_corrected",
       "created_at": "2026-02-01T10:00:00.000000Z",
       "updated_at": "2026-02-20T13:00:00.000000Z",
       "students": [
@@ -334,4 +341,14 @@ This section covers the API endpoints for managing exams in the AB Academy platf
       ]
     }
   }
+  ```
+- **Error Responses**:
+  ```json
+  { "message": "Exam not found" }
+  ```
+  ```json
+  { "message": "Student not found" }
+  ```
+  ```json
+  { "message": "Student is not enrolled in this exam" }
   ```
