@@ -14,7 +14,7 @@ return [
 
         'api' => [
             'driver' => 'passport',
-            'provider' => 'admins', // Use admins provider for all API authentication
+            'provider' => 'users',
         ],
     ],
 
