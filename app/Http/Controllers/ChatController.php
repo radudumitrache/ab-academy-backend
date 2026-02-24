@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Admin;
 use App\Models\Chat;
 use App\Models\Message;
 use Illuminate\Http\Request;
@@ -9,6 +10,62 @@ use Illuminate\Support\Facades\Auth;
 
 class ChatController extends Controller
 {
+    /**
+     * Student-initiated chat creation.
+     * Creates a chat between the authenticated student and the default admin.
+     * If a chat already exists it is returned instead of creating a duplicate.
+     */
+    public function store()
+    {
+        $user = Auth::user();
+
+        if (!$user->isStudent()) {
+            return response()->json(['message' => 'Only students can use this endpoint'], 403);
+        }
+
+        $adminId = config('chat.default_admin_id', env('DEFAULT_ADMIN_ID'));
+
+        if (!$adminId) {
+            $admin = Admin::first();
+            if (!$admin) {
+                return response()->json(['message' => 'No admin available for chat'], 422);
+            }
+            $adminId = $admin->id;
+        } else {
+            if (!Admin::find($adminId)) {
+                return response()->json(['message' => 'Configured admin not found'], 422);
+            }
+        }
+
+        $existingChat = Chat::where('admin_id', $adminId)
+            ->where('student_id', $user->id)
+            ->first();
+
+        if ($existingChat) {
+            if (!$existingChat->is_active) {
+                $existingChat->update(['is_active' => true]);
+            }
+
+            return response()->json([
+                'message' => 'Chat already exists',
+                'chat'    => $existingChat->load(['admin', 'student', 'messages.sender']),
+            ]);
+        }
+
+        $chat = Chat::create([
+            'admin_id'        => $adminId,
+            'student_id'      => $user->id,
+            'teacher_id'      => null,
+            'last_message_at' => now(),
+            'is_active'       => true,
+        ]);
+
+        return response()->json([
+            'message' => 'Chat created successfully',
+            'chat'    => $chat->load(['admin', 'student']),
+        ], 201);
+    }
+
     /**
      * List all active chats for the authenticated user.
      * Returns the latest message per chat for preview purposes.

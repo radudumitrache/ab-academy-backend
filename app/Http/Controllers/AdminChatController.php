@@ -14,72 +14,35 @@ use Illuminate\Support\Facades\Validator;
 class AdminChatController extends Controller
 {
     /**
-     * Create a new chat between a student and an admin.
-     *
-     * - If the authenticated user is a student: creates a chat between that
-     *   student and the default admin (from env DEFAULT_ADMIN_ID or first admin).
-     * - If the authenticated user is an admin: creates a chat between themselves
-     *   and the student specified in `student_id`.
+     * Admin-initiated chat creation.
+     * The authenticated admin specifies which student to open a conversation with.
      */
     public function store(Request $request)
     {
         $user = Auth::user();
 
-        if ($user->isAdmin()) {
-            // Admin initiates the conversation — student_id is required
-            $validator = Validator::make($request->all(), [
-                'student_id' => 'required|exists:users,id',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $student = Student::find($request->student_id);
-            if (!$student) {
-                return response()->json([
-                    'message' => 'Invalid student ID'
-                ], 422);
-            }
-
-            $adminId   = $user->id;
-            $studentId = $request->student_id;
-
-        } elseif ($user->isStudent()) {
-            // Student initiates — use their own ID and look up the default admin
-            $studentId = $user->id;
-
-            $adminId = config('chat.default_admin_id', env('DEFAULT_ADMIN_ID'));
-
-            if (!$adminId) {
-                $admin = Admin::first();
-                if (!$admin) {
-                    return response()->json([
-                        'message' => 'No admin available for chat'
-                    ], 422);
-                }
-                $adminId = $admin->id;
-            } else {
-                $admin = Admin::find($adminId);
-                if (!$admin) {
-                    return response()->json([
-                        'message' => 'Configured admin not found'
-                    ], 422);
-                }
-            }
-
-        } else {
-            return response()->json([
-                'message' => 'Only students or admins can create chats'
-            ], 403);
+        if (!$user->isAdmin()) {
+            return response()->json(['message' => 'Only admins can use this endpoint'], 403);
         }
 
-        // Reuse an existing chat if one already exists between these two users
-        $existingChat = Chat::where('admin_id', $adminId)
-            ->where('student_id', $studentId)
+        $validator = Validator::make($request->all(), [
+            'student_id' => 'required|exists:users,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        $student = Student::find($request->student_id);
+        if (!$student) {
+            return response()->json(['message' => 'Invalid student ID'], 422);
+        }
+
+        $existingChat = Chat::where('admin_id', $user->id)
+            ->where('student_id', $request->student_id)
             ->first();
 
         if ($existingChat) {
@@ -89,13 +52,13 @@ class AdminChatController extends Controller
 
             return response()->json([
                 'message' => 'Chat already exists',
-                'chat' => $existingChat->load(['admin', 'student', 'messages.sender'])
+                'chat'    => $existingChat->load(['admin', 'student', 'messages.sender']),
             ]);
         }
 
         $chat = Chat::create([
-            'admin_id'        => $adminId,
-            'student_id'      => $studentId,
+            'admin_id'        => $user->id,
+            'student_id'      => $request->student_id,
             'teacher_id'      => null,
             'last_message_at' => now(),
             'is_active'       => true,
@@ -103,7 +66,7 @@ class AdminChatController extends Controller
 
         return response()->json([
             'message' => 'Chat created successfully',
-            'chat'    => $chat->load(['admin', 'student'])
+            'chat'    => $chat->load(['admin', 'student']),
         ], 201);
     }
 
