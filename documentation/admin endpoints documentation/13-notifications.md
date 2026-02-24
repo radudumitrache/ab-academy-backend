@@ -2,6 +2,9 @@
 
 This section covers the notification system used to alert users about platform activity.
 
+Notifications are created **automatically** by model observers whenever key platform events occur.
+They can also be created manually via the API.
+
 ---
 
 ## Data Model
@@ -27,9 +30,84 @@ This section covers the notification system used to alert users about platform a
 
 ---
 
+## Automatic Notifications
+
+Notifications are dispatched automatically via Eloquent observers registered in
+`AppServiceProvider`. No manual API call is needed for these events.
+
+### Exam events (`notification_type: Exam`, `notification_source: Admin`)
+
+Triggered on **create**, **update**, and **delete** of an `Exam`.
+
+**Recipients**: all students enrolled in the exam + teachers of any group that contains at least one of those students.
+
+| Event | Message template |
+|-------|-----------------|
+| Created | `"A new exam '{name}' has been scheduled for {date}."` |
+| Updated | `"The exam '{name}' has been updated. Date: {date}, Status: {status}."` |
+| Deleted | `"The exam '{name}' has been cancelled."` |
+
+> If no students are enrolled at the time of the event, no notifications are sent.
+
+---
+
+### Homework events (`notification_type: Homework`, `notification_source: Admin`)
+
+Triggered on **create**, **update**, and **delete** of a `Homework`.
+
+**Recipients**: all user IDs in `people_assigned` + all students who belong to any group in `groups_assigned`.
+
+| Event | Message template |
+|-------|-----------------|
+| Created | `"New homework '{title}' has been assigned, due on {due_date}."` |
+| Updated | `"Homework '{title}' has been updated."` |
+| Deleted | `"Homework '{title}' has been removed."` |
+
+---
+
+### Event (Schedule) events (`notification_type: Schedule`, `notification_source: Admin`)
+
+Triggered on **create**, **update**, and **delete** of an `Event`.
+
+**Recipients**: all user IDs in the `guests` array + the `event_organizer`.
+
+| Event | Message template |
+|-------|-----------------|
+| Created | `"A new event '{title}' has been scheduled for {date}."` |
+| Updated | `"The event '{title}' has been updated. Date: {date}."` |
+| Deleted | `"The event '{title}' has been cancelled."` |
+
+---
+
+### Message events (`notification_type: Message`, `notification_source: Admin`)
+
+Triggered on **create** of a `Message` **only when the sender is an admin**.
+
+**Recipient**: the student associated with the chat.
+
+| Event | Message template |
+|-------|-----------------|
+| Created (admin sender) | `"You have a new message from {sender_username}."` |
+
+> No notification is created when a student sends a message.
+
+---
+
+### Invoice events (`notification_type: Payment`, `notification_source: Admin`)
+
+Triggered on **create** of an `Invoice`.
+
+**Recipient**: the student the invoice is assigned to (`student_id`).
+
+| Event | Message template |
+|-------|-----------------|
+| Created | `"A new invoice '{title}' for {value} {currency} has been issued, due on {due_date}."` |
+
+---
+
 ## Endpoints
 
-> **Note**: All endpoints below require a valid Bearer token in the `Authorization` header.
+> All endpoints require a valid Bearer token in the `Authorization` header.
 
 ---
 
@@ -61,7 +139,7 @@ Returns all notifications for the authenticated user, ordered by most recent.
       {
         "id": 1,
         "notification_owner": 3,
-        "notification_message": "Your exam result has been posted.",
+        "notification_message": "A new exam 'Math Final' has been scheduled for 2026-03-01.",
         "notification_time": "2026-02-24T10:00:00.000000Z",
         "is_seen": false,
         "notification_source": "Admin",
@@ -75,9 +153,9 @@ Returns all notifications for the authenticated user, ordered by most recent.
 
 ---
 
-### Create a Notification
+### Create a Notification (manual)
 
-Creates a new notification for a user.
+Creates a notification for a user manually.
 
 - **URL**: `/api/admin/notifications`
 - **Method**: `POST`
@@ -208,20 +286,22 @@ Deletes a single notification.
 
 ---
 
-## Notification Types Reference
+## Reference Tables
 
-| Type | When to use |
-|------|-------------|
-| `Exam` | Exam scheduled, result posted, status changed |
-| `Schedule` | Group schedule created or updated |
-| `Homework` | Homework assigned or graded |
-| `Message` | New chat message received |
-| `Payment` | Invoice issued or payment status changed |
+### Notification Types
 
-## Notification Sources Reference
+| Type | Triggered by | Observer |
+|------|-------------|----------|
+| `Exam` | Exam created, updated, or deleted | `ExamObserver` |
+| `Schedule` | Event created, updated, or deleted | `EventObserver` |
+| `Homework` | Homework created, updated, or deleted | `HomeworkObserver` |
+| `Message` | Admin sends a chat message | `MessageObserver` |
+| `Payment` | Invoice created | `InvoiceObserver` |
+
+### Notification Sources
 
 | Source | Who triggers it |
 |--------|-----------------|
-| `Admin` | An admin action (e.g. invoice created, student enrolled) |
-| `Teacher` | A teacher action (e.g. homework assigned, exam graded) |
-| `Student` | A student action (e.g. message sent) |
+| `Admin` | All automatic observers + manual admin actions |
+| `Teacher` | Manual notifications created by a teacher action |
+| `Student` | Manual notifications created by a student action |
