@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Dashboard\TeacherDashboardController;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -7,9 +8,4 @@ use Illuminate\Support\Facades\Route;
  * Prefix: /api/teacher
  */
 
-Route::get('/dashboard', function () {
-    return response()->json([
-        'message' => 'Teacher Dashboard',
-        'role' => 'teacher'
-    ]);
-})->middleware('auth:api');
+Route::get('/dashboard', [TeacherDashboardController::class, 'index'])->middleware('auth:api');
