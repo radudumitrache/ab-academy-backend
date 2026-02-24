@@ -44,8 +44,11 @@ class SimpleCors
             $response->headers->remove($header);
         }
         
-        // Set the specific origin
-        $response->headers->set('Access-Control-Allow-Origin', 'http://127.0.0.1:8081');
+        // Set the specific origin — check request origin against allowed list
+        $allowedOrigins = config('cors.allowed_origins', []);
+        $requestOrigin  = $request->headers->get('Origin', '');
+        $origin = in_array($requestOrigin, $allowedOrigins) ? $requestOrigin : ($allowedOrigins[0] ?? '*');
+        $response->headers->set('Access-Control-Allow-Origin', $origin);
         $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
         $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-CSRF-TOKEN');
         $response->headers->set('Access-Control-Allow-Credentials', 'true');
