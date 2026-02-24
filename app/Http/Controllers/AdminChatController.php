@@ -15,84 +15,101 @@ class AdminChatController extends Controller
 {
     /**
      * Create a new chat between a student and an admin.
+     *
+     * - If the authenticated user is a student: creates a chat between that
+     *   student and the default admin (from env DEFAULT_ADMIN_ID or first admin).
+     * - If the authenticated user is an admin: creates a chat between themselves
+     *   and the student specified in `student_id`.
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'student_id' => 'required|exists:users,id',
-        ]);
+        $user = Auth::user();
 
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
+        if ($user->isAdmin()) {
+            // Admin initiates the conversation — student_id is required
+            $validator = Validator::make($request->all(), [
+                'student_id' => 'required|exists:users,id',
+            ]);
 
-        // Get the student
-        $student = Student::find($request->student_id);
-        if (!$student) {
-            return response()->json([
-                'message' => 'Invalid student ID'
-            ], 422);
-        }
-
-        // Get the default admin ID from config or env
-        $adminId = config('chat.default_admin_id', env('DEFAULT_ADMIN_ID'));
-        
-        // If no admin ID is configured, use the first admin in the system
-        if (!$adminId) {
-            $admin = Admin::first();
-            if (!$admin) {
+            if ($validator->fails()) {
                 return response()->json([
-                    'message' => 'No admin available for chat'
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
                 ], 422);
             }
-            $adminId = $admin->id;
+
+            $student = Student::find($request->student_id);
+            if (!$student) {
+                return response()->json([
+                    'message' => 'Invalid student ID'
+                ], 422);
+            }
+
+            $adminId   = $user->id;
+            $studentId = $request->student_id;
+
+        } elseif ($user->isStudent()) {
+            // Student initiates — use their own ID and look up the default admin
+            $studentId = $user->id;
+
+            $adminId = config('chat.default_admin_id', env('DEFAULT_ADMIN_ID'));
+
+            if (!$adminId) {
+                $admin = Admin::first();
+                if (!$admin) {
+                    return response()->json([
+                        'message' => 'No admin available for chat'
+                    ], 422);
+                }
+                $adminId = $admin->id;
+            } else {
+                $admin = Admin::find($adminId);
+                if (!$admin) {
+                    return response()->json([
+                        'message' => 'Configured admin not found'
+                    ], 422);
+                }
+            }
+
         } else {
-            // Verify the admin exists
-            $admin = Admin::find($adminId);
-            if (!$admin) {
-                return response()->json([
-                    'message' => 'Configured admin not found'
-                ], 422);
-            }
+            return response()->json([
+                'message' => 'Only students or admins can create chats'
+            ], 403);
         }
 
-        // Check if a chat already exists between these users
+        // Reuse an existing chat if one already exists between these two users
         $existingChat = Chat::where('admin_id', $adminId)
-            ->where('student_id', $request->student_id)
+            ->where('student_id', $studentId)
             ->first();
 
         if ($existingChat) {
-            // If chat exists but is inactive, reactivate it
             if (!$existingChat->is_active) {
                 $existingChat->update(['is_active' => true]);
             }
-            
+
             return response()->json([
                 'message' => 'Chat already exists',
-                'chat' => $existingChat->load(['admin', 'student'])
+                'chat' => $existingChat->load(['admin', 'student', 'messages.sender'])
             ]);
         }
 
-        // Create a new chat
         $chat = Chat::create([
-            'admin_id' => $adminId,
-            'student_id' => $request->student_id,
-            'teacher_id' => null,
+            'admin_id'        => $adminId,
+            'student_id'      => $studentId,
+            'teacher_id'      => null,
             'last_message_at' => now(),
-            'is_active' => true,
+            'is_active'       => true,
         ]);
 
         return response()->json([
             'message' => 'Chat created successfully',
-            'chat' => $chat->load(['admin', 'student'])
+            'chat'    => $chat->load(['admin', 'student'])
         ], 201);
     }
 
     /**
-     * Send a message in an admin chat.
+     * Send a message in an admin–student chat.
+     * Both the student and the admin belonging to the chat are authorised.
      */
     public function sendMessage(Request $request, $chatId)
     {
@@ -115,31 +132,29 @@ class AdminChatController extends Controller
             ], 404);
         }
 
-        // Check if the user is authorized to send a message in this chat
         $user = Auth::user();
+
         if (($user->isStudent() && $chat->student_id != $user->id) ||
-            ($user->isAdmin() && $chat->admin_id != $user->id)) {
+            ($user->isAdmin()   && $chat->admin_id   != $user->id)) {
             return response()->json([
                 'message' => 'Unauthorized to send message in this chat'
             ], 403);
         }
 
-        // Create the message
         $message = Message::create([
-            'chat_id' => $chatId,
-            'content' => $request->content,
-            'sender_id' => $user->id,
+            'chat_id'     => $chat->id,
+            'content'     => $request->content,
+            'sender_id'   => $user->id,
             'sender_type' => get_class($user),
         ]);
 
-        // Update the chat's last_message_at timestamp
         $chat->update(['last_message_at' => now()]);
 
-        // Broadcast the message
-        broadcast(new MessageSent($message))->toOthers();
+        // Pass both $chat and $message — MessageSent requires both arguments
+        broadcast(new MessageSent($chat, $message))->toOthers();
 
         return response()->json([
-            'message' => 'Message sent successfully',
+            'message'      => 'Message sent successfully',
             'chat_message' => $message->load('sender')
         ]);
     }
