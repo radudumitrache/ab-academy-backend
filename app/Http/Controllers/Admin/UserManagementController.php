@@ -104,7 +104,7 @@ class UserManagementController extends Controller
                 'group_name' => $group->group_name,
                 'description' => $group->description,
                 'schedule_day' => $group->schedule_day,
-                'schedule_time' => $group->schedule_time ? $group->schedule_time->format('H:i') : null,
+                'schedule_time' => $group->schedule_time ?? null,
                 'formatted_schedule' => $group->formatted_schedule,
                 'students_count' => $group->students->count(),
                 'students' => $group->students->map(function ($student) {
@@ -231,7 +231,7 @@ class UserManagementController extends Controller
                 'group_teacher' => $group->group_teacher,
                 'description' => $group->description,
                 'schedule_day' => $group->schedule_day,
-                'schedule_time' => $group->schedule_time ? $group->schedule_time->format('H:i') : null,
+                'schedule_time' => $group->schedule_time ?? null,
                 'formatted_schedule' => $group->formatted_schedule,
                 'teacher' => [
                     'id' => $group->teacher->id,
