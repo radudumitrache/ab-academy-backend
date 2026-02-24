@@ -29,7 +29,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/chats/{id}', [ChatController::class, 'show']);
     
     // Send a message in a chat
-    Route::post('/chats/{id}/messages', [ChatController::class, 'sendMessage']);
+    Route::post('/chats/{id}/messages', [AdminChatController::class, 'sendMessage']);
     
     // Get unread message count
     Route::get('/chats/unread/count', [ChatController::class, 'unreadCount']);
