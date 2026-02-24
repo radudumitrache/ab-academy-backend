@@ -7,6 +7,7 @@ This documentation covers all teacher-facing API endpoints for the AB Academy pl
 1. [Authentication](01-authentication.md)
 2. [Dashboard](02-dashboard.md)
 3. [AI Assistant](03-ai-assistant.md)
+4. [Group Management](04-groups.md)
 
 ## Base URL
 
@@ -33,8 +34,16 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 |--------|----------|------|-------------|
 | POST | `/api/teacher/login` | No | Log in and receive an access token |
 | POST | `/api/teacher/logout` | Yes | Revoke the current token |
-| GET | `/api/teacher/dashboard` | Yes | Teacher dashboard placeholder |
+| GET | `/api/teacher/dashboard` | Yes | Teacher dashboard stats |
 | POST | `/api/teacher/ai-assistant/translate` | Yes | Translate text via Claude AI |
+| GET | `/api/teacher/groups/schedule/options` | Yes | Get allowed schedule days and times |
+| GET | `/api/teacher/groups` | Yes | List all groups owned by the teacher |
+| POST | `/api/teacher/groups` | Yes | Create a new group |
+| GET | `/api/teacher/groups/{id}` | Yes | Get a single group |
+| PUT | `/api/teacher/groups/{id}` | Yes | Update a group |
+| DELETE | `/api/teacher/groups/{id}` | Yes | Delete a group (soft delete) |
+| POST | `/api/teacher/groups/{id}/students` | Yes | Add a student to a group |
+| DELETE | `/api/teacher/groups/{groupId}/students/{studentId}` | Yes | Remove a student from a group |
 
 ## Teacher User Object
 
