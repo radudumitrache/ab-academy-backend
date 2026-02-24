@@ -18,7 +18,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => array_filter(explode(',', env('CORS_ALLOWED_ORIGINS', 'http://127.0.0.1:8081'))),
+    'allowed_origins' => array_filter(explode(',', env('CORS_ALLOWED_ORIGINS', 'https://admin.andreeaberkhout.com'))),
 
     'allowed_origins_patterns' => [],
 
