@@ -9,16 +9,21 @@ class Notification extends Model
 {
     use HasFactory;
 
+    const SOURCES = ['Admin', 'Student', 'Teacher'];
+    const TYPES   = ['Exam', 'Schedule', 'Homework', 'Message', 'Payment'];
+
     protected $fillable = [
         'notification_owner',
         'notification_message',
         'notification_time',
         'is_seen',
+        'notification_source',
+        'notification_type',
     ];
 
     protected $casts = [
         'notification_time' => 'datetime',
-        'is_seen' => 'boolean',
+        'is_seen'           => 'boolean',
     ];
 
     public function owner()
