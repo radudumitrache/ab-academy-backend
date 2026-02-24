@@ -8,6 +8,8 @@ This documentation covers all teacher-facing API endpoints for the AB Academy pl
 2. [Dashboard](02-dashboard.md)
 3. [AI Assistant](03-ai-assistant.md)
 4. [Group Management](04-groups.md)
+5. [Exam Management](05-exams.md)
+6. [Event Management](06-events.md)
 
 ## Base URL
 
@@ -42,8 +44,19 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | GET | `/api/teacher/groups/{id}` | Yes | Get a single group |
 | PUT | `/api/teacher/groups/{id}` | Yes | Update a group |
 | DELETE | `/api/teacher/groups/{id}` | Yes | Delete a group (soft delete) |
-| POST | `/api/teacher/groups/{id}/students` | Yes | Add a student to a group |
+| POST | `/api/teacher/groups/{id}/students` | Yes | Add a student to a group by ID |
+| POST | `/api/teacher/groups/{id}/students/by-username` | Yes | Add a student to a group by username |
 | DELETE | `/api/teacher/groups/{groupId}/students/{studentId}` | Yes | Remove a student from a group |
+| GET | `/api/teacher/exams` | Yes | List exams that teacher's students are enrolled in |
+| POST | `/api/teacher/exams` | Yes | Create a new exam |
+| GET | `/api/teacher/exams/{id}` | Yes | Get a single exam |
+| POST | `/api/teacher/exams/{id}/students` | Yes | Enroll students in an exam |
+| DELETE | `/api/teacher/exams/{examId}/students/{studentId}` | Yes | Remove a student from an exam |
+| GET | `/api/teacher/events` | Yes | List events where teacher is organizer or invited |
+| POST | `/api/teacher/events` | Yes | Create a new event |
+| GET | `/api/teacher/events/{id}` | Yes | Get a single event |
+| PUT | `/api/teacher/events/{id}` | Yes | Update an event (organizer only) |
+| DELETE | `/api/teacher/events/{id}` | Yes | Delete an event (organizer only) |
 
 ## Teacher User Object
 

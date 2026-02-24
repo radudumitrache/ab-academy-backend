@@ -299,6 +299,64 @@ Adds a single student to a group. Returns `409` if the student is already a memb
 
 ---
 
+## Add Student to Group by Username
+
+Same behaviour as the endpoint above, but looks up the student by their `username` instead of their ID.
+Useful when the frontend has a name search rather than a user ID.
+
+- **URL**: `/api/teacher/groups/{id}/students/by-username`
+- **Method**: `POST`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  Content-Type: application/json
+  ```
+- **Request Body**:
+  ```json
+  { "username": "student1" }
+  ```
+- **Field Notes**:
+
+  | Field | Type | Required | Notes |
+  |-------|------|----------|-------|
+  | `username` | string | Yes | Exact username of the student |
+
+- **Success Response** `200`:
+  ```json
+  {
+    "message": "Student added to group successfully",
+    "group": { ... }
+  }
+  ```
+
+- **Error Responses**:
+  - **404** — group not found:
+    ```json
+    { "message": "Group not found" }
+    ```
+  - **403** — group belongs to another teacher:
+    ```json
+    { "message": "Unauthorized" }
+    ```
+  - **404** — username not found or belongs to a non-student user:
+    ```json
+    { "message": "Student not found or user is not a student" }
+    ```
+  - **409** — student already in group:
+    ```json
+    { "message": "Student is already in this group" }
+    ```
+  - **422** — validation failed:
+    ```json
+    {
+      "message": "Validation failed",
+      "errors": { "username": ["The username field is required."] }
+    }
+    ```
+
+---
+
 ## Remove Student from Group
 
 Removes a student from a group.

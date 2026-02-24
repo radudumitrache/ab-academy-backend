@@ -240,6 +240,52 @@ class GroupController extends Controller
     }
 
     /**
+     * Add a student to a group by their username.
+     */
+    public function addStudentByUsername(Request $request, $id)
+    {
+        $group = Group::find($id);
+
+        if (!$group) {
+            return response()->json(['message' => 'Group not found'], 404);
+        }
+
+        if ($group->group_teacher !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'username' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $student = Student::where('username', $request->username)->first();
+
+        if (!$student) {
+            return response()->json([
+                'message' => 'Student not found or user is not a student',
+            ], 404);
+        }
+
+        if ($group->students()->where('student_id', $student->id)->exists()) {
+            return response()->json(['message' => 'Student is already in this group'], 409);
+        }
+
+        $group->students()->attach($student->id);
+
+        return response()->json([
+            'message' => 'Student added to group successfully',
+            'group'   => $group->load('students'),
+        ]);
+    }
+
+    /**
      * Remove a student from a group owned by the authenticated teacher.
      */
     public function removeStudent($groupId, $studentId)
