@@ -57,6 +57,8 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | GET | `/api/teacher/events/{id}` | Yes | Get a single event |
 | PUT | `/api/teacher/events/{id}` | Yes | Update an event (organizer only) |
 | DELETE | `/api/teacher/events/{id}` | Yes | Delete an event (organizer only) |
+| PUT | `/api/teacher/events/{id}/attendance` | Yes | Record guest attendance (organizer only) |
+| POST | `/api/teacher/events/{id}/guests/by-username` | Yes | Add guests to an event by username (organizer only) |
 
 ## Teacher User Object
 

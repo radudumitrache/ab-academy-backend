@@ -236,6 +236,115 @@ Deletes an event. Only the teacher who is the organizer may delete it.
 
 ---
 
+## Mark Attendance
+
+Records which invited guests actually attended the event. Overwrites any previously saved attendance.
+Only the event organizer may call this endpoint. All provided user IDs must already be on the event's guest list.
+
+- **URL**: `/api/teacher/events/{id}/attendance`
+- **Method**: `PUT`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  Content-Type: application/json
+  ```
+- **Request Body**:
+  ```json
+  { "present_guest_ids": [12, 19] }
+  ```
+- **Field Notes**:
+
+  | Field | Type | Required | Notes |
+  |-------|------|----------|-------|
+  | `present_guest_ids` | array | Yes | IDs of guests who were present — must all be in `guests` |
+
+- **Success Response** `200`:
+  ```json
+  {
+    "message": "Attendance recorded successfully",
+    "present_guests": [12, 19],
+    "present_users": [
+      { "id": 12, "username": "student1", "email": "...", "role": "student" },
+      { "id": 19, "username": "teacher2", "email": "...", "role": "teacher" }
+    ]
+  }
+  ```
+
+- **Error Responses**:
+  - **404** — event not found:
+    ```json
+    { "message": "Event not found" }
+    ```
+  - **403** — teacher is not the organizer:
+    ```json
+    { "message": "Unauthorized — only the event organizer can mark attendance" }
+    ```
+  - **422** — one or more IDs are not on the guest list:
+    ```json
+    {
+      "message": "Some users are not on the guest list for this event",
+      "not_on_guest_list": [99]
+    }
+    ```
+
+---
+
+## Add Guests by Username
+
+Adds one or more users to the event's guest list by their usernames.
+Existing guests are preserved — duplicates are silently ignored.
+Only the event organizer may call this endpoint.
+
+- **URL**: `/api/teacher/events/{id}/guests/by-username`
+- **Method**: `POST`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  Content-Type: application/json
+  ```
+- **Request Body**:
+  ```json
+  { "usernames": ["student1", "teacher2"] }
+  ```
+- **Field Notes**:
+
+  | Field | Type | Required | Notes |
+  |-------|------|----------|-------|
+  | `usernames` | array | Yes | One or more usernames to add as guests |
+
+- **Success Response** `200`:
+  ```json
+  {
+    "message": "Guests added successfully",
+    "guests": [12, 15, 19],
+    "guest_users": [
+      { "id": 12, "username": "student1", "email": "...", "role": "student" },
+      { "id": 19, "username": "teacher2", "email": "...", "role": "teacher" }
+    ]
+  }
+  ```
+
+- **Error Responses**:
+  - **404** — event not found:
+    ```json
+    { "message": "Event not found" }
+    ```
+  - **403** — teacher is not the organizer:
+    ```json
+    { "message": "Unauthorized — only the event organizer can add guests" }
+    ```
+  - **422** — one or more usernames not found:
+    ```json
+    {
+      "message": "Some usernames were not found",
+      "unknown_usernames": ["nonexistent_user"]
+    }
+    ```
+
+---
+
 ## Event Type Reference
 
 | Value | Meaning |
