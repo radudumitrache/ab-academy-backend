@@ -37,21 +37,33 @@ class ExamController extends Controller
      */
     public function index()
     {
-        $studentIds = $this->getTeacherStudentIds();
+        $teacherId = Auth::id();
 
-        if (empty($studentIds)) {
-            return response()->json([
-                'message' => 'Exams retrieved successfully',
-                'count'   => 0,
-                'exams'   => [],
-            ]);
-        }
+        $groupIds = Group::where('group_teacher', $teacherId)->pluck('group_id')->toArray();
 
-        $examIds = DB::table('student_exam')
+        $studentIds = empty($groupIds) ? [] : DB::table('group_student')
+            ->whereIn('group_id', $groupIds)
+            ->pluck('student_id')
+            ->unique()
+            ->values()
+            ->toArray();
+
+        $examIds = empty($studentIds) ? [] : DB::table('student_exam')
             ->whereIn('student_id', $studentIds)
             ->pluck('exam_id')
             ->unique()
             ->toArray();
+
+        // --- temporary debug — remove after confirming fix ---
+        if (request()->boolean('_debug')) {
+            return response()->json([
+                'teacher_id'  => $teacherId,
+                'group_ids'   => $groupIds,
+                'student_ids' => $studentIds,
+                'exam_ids'    => $examIds,
+            ]);
+        }
+        // --- end debug ---
 
         if (empty($examIds)) {
             return response()->json([
