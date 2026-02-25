@@ -10,6 +10,7 @@ This documentation covers all teacher-facing API endpoints for the AB Academy pl
 4. [Group Management](04-groups.md)
 5. [Exam Management](05-exams.md)
 6. [Event Management](06-events.md)
+7. [Notifications](07-notifications.md)
 
 ## Base URL
 
@@ -59,6 +60,10 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | DELETE | `/api/teacher/events/{id}` | Yes | Delete an event (organizer only) |
 | PUT | `/api/teacher/events/{id}/attendance` | Yes | Record guest attendance (organizer only) |
 | POST | `/api/teacher/events/{id}/guests/by-username` | Yes | Add guests to an event by username (organizer only) |
+| GET | `/api/teacher/notifications` | Yes | List own notifications (filterable) |
+| PUT | `/api/teacher/notifications/seen-all` | Yes | Mark all notifications as seen |
+| PUT | `/api/teacher/notifications/{id}/seen` | Yes | Mark a single notification as seen |
+| DELETE | `/api/teacher/notifications/{id}` | Yes | Delete a notification |
 
 ## Teacher User Object
 
