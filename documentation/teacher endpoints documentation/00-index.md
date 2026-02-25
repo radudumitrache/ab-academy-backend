@@ -11,6 +11,7 @@ This documentation covers all teacher-facing API endpoints for the AB Academy pl
 5. [Exam Management](05-exams.md)
 6. [Event Management](06-events.md)
 7. [Notifications](07-notifications.md)
+8. [Homework Management](08-homework.md)
 
 ## Base URL
 
@@ -64,6 +65,17 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | PUT | `/api/teacher/notifications/seen-all` | Yes | Mark all notifications as seen |
 | PUT | `/api/teacher/notifications/{id}/seen` | Yes | Mark a single notification as seen |
 | DELETE | `/api/teacher/notifications/{id}` | Yes | Delete a notification |
+| GET | `/api/teacher/homework` | Yes | List own homework |
+| POST | `/api/teacher/homework` | Yes | Create homework |
+| GET | `/api/teacher/homework/{id}` | Yes | Get homework with all questions and sections |
+| PUT | `/api/teacher/homework/{id}` | Yes | Update homework |
+| DELETE | `/api/teacher/homework/{id}` | Yes | Delete homework |
+| POST | `/api/teacher/homework/{id}/assign` | Yes | Assign students/groups to homework |
+| POST | `/api/teacher/homework/{homeworkId}/questions` | Yes | Add a question to homework |
+| PUT | `/api/teacher/homework/{homeworkId}/questions/{qId}` | Yes | Update a question |
+| DELETE | `/api/teacher/homework/{homeworkId}/questions/{qId}` | Yes | Delete a question |
+| POST | `/api/teacher/homework/{homeworkId}/sections` | Yes | Add a reading or listening section |
+| DELETE | `/api/teacher/homework/{homeworkId}/sections/{sId}` | Yes | Delete a section |
 
 ## Teacher User Object
 

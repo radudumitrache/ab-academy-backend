@@ -8,13 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class Homework extends Model
 {
     use HasFactory;
-    
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
+
     protected $fillable = [
+        'homework_teacher',
         'homework_title',
         'homework_description',
         'due_date',
@@ -22,24 +18,44 @@ class Homework extends Model
         'groups_assigned',
         'date_created',
     ];
-    
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array
-     */
+
     protected $casts = [
-        'due_date' => 'date',
+        'due_date'        => 'date:Y-m-d',
         'people_assigned' => 'array',
         'groups_assigned' => 'array',
-        'date_created' => 'datetime',
+        'date_created'    => 'datetime',
     ];
-    
+
+    public function teacher()
+    {
+        return $this->belongsTo(User::class, 'homework_teacher');
+    }
+
     /**
-     * Get the questions for the homework.
+     * Top-level questions (not belonging to a reading/listening section).
      */
     public function questions()
     {
-        return $this->hasMany(Question::class, 'homework_id');
+        return $this->hasMany(Question::class, 'homework_id')
+                    ->whereNull('section_id')
+                    ->orderBy('order');
+    }
+
+    /**
+     * All questions including those inside sections.
+     */
+    public function allQuestions()
+    {
+        return $this->hasMany(Question::class, 'homework_id')->orderBy('order');
+    }
+
+    public function readingSections()
+    {
+        return $this->hasMany(ReadingSection::class, 'homework_id')->orderBy('order');
+    }
+
+    public function listeningSections()
+    {
+        return $this->hasMany(ListeningSection::class, 'homework_id')->orderBy('order');
     }
 }
