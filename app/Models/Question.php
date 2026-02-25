@@ -11,6 +11,7 @@ use App\Models\TypesOfQuestions\CorrectQuestion;
 use App\Models\TypesOfQuestions\WordDerivationQuestion;
 use App\Models\TypesOfQuestions\TextCompletionQuestion;
 use App\Models\TypesOfQuestions\CorrelationQuestion;
+use App\Models\TypesOfQuestions\ReadingQuestion;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -98,6 +99,11 @@ class Question extends Model
     public function correlationDetails()
     {
         return $this->hasOne(CorrelationQuestion::class, 'question_id', 'question_id');
+    }
+
+    public function readingQuestionDetails()
+    {
+        return $this->hasOne(ReadingQuestion::class, 'question_id', 'question_id');
     }
 
     // ── Student responses ─────────────────────────────────────────────────────

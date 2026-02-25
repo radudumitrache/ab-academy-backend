@@ -41,7 +41,7 @@ class HomeworkController extends Controller
         }
 
         $homework->load([
-            // Top-level questions (not in a section) with all possible detail relations
+            // Top-level questions with all possible detail relations
             'questions.multipleChoiceDetails',
             'questions.gapFillDetails',
             'questions.rephraseDetails',
@@ -51,9 +51,10 @@ class HomeworkController extends Controller
             'questions.wordDerivationDetails',
             'questions.textCompletionDetails',
             'questions.correlationDetails',
-            // Reading sections and their questions
+            // Reading sections and their questions (including open reading_question type)
             'readingSections.questions.multipleChoiceDetails',
             'readingSections.questions.rephraseDetails',
+            'readingSections.questions.readingQuestionDetails',
             // Listening sections and their questions
             'listeningSections.questions.multipleChoiceDetails',
             'listeningSections.questions.textCompletionDetails',

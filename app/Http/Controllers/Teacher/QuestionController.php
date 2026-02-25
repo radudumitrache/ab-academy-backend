@@ -11,6 +11,7 @@ use App\Models\TypesOfQuestions\CorrelationQuestion;
 use App\Models\TypesOfQuestions\CorrectQuestion;
 use App\Models\TypesOfQuestions\GapFillQuestion;
 use App\Models\TypesOfQuestions\MultipleChoiceQuestion;
+use App\Models\TypesOfQuestions\ReadingQuestion;
 use App\Models\TypesOfQuestions\RephraseQuestion;
 use App\Models\TypesOfQuestions\ReplaceQuestion;
 use App\Models\TypesOfQuestions\TextCompletionQuestion;
@@ -60,17 +61,18 @@ class QuestionController extends Controller
     private function loadDetailRelation(Question $question): Question
     {
         $map = [
-            'multiple_choice'          => 'multipleChoiceDetails',
-            'reading_multiple_choice'  => 'multipleChoiceDetails',
+            'multiple_choice'           => 'multipleChoiceDetails',
+            'reading_multiple_choice'   => 'multipleChoiceDetails',
             'listening_multiple_choice' => 'multipleChoiceDetails',
-            'gap_fill'                 => 'gapFillDetails',
-            'rephrase'                 => 'rephraseDetails',
-            'word_formation'           => 'wordFormationDetails',
-            'replace'                  => 'replaceDetails',
-            'correct'                  => 'correctDetails',
-            'word_derivation'          => 'wordDerivationDetails',
-            'text_completion'          => 'textCompletionDetails',
-            'correlation'              => 'correlationDetails',
+            'gap_fill'                  => 'gapFillDetails',
+            'rephrase'                  => 'rephraseDetails',
+            'word_formation'            => 'wordFormationDetails',
+            'replace'                   => 'replaceDetails',
+            'correct'                   => 'correctDetails',
+            'word_derivation'           => 'wordDerivationDetails',
+            'text_completion'           => 'textCompletionDetails',
+            'correlation'               => 'correlationDetails',
+            'reading_question'          => 'readingQuestionDetails',
         ];
 
         $relation = $map[$question->question_type] ?? null;
@@ -96,35 +98,35 @@ class QuestionController extends Controller
         }
 
         $validated = $request->validate([
-            'question_text'      => 'required|string',
-            'question_type'      => ['required', Rule::in(self::TYPES)],
-            'order'              => 'nullable|integer|min:1',
-            'instruction_files'  => 'nullable|array',
+            'question_text'       => 'required|string',
+            'question_type'       => ['required', Rule::in(self::TYPES)],
+            'order'               => 'nullable|integer|min:1',
+            'instruction_files'   => 'nullable|array',
             'instruction_files.*' => 'url',
-            'section_id'         => 'nullable|integer',
+            'section_id'          => 'nullable|integer',
             // ── type-specific fields ──────────────────────────────────────────
             // multiple_choice / reading_multiple_choice / listening_multiple_choice
-            'variants'           => 'nullable|array',
-            'variants.*'         => 'string',
-            'correct_variant'    => 'nullable|integer',
+            'variants'            => 'nullable|array',
+            'variants.*'          => 'string',
+            'correct_variant'     => 'nullable|integer',
             // gap_fill
-            'with_variants'      => 'nullable|boolean',
-            'correct_answers'    => 'nullable|array',
-            'correct_answers.*'  => 'string',
-            // rephrase / word_formation / replace / correct / word_derivation
-            'sample_answer'      => 'nullable|string',
-            'base_word'          => 'nullable|string',
-            'root_word'          => 'nullable|string',
-            'original_text'      => 'nullable|string',
-            'incorrect_text'     => 'nullable|string',
+            'with_variants'       => 'nullable|boolean',
+            'correct_answers'     => 'nullable|array',
+            'correct_answers.*'   => 'string',
+            // rephrase / word_formation / replace / correct / word_derivation / reading_question
+            'sample_answer'       => 'nullable|string',
+            'base_word'           => 'nullable|string',
+            'root_word'           => 'nullable|string',
+            'original_text'       => 'nullable|string',
+            'incorrect_text'      => 'nullable|string',
             // text_completion
-            'full_text'          => 'nullable|string',
+            'full_text'           => 'nullable|string',
             // correlation
-            'column_a'           => 'nullable|array',
-            'column_a.*'         => 'string',
-            'column_b'           => 'nullable|array',
-            'column_b.*'         => 'string',
-            'correct_pairs'      => 'nullable|array',
+            'column_a'            => 'nullable|array',
+            'column_a.*'          => 'string',
+            'column_b'            => 'nullable|array',
+            'column_b.*'          => 'string',
+            'correct_pairs'       => 'nullable|array',
         ]);
 
         $type = $validated['question_type'];
@@ -137,10 +139,9 @@ class QuestionController extends Controller
                 ], 422);
             }
 
-            $sectionType = str_starts_with($type, 'listening') ? 'listening' : 'reading';
-
+            $sectionType  = str_starts_with($type, 'listening') ? 'listening' : 'reading';
             $sectionModel = $sectionType === 'reading' ? ReadingSection::class : ListeningSection::class;
-            $section = $sectionModel::where('homework_id', $homeworkId)->find($validated['section_id']);
+            $section      = $sectionModel::where('homework_id', $homeworkId)->find($validated['section_id']);
 
             if (!$section) {
                 return response()->json(['message' => 'Section not found on this homework'], 404);
@@ -396,13 +397,18 @@ class QuestionController extends Controller
 
             $type === 'correlation'
                 => CorrelationQuestion::create([
-                    'question_id'  => $qId,
-                    'column_a'     => $data['column_a'] ?? [],
-                    'column_b'     => $data['column_b'] ?? [],
+                    'question_id'   => $qId,
+                    'column_a'      => $data['column_a'] ?? [],
+                    'column_b'      => $data['column_b'] ?? [],
                     'correct_pairs' => $data['correct_pairs'] ?? [],
                 ]),
 
-            // reading_question has no detail table
+            $type === 'reading_question'
+                => ReadingQuestion::create([
+                    'question_id'   => $qId,
+                    'sample_answer' => $data['sample_answer'] ?? null,
+                ]),
+
             default => null,
         };
     }
@@ -498,6 +504,13 @@ class QuestionController extends Controller
                         'column_b'      => $data['column_b'] ?? null,
                         'correct_pairs' => $data['correct_pairs'] ?? null,
                     ], fn ($v) => !is_null($v)));
+                }
+            })(),
+
+            $type === 'reading_question' => (function () use ($qId, $data) {
+                $detail = ReadingQuestion::where('question_id', $qId)->first();
+                if ($detail && isset($data['sample_answer'])) {
+                    $detail->update(['sample_answer' => $data['sample_answer']]);
                 }
             })(),
 
