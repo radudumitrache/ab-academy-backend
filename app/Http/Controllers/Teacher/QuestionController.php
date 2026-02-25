@@ -4,9 +4,8 @@ namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
 use App\Models\Homework;
-use App\Models\ListeningSection;
+use App\Models\HomeworkSection;
 use App\Models\Question;
-use App\Models\ReadingSection;
 use App\Models\TypesOfQuestions\CorrelationQuestion;
 use App\Models\TypesOfQuestions\CorrectQuestion;
 use App\Models\TypesOfQuestions\GapFillQuestion;
@@ -23,36 +22,6 @@ use Illuminate\Validation\Rule;
 
 class QuestionController extends Controller
 {
-    // ─────────────────────────────────────────────────────────────────────────
-    // Constants
-    // ─────────────────────────────────────────────────────────────────────────
-
-    const TYPES = [
-        'multiple_choice',
-        'gap_fill',
-        'rephrase',
-        'word_formation',
-        'replace',
-        'correct',
-        'word_derivation',
-        'reading_multiple_choice',
-        'reading_question',
-        'listening_multiple_choice',
-        'text_completion',
-        'correlation',
-    ];
-
-    // Types that require a section_id
-    const SECTION_TYPES = [
-        'reading_multiple_choice',
-        'reading_question',
-        'listening_multiple_choice',
-    ];
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Helpers
-    // ─────────────────────────────────────────────────────────────────────────
-
     private function findOwnedHomework($homeworkId)
     {
         return Homework::where('homework_teacher', Auth::id())->find($homeworkId);
@@ -83,12 +52,9 @@ class QuestionController extends Controller
         return $question;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Questions CRUD
-    // ─────────────────────────────────────────────────────────────────────────
-
     /**
-     * Create a question on a homework owned by the teacher.
+     * Create a question inside a section.
+     * section_id is required — questions always belong to a section.
      */
     public function store(Request $request, $homeworkId)
     {
@@ -97,31 +63,27 @@ class QuestionController extends Controller
             return response()->json(['message' => 'Homework not found'], 404);
         }
 
+        $allTypes = array_unique(array_merge(...array_values(HomeworkSection::ALLOWED_QUESTION_TYPES)));
+
         $validated = $request->validate([
+            'section_id'          => 'required|integer',
             'question_text'       => 'required|string',
-            'question_type'       => ['required', Rule::in(self::TYPES)],
+            'question_type'       => ['required', Rule::in($allTypes)],
             'order'               => 'nullable|integer|min:1',
             'instruction_files'   => 'nullable|array',
             'instruction_files.*' => 'url',
-            'section_id'          => 'nullable|integer',
-            // ── type-specific fields ──────────────────────────────────────────
-            // multiple_choice / reading_multiple_choice / listening_multiple_choice
             'variants'            => 'nullable|array',
             'variants.*'          => 'string',
             'correct_variant'     => 'nullable|integer',
-            // gap_fill
             'with_variants'       => 'nullable|boolean',
             'correct_answers'     => 'nullable|array',
             'correct_answers.*'   => 'string',
-            // rephrase / word_formation / replace / correct / word_derivation / reading_question
             'sample_answer'       => 'nullable|string',
             'base_word'           => 'nullable|string',
             'root_word'           => 'nullable|string',
             'original_text'       => 'nullable|string',
             'incorrect_text'      => 'nullable|string',
-            // text_completion
             'full_text'           => 'nullable|string',
-            // correlation
             'column_a'            => 'nullable|array',
             'column_a.*'          => 'string',
             'column_b'            => 'nullable|array',
@@ -129,40 +91,29 @@ class QuestionController extends Controller
             'correct_pairs'       => 'nullable|array',
         ]);
 
-        $type = $validated['question_type'];
-
-        // Validate section_id when required
-        if (in_array($type, self::SECTION_TYPES)) {
-            if (empty($validated['section_id'])) {
-                return response()->json([
-                    'message' => "question_type '{$type}' requires a section_id",
-                ], 422);
-            }
-
-            $sectionType  = str_starts_with($type, 'listening') ? 'listening' : 'reading';
-            $sectionModel = $sectionType === 'reading' ? ReadingSection::class : ListeningSection::class;
-            $section      = $sectionModel::where('homework_id', $homeworkId)->find($validated['section_id']);
-
-            if (!$section) {
-                return response()->json(['message' => 'Section not found on this homework'], 404);
-            }
+        $section = HomeworkSection::where('homework_id', $homeworkId)->find($validated['section_id']);
+        if (!$section) {
+            return response()->json(['message' => 'Section not found on this homework'], 404);
         }
 
-        // Build base question
+        $allowed = HomeworkSection::ALLOWED_QUESTION_TYPES[$section->section_type] ?? [];
+        if (!in_array($validated['question_type'], $allowed)) {
+            return response()->json([
+                'message'       => "question_type '{$validated['question_type']}' is not allowed in a {$section->section_type} section",
+                'allowed_types' => $allowed,
+            ], 422);
+        }
+
         $question = Question::create([
             'homework_id'       => $homeworkId,
+            'section_id'        => $section->id,
             'question_text'     => $validated['question_text'],
-            'question_type'     => $type,
+            'question_type'     => $validated['question_type'],
             'order'             => $validated['order'] ?? null,
             'instruction_files' => $validated['instruction_files'] ?? null,
-            'section_id'        => $validated['section_id'] ?? null,
-            'section_type'      => isset($validated['section_id'])
-                                    ? (str_starts_with($type, 'listening') ? 'listening' : 'reading')
-                                    : null,
         ]);
 
-        // Create the detail record for this question type
-        $this->createDetailRecord($question, $type, $validated);
+        $this->createDetailRecord($question, $validated['question_type'], $validated);
 
         return response()->json([
             'message'  => 'Question created successfully',
@@ -190,7 +141,6 @@ class QuestionController extends Controller
             'order'               => 'nullable|integer|min:1',
             'instruction_files'   => 'nullable|array',
             'instruction_files.*' => 'url',
-            // type-specific update fields (all optional)
             'variants'            => 'nullable|array',
             'variants.*'          => 'string',
             'correct_variant'     => 'nullable|integer',
@@ -210,7 +160,6 @@ class QuestionController extends Controller
             'correct_pairs'       => 'nullable|array',
         ]);
 
-        // Update base question fields
         $baseFields = array_filter([
             'question_text'     => $validated['question_text'] ?? null,
             'order'             => $validated['order'] ?? null,
@@ -221,7 +170,6 @@ class QuestionController extends Controller
             $question->update($baseFields);
         }
 
-        // Update type-specific detail record
         $this->updateDetailRecord($question, $question->question_type, $validated);
 
         return response()->json([
@@ -249,90 +197,6 @@ class QuestionController extends Controller
 
         return response()->json(['message' => 'Question deleted successfully']);
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Sections CRUD
-    // ─────────────────────────────────────────────────────────────────────────
-
-    /**
-     * Create a reading or listening section on a homework.
-     */
-    public function storeSection(Request $request, $homeworkId)
-    {
-        $homework = $this->findOwnedHomework($homeworkId);
-        if (!$homework) {
-            return response()->json(['message' => 'Homework not found'], 404);
-        }
-
-        $validated = $request->validate([
-            'section_type' => ['required', Rule::in(['reading', 'listening'])],
-            'title'        => 'nullable|string|max:255',
-            'order'        => 'nullable|integer|min:1',
-            // reading
-            'passage'      => 'nullable|string',
-            // listening
-            'audio_url'    => 'nullable|url',
-            'transcript'   => 'nullable|string',
-        ]);
-
-        if ($validated['section_type'] === 'reading') {
-            $request->validate(['passage' => 'required|string']);
-
-            $section = ReadingSection::create([
-                'homework_id' => $homeworkId,
-                'title'       => $validated['title'] ?? null,
-                'passage'     => $validated['passage'],
-                'order'       => $validated['order'] ?? null,
-            ]);
-        } else {
-            $request->validate(['audio_url' => 'required|url']);
-
-            $section = ListeningSection::create([
-                'homework_id' => $homeworkId,
-                'title'       => $validated['title'] ?? null,
-                'audio_url'   => $validated['audio_url'],
-                'transcript'  => $validated['transcript'] ?? null,
-                'order'       => $validated['order'] ?? null,
-            ]);
-        }
-
-        return response()->json([
-            'message' => ucfirst($validated['section_type']) . ' section created successfully',
-            'section' => $section,
-        ], 201);
-    }
-
-    /**
-     * Delete a reading or listening section.
-     * Questions inside are removed by DB cascade.
-     */
-    public function destroySection(Request $request, $homeworkId, $sectionId)
-    {
-        $homework = $this->findOwnedHomework($homeworkId);
-        if (!$homework) {
-            return response()->json(['message' => 'Homework not found'], 404);
-        }
-
-        $request->validate(['section_type' => ['required', Rule::in(['reading', 'listening'])]]);
-
-        if ($request->section_type === 'reading') {
-            $section = ReadingSection::where('homework_id', $homeworkId)->find($sectionId);
-        } else {
-            $section = ListeningSection::where('homework_id', $homeworkId)->find($sectionId);
-        }
-
-        if (!$section) {
-            return response()->json(['message' => 'Section not found'], 404);
-        }
-
-        $section->delete();
-
-        return response()->json(['message' => 'Section deleted successfully']);
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Detail record creation / update
-    // ─────────────────────────────────────────────────────────────────────────
 
     private function createDetailRecord(Question $question, string $type, array $data): void
     {

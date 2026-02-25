@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Teacher;
 use App\Http\Controllers\Controller;
 use App\Models\Group;
 use App\Models\Homework;
-use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -41,23 +40,16 @@ class HomeworkController extends Controller
         }
 
         $homework->load([
-            // Top-level questions with all possible detail relations
-            'questions.multipleChoiceDetails',
-            'questions.gapFillDetails',
-            'questions.rephraseDetails',
-            'questions.wordFormationDetails',
-            'questions.replaceDetails',
-            'questions.correctDetails',
-            'questions.wordDerivationDetails',
-            'questions.textCompletionDetails',
-            'questions.correlationDetails',
-            // Reading sections and their questions (including open reading_question type)
-            'readingSections.questions.multipleChoiceDetails',
-            'readingSections.questions.rephraseDetails',
-            'readingSections.questions.readingQuestionDetails',
-            // Listening sections and their questions
-            'listeningSections.questions.multipleChoiceDetails',
-            'listeningSections.questions.textCompletionDetails',
+            'sections.questions.multipleChoiceDetails',
+            'sections.questions.gapFillDetails',
+            'sections.questions.rephraseDetails',
+            'sections.questions.wordFormationDetails',
+            'sections.questions.replaceDetails',
+            'sections.questions.correctDetails',
+            'sections.questions.wordDerivationDetails',
+            'sections.questions.textCompletionDetails',
+            'sections.questions.correlationDetails',
+            'sections.questions.readingQuestionDetails',
         ]);
 
         return response()->json([

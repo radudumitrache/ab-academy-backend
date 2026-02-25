@@ -28,7 +28,6 @@ class Question extends Model
         'instruction_files',
         'order',
         'section_id',
-        'section_type',
     ];
 
     protected $casts = [
@@ -42,16 +41,11 @@ class Question extends Model
         return $this->belongsTo(Homework::class, 'homework_id');
     }
 
-    // ── Section relationships ─────────────────────────────────────────────────
+    // ── Section relationship ──────────────────────────────────────────────────
 
-    public function readingSection()
+    public function section()
     {
-        return $this->belongsTo(ReadingSection::class, 'section_id');
-    }
-
-    public function listeningSection()
-    {
-        return $this->belongsTo(ListeningSection::class, 'section_id');
+        return $this->belongsTo(HomeworkSection::class, 'section_id');
     }
 
     // ── Detail relationships (one per question type) ──────────────────────────

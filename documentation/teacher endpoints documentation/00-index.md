@@ -71,11 +71,13 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | PUT | `/api/teacher/homework/{id}` | Yes | Update homework |
 | DELETE | `/api/teacher/homework/{id}` | Yes | Delete homework |
 | POST | `/api/teacher/homework/{id}/assign` | Yes | Assign students/groups to homework |
-| POST | `/api/teacher/homework/{homeworkId}/questions` | Yes | Add a question to homework |
+| GET | `/api/teacher/homework/{homeworkId}/sections` | Yes | List sections of a homework |
+| POST | `/api/teacher/homework/{homeworkId}/sections` | Yes | Add a section to homework |
+| PUT | `/api/teacher/homework/{homeworkId}/sections/{sId}` | Yes | Update a section |
+| DELETE | `/api/teacher/homework/{homeworkId}/sections/{sId}` | Yes | Delete a section |
+| POST | `/api/teacher/homework/{homeworkId}/questions` | Yes | Add a question to a section |
 | PUT | `/api/teacher/homework/{homeworkId}/questions/{qId}` | Yes | Update a question |
 | DELETE | `/api/teacher/homework/{homeworkId}/questions/{qId}` | Yes | Delete a question |
-| POST | `/api/teacher/homework/{homeworkId}/sections` | Yes | Add a reading or listening section |
-| DELETE | `/api/teacher/homework/{homeworkId}/sections/{sId}` | Yes | Delete a section |
 
 ## Teacher User Object
 

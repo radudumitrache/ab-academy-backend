@@ -2,28 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-
-class ReadingSection extends Model
+/**
+ * Superseded by HomeworkSection (section_type = 'Reading').
+ * Kept as an alias to avoid breaking any cached references.
+ */
+class ReadingSection extends HomeworkSection
 {
-    use HasFactory;
-
-    protected $fillable = [
-        'homework_id',
-        'title',
-        'passage',
-        'order',
-    ];
-
-    public function homework()
-    {
-        return $this->belongsTo(Homework::class, 'homework_id');
-    }
-
-    public function questions()
-    {
-        return $this->hasMany(Question::class, 'section_id')
-                    ->where('section_type', 'reading');
-    }
 }

@@ -32,30 +32,45 @@ class Homework extends Model
     }
 
     /**
-     * Top-level questions (not belonging to a reading/listening section).
+     * All sections (any type) ordered by display order.
      */
-    public function questions()
+    public function sections()
     {
-        return $this->hasMany(Question::class, 'homework_id')
-                    ->whereNull('section_id')
-                    ->orderBy('order');
+        return $this->hasMany(HomeworkSection::class, 'homework_id')->orderBy('order');
     }
 
     /**
-     * All questions including those inside sections.
+     * Convenience scoped accessors per section type.
      */
-    public function allQuestions()
+    public function grammarAndVocabularySections()
     {
-        return $this->hasMany(Question::class, 'homework_id')->orderBy('order');
+        return $this->hasMany(HomeworkSection::class, 'homework_id')
+                    ->where('section_type', 'GrammarAndVocabulary')->orderBy('order');
+    }
+
+    public function writingSections()
+    {
+        return $this->hasMany(HomeworkSection::class, 'homework_id')
+                    ->where('section_type', 'Writing')->orderBy('order');
     }
 
     public function readingSections()
     {
-        return $this->hasMany(ReadingSection::class, 'homework_id')->orderBy('order');
+        return $this->hasMany(HomeworkSection::class, 'homework_id')
+                    ->where('section_type', 'Reading')->orderBy('order');
     }
 
     public function listeningSections()
     {
-        return $this->hasMany(ListeningSection::class, 'homework_id')->orderBy('order');
+        return $this->hasMany(HomeworkSection::class, 'homework_id')
+                    ->where('section_type', 'Listening')->orderBy('order');
+    }
+
+    /**
+     * All questions across all sections (via hasManyThrough).
+     */
+    public function allQuestions()
+    {
+        return $this->hasManyThrough(Question::class, HomeworkSection::class, 'homework_id', 'section_id');
     }
 }
