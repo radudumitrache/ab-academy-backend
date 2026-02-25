@@ -73,4 +73,12 @@ class Homework extends Model
     {
         return $this->hasManyThrough(Question::class, HomeworkSection::class, 'homework_id', 'section_id');
     }
+
+    /**
+     * All student submissions for this homework.
+     */
+    public function submissions()
+    {
+        return $this->hasMany(HomeworkSubmission::class, 'homework_id');
+    }
 }

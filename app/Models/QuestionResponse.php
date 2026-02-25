@@ -22,24 +22,24 @@ class QuestionResponse extends Model
      * @var array
      */
     protected $fillable = [
+        'submission_id',
         'related_question',
         'related_student',
         'answer',
     ];
     
-    /**
-     * Get the question that this response is for.
-     */
+    public function submission()
+    {
+        return $this->belongsTo(HomeworkSubmission::class, 'submission_id');
+    }
+
     public function question()
     {
         return $this->belongsTo(Question::class, 'related_question', 'question_id');
     }
-    
-    /**
-     * Get the student who submitted this response.
-     */
+
     public function student()
     {
-        return $this->belongsTo(Student::class, 'related_student');
+        return $this->belongsTo(User::class, 'related_student');
     }
 }
