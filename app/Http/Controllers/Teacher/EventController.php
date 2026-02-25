@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -34,6 +35,7 @@ class EventController extends Controller
 
     /**
      * Show a single event — accessible to any authenticated teacher.
+     * Resolves guest IDs to full user objects.
      */
     public function show($id)
     {
@@ -43,9 +45,18 @@ class EventController extends Controller
             return response()->json(['message' => 'Event not found'], 404);
         }
 
+        $guestIds = collect($event->guests ?? [])->map(function ($guest) {
+            return is_array($guest) ? ($guest['id'] ?? null) : $guest;
+        })->filter()->map(fn ($g) => (int) $g)->unique()->values()->toArray();
+
+        $guestUsers = User::whereIn('id', $guestIds)
+            ->select('id', 'username', 'email', 'role')
+            ->get();
+
         return response()->json([
-            'message' => 'Event retrieved successfully',
-            'event'   => $event,
+            'message'     => 'Event retrieved successfully',
+            'event'       => $event,
+            'guest_users' => $guestUsers,
         ]);
     }
 
