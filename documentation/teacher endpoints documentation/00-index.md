@@ -47,7 +47,7 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | POST | `/api/teacher/groups/{id}/students` | Yes | Add a student to a group by ID |
 | POST | `/api/teacher/groups/{id}/students/by-username` | Yes | Add a student to a group by username |
 | DELETE | `/api/teacher/groups/{groupId}/students/{studentId}` | Yes | Remove a student from a group |
-| GET | `/api/teacher/exams` | Yes | List exams that teacher's students are enrolled in |
+| GET | `/api/teacher/exams` | Yes | List all exams |
 | POST | `/api/teacher/exams` | Yes | Create a new exam |
 | GET | `/api/teacher/exams/{id}` | Yes | Get a single exam |
 | POST | `/api/teacher/exams/{id}/students` | Yes | Enroll students in an exam |

@@ -42,9 +42,9 @@ All enrollment operations are scoped to the teacher's own groups — a teacher c
 
 ---
 
-## List Exams for My Students
+## List All Exams
 
-Returns all exams that at least one student from the teacher's groups is enrolled in.
+Returns all exams in the system. Teachers need to see all exams to be able to enroll their students in them.
 
 - **URL**: `/api/teacher/exams`
 - **Method**: `GET`
@@ -72,7 +72,7 @@ Returns all exams that at least one student from the teacher's groups is enrolle
   ```
 
 - **Notes**:
-  - Returns an empty array if the teacher has no groups or no students are enrolled in any exam.
+  - Returns all exams regardless of student enrollment. Use the enroll endpoints to add your students to specific exams.
 
 ---
 

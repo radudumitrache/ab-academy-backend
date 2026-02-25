@@ -33,47 +33,11 @@ class ExamController extends Controller
     }
 
     /**
-     * List all exams that at least one student from the teacher's groups is enrolled in.
+     * List all exams. Teachers need to see all exams to enroll their students.
      */
     public function index()
     {
-        $teacherId = Auth::id();
-
-        $groupIds = Group::where('group_teacher', $teacherId)->pluck('group_id')->toArray();
-
-        $studentIds = empty($groupIds) ? [] : DB::table('group_student')
-            ->whereIn('group_id', $groupIds)
-            ->pluck('student_id')
-            ->unique()
-            ->values()
-            ->toArray();
-
-        $examIds = empty($studentIds) ? [] : DB::table('student_exam')
-            ->whereIn('student_id', $studentIds)
-            ->pluck('exam_id')
-            ->unique()
-            ->toArray();
-
-        // --- temporary debug — remove after confirming fix ---
-        if (request()->boolean('_debug')) {
-            return response()->json([
-                'teacher_id'  => $teacherId,
-                'group_ids'   => $groupIds,
-                'student_ids' => $studentIds,
-                'exam_ids'    => $examIds,
-            ]);
-        }
-        // --- end debug ---
-
-        if (empty($examIds)) {
-            return response()->json([
-                'message' => 'Exams retrieved successfully',
-                'count'   => 0,
-                'exams'   => [],
-            ]);
-        }
-
-        $exams = Exam::with(['students'])->whereIn('id', $examIds)->get();
+        $exams = Exam::with(['students'])->get();
 
         return response()->json([
             'message' => 'Exams retrieved successfully',
@@ -83,7 +47,7 @@ class ExamController extends Controller
     }
 
     /**
-     * Show a single exam — accessible only if at least one of the teacher's students is enrolled.
+     * Show a single exam.
      */
     public function show($id)
     {
@@ -91,13 +55,6 @@ class ExamController extends Controller
 
         if (!$exam) {
             return response()->json(['message' => 'Exam not found'], 404);
-        }
-
-        $studentIds     = $this->getTeacherStudentIds();
-        $enrolledIds    = $exam->students->pluck('id')->toArray();
-
-        if (empty(array_intersect($enrolledIds, $studentIds))) {
-            return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         return response()->json([
