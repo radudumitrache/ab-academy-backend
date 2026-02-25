@@ -53,6 +53,14 @@ class ExamController extends Controller
             ->unique()
             ->toArray();
 
+        if (empty($examIds)) {
+            return response()->json([
+                'message' => 'Exams retrieved successfully',
+                'count'   => 0,
+                'exams'   => [],
+            ]);
+        }
+
         $exams = Exam::with(['students'])->whereIn('id', $examIds)->get();
 
         return response()->json([
