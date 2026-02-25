@@ -83,7 +83,7 @@ Results are ordered by `event_date` and `event_time` ascending.
 
 ## Get Single Event
 
-Returns a single event. Only accessible if the teacher is the organizer or is in the guest list.
+Returns a single event. Accessible to any authenticated teacher.
 
 - **URL**: `/api/teacher/events/{id}`
 - **Method**: `GET`
@@ -101,10 +101,6 @@ Returns a single event. Only accessible if the teacher is the organizer or is in
   - **404** — event not found:
     ```json
     { "message": "Event not found" }
-    ```
-  - **403** — teacher is neither organizer nor guest:
-    ```json
-    { "message": "Unauthorized" }
     ```
 
 ---

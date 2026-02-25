@@ -33,25 +33,14 @@ class EventController extends Controller
     }
 
     /**
-     * Show a single event — accessible if the teacher is organizer or invited.
+     * Show a single event — accessible to any authenticated teacher.
      */
     public function show($id)
     {
-        $teacherId = Auth::id();
-        $event     = Event::with('organizer')->find($id);
+        $event = Event::with('organizer')->find($id);
 
         if (!$event) {
             return response()->json(['message' => 'Event not found'], 404);
-        }
-
-        $isOrganizer = (int) $event->event_organizer === $teacherId;
-        $guestIds    = collect($event->guests ?? [])->map(function ($guest) {
-            return is_array($guest) ? ($guest['id'] ?? null) : $guest;
-        })->filter()->map(fn ($g) => (int) $g)->all();
-        $isInvited   = in_array($teacherId, $guestIds);
-
-        if (!$isOrganizer && !$isInvited) {
-            return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         return response()->json([
