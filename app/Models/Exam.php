@@ -28,7 +28,7 @@ class Exam extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'date' => 'date',
+        'date' => 'date:Y-m-d',
     ];
 
     /**
