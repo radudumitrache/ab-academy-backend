@@ -10,13 +10,15 @@ All endpoints are scoped to the authenticated teacher — a teacher can only man
 ```json
 {
   "group_id": 3,
-  "group_name": "English A1 Monday",
+  "group_name": "English A1",
   "group_teacher": 4,
-  "description": "Beginner English group on Monday evenings.",
-  "schedule_day": "Monday",
-  "schedule_time": "18:00",
-  "normal_schedule": "2026-02-24T18:00:00.000000Z",
-  "formatted_schedule": "Monday at 18:00",
+  "description": "Beginner English group.",
+  "class_code": "AB12CD34",
+  "schedule_days": [
+    { "day": "Monday",    "time": "18:00" },
+    { "day": "Wednesday", "time": "18:00" }
+  ],
+  "formatted_schedule": "Monday at 18:00, Wednesday at 18:00",
   "group_members": [12, 15, 19],
   "students": [
     {
@@ -37,9 +39,9 @@ All endpoints are scoped to the authenticated teacher — a teacher can only man
 | `group_name` | Display name of the group |
 | `group_teacher` | User ID of the owning teacher |
 | `description` | Optional free-text description |
-| `schedule_day` | Day of the week the group meets |
-| `schedule_time` | Time the group meets (`HH:MM` format) |
-| `formatted_schedule` | Human-readable schedule (e.g. `Monday at 18:00`) |
+| `class_code` | 8-character alphanumeric code students use to join the group (`null` until generated) |
+| `schedule_days` | Array of `{ day, time }` objects — one entry per session slot |
+| `formatted_schedule` | Human-readable schedule (e.g. `Monday at 18:00, Wednesday at 18:00`) |
 | `group_members` | Array of student user IDs currently in the group |
 | `students` | Full student objects (eager-loaded) |
 
@@ -47,7 +49,7 @@ All endpoints are scoped to the authenticated teacher — a teacher can only man
 
 ## Get Schedule Options
 
-Returns the allowed values for `schedule_day` and `schedule_time` fields.
+Returns the allowed values for `schedule_days[].day` and `schedule_days[].time`.
 
 - **URL**: `/api/teacher/groups/schedule/options`
 - **Method**: `GET`
@@ -83,10 +85,13 @@ Returns all groups owned by the authenticated teacher.
     "groups": [
       {
         "group_id": 3,
-        "group_name": "English A1 Monday",
-        "schedule_day": "Monday",
-        "schedule_time": "18:00",
-        "formatted_schedule": "Monday at 18:00",
+        "group_name": "English A1",
+        "class_code": "AB12CD34",
+        "schedule_days": [
+          { "day": "Monday",    "time": "18:00" },
+          { "day": "Wednesday", "time": "18:00" }
+        ],
+        "formatted_schedule": "Monday at 18:00, Wednesday at 18:00",
         "group_members": [12, 15],
         "students": [ ... ]
       }
@@ -139,10 +144,12 @@ Creates a new group. The group is automatically assigned to the authenticated te
 - **Request Body**:
   ```json
   {
-    "group_name": "English A1 Monday",
+    "group_name": "English A1",
     "description": "Beginner English group.",
-    "schedule_day": "Monday",
-    "schedule_time": "18:00",
+    "schedule_days": [
+      { "day": "Monday",    "time": "18:00" },
+      { "day": "Wednesday", "time": "18:00" }
+    ],
     "group_members": [12, 15, 19]
   }
   ```
@@ -152,8 +159,9 @@ Creates a new group. The group is automatically assigned to the authenticated te
   |-------|------|----------|-------|
   | `group_name` | string | Yes | Max 255 characters |
   | `description` | string | No | Free-text |
-  | `schedule_day` | string | Yes | Must be a valid day (see Schedule Options) |
-  | `schedule_time` | string | Yes | `HH:MM` format (e.g. `18:00`) |
+  | `schedule_days` | array | Yes | At least one entry required |
+  | `schedule_days[].day` | string | Yes | Must be a valid day (see Schedule Options) |
+  | `schedule_days[].time` | string | Yes | `HH:MM` 24-hour format (e.g. `18:00`) |
   | `group_members` | array | No | Array of valid student user IDs |
 
 - **Success Response** `201`:
@@ -170,9 +178,9 @@ Creates a new group. The group is automatically assigned to the authenticated te
     {
       "message": "Validation failed",
       "errors": {
-        "group_name": ["The group name field is required."],
-        "schedule_day": ["The selected schedule day is invalid."],
-        "schedule_time": ["The schedule time does not match the format H:i."]
+        "schedule_days": ["The schedule days field is required."],
+        "schedule_days.0.day": ["The selected schedule_days.0.day is invalid."],
+        "schedule_days.0.time": ["The schedule_days.0.time does not match the format H:i."]
       }
     }
     ```
@@ -186,7 +194,7 @@ Creates a new group. The group is automatically assigned to the authenticated te
 ## Update Group
 
 Updates fields on an existing group. All fields are optional — only provided fields are changed.
-Providing `group_members` replaces the current student list entirely (sync).
+Providing `schedule_days` replaces the entire schedule. Providing `group_members` replaces the current student list entirely (sync).
 
 - **URL**: `/api/teacher/groups/{id}`
 - **Method**: `PUT`
@@ -199,9 +207,11 @@ Providing `group_members` replaces the current student list entirely (sync).
 - **Request Body** (all fields optional):
   ```json
   {
-    "group_name": "English A1 Tuesday",
-    "schedule_day": "Tuesday",
-    "schedule_time": "19:00"
+    "group_name": "English A1 — updated",
+    "schedule_days": [
+      { "day": "Tuesday",  "time": "19:00" },
+      { "day": "Thursday", "time": "19:00" }
+    ]
   }
   ```
 
@@ -302,7 +312,6 @@ Adds a single student to a group. Returns `409` if the student is already a memb
 ## Add Student to Group by Username
 
 Same behaviour as the endpoint above, but looks up the student by their `username` instead of their ID.
-Useful when the frontend has a name search rather than a user ID.
 
 - **URL**: `/api/teacher/groups/{id}/students/by-username`
 - **Method**: `POST`
@@ -385,6 +394,39 @@ Removes a student from a group.
   - **404** — student is not in this group:
     ```json
     { "message": "Student is not in this group" }
+    ```
+
+---
+
+## Generate Class Code
+
+Generates (or regenerates) a unique 8-character class code for the group. Students can then join the group by entering this code.
+Calling this endpoint again replaces the existing code with a new one.
+
+- **URL**: `/api/teacher/groups/{id}/generate-code`
+- **Method**: `POST`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  ```
+
+- **Success Response** `200`:
+  ```json
+  {
+    "message": "Class code generated successfully",
+    "class_code": "AB12CD34"
+  }
+  ```
+
+- **Error Responses**:
+  - **404** — group not found:
+    ```json
+    { "message": "Group not found" }
+    ```
+  - **403** — group belongs to another teacher:
+    ```json
+    { "message": "Unauthorized" }
     ```
 
 ---

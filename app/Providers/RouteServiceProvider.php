@@ -65,6 +65,7 @@ class RouteServiceProvider extends ServiceProvider
                 ->group(function () {
                     require base_path('routes/student/auth.php');
                     require base_path('routes/student/dashboard.php');
+                    require base_path('routes/student/groups.php');
                 });
 
             // Live session routes

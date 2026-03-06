@@ -2,7 +2,9 @@
 
 This section covers the API endpoints for managing student groups in the AB Academy platform.
 
-> **Note**: The `schedule_time` field is formatted as a time string in 24-hour format (HH:MM). For example, "14:30" represents 2:30 PM.
+> **Note**: `schedule_days` is an array of `{ day, time }` objects — a group can have multiple session slots per week. Times use 24-hour `HH:MM` format.
+
+> **Note**: The `class_code` field is a unique 8-character alphanumeric code that students use to join a group. It is `null` until the owning teacher generates one via `POST /api/teacher/groups/{id}/generate-code`. Admins have read-only visibility of this field.
 
 ## List All Groups
 
@@ -23,9 +25,12 @@ This section covers the API endpoints for managing student groups in the AB Acad
         "group_name": "Math Group",
         "group_teacher": 2,
         "description": "Advanced mathematics study group",
-        "schedule_day": "Monday",
-        "schedule_time": "14:30",
-        "formatted_schedule": "Monday at 14:30",
+        "class_code": "AB12CD34",
+        "schedule_days": [
+          { "day": "Monday",    "time": "14:30" },
+          { "day": "Wednesday", "time": "14:30" }
+        ],
+        "formatted_schedule": "Monday at 14:30, Wednesday at 14:30",
         "group_members": [3, 4, 5],
         "teacher": {
           "id": 2,
@@ -33,21 +38,9 @@ This section covers the API endpoints for managing student groups in the AB Acad
           "role": "teacher"
         },
         "students": [
-          {
-            "id": 3,
-            "username": "student1",
-            "role": "student"
-          },
-          {
-            "id": 4,
-            "username": "student2",
-            "role": "student"
-          },
-          {
-            "id": 5,
-            "username": "student3",
-            "role": "student"
-          }
+          { "id": 3, "username": "student1", "role": "student" },
+          { "id": 4, "username": "student2", "role": "student" },
+          { "id": 5, "username": "student3", "role": "student" }
         ]
       }
     ]
@@ -80,6 +73,7 @@ This section covers the API endpoints for managing student groups in the AB Acad
 - **Headers**:
   ```
   Authorization: Bearer {token}
+  Content-Type: application/json
   ```
 - **Request Body**:
   ```json
@@ -87,11 +81,25 @@ This section covers the API endpoints for managing student groups in the AB Acad
     "group_name": "Science Group",
     "group_teacher": 2,
     "description": "Physics and chemistry study group",
-    "schedule_day": "Tuesday",
-    "schedule_time": "15:30",  // Time in 24-hour format (HH:MM)
+    "schedule_days": [
+      { "day": "Tuesday",  "time": "15:30" },
+      { "day": "Thursday", "time": "15:30" }
+    ],
     "group_members": [3, 4, 5]
   }
   ```
+- **Field Notes**:
+
+  | Field | Type | Required | Notes |
+  |-------|------|----------|-------|
+  | `group_name` | string | Yes | Max 255 characters |
+  | `group_teacher` | integer | Yes | Must be a valid teacher user ID |
+  | `description` | string | No | Free-text |
+  | `schedule_days` | array | Yes | At least one entry required |
+  | `schedule_days[].day` | string | Yes | Must be a valid day (see Schedule Options) |
+  | `schedule_days[].time` | string | Yes | `HH:MM` 24-hour format |
+  | `group_members` | array | No | Array of valid student user IDs |
+
 - **Success Response**:
   ```json
   {
@@ -101,9 +109,12 @@ This section covers the API endpoints for managing student groups in the AB Acad
       "group_name": "Science Group",
       "group_teacher": 2,
       "description": "Physics and chemistry study group",
-      "schedule_day": "Tuesday",
-      "schedule_time": "15:30",
-      "formatted_schedule": "Tuesday at 15:30",
+      "class_code": null,
+      "schedule_days": [
+        { "day": "Tuesday",  "time": "15:30" },
+        { "day": "Thursday", "time": "15:30" }
+      ],
+      "formatted_schedule": "Tuesday at 15:30, Thursday at 15:30",
       "group_members": [3, 4, 5]
     }
   }
@@ -127,9 +138,12 @@ This section covers the API endpoints for managing student groups in the AB Acad
       "group_name": "Science Group",
       "group_teacher": 2,
       "description": "Physics and chemistry study group",
-      "schedule_day": "Tuesday",
-      "schedule_time": "15:30",
-      "formatted_schedule": "Tuesday at 15:30",
+      "class_code": "AB12CD34",
+      "schedule_days": [
+        { "day": "Tuesday",  "time": "15:30" },
+        { "day": "Thursday", "time": "15:30" }
+      ],
+      "formatted_schedule": "Tuesday at 15:30, Thursday at 15:30",
       "group_members": [3, 4, 5],
       "teacher": {
         "id": 2,
@@ -137,21 +151,9 @@ This section covers the API endpoints for managing student groups in the AB Acad
         "role": "teacher"
       },
       "students": [
-        {
-          "id": 3,
-          "username": "student1",
-          "role": "student"
-        },
-        {
-          "id": 4,
-          "username": "student2",
-          "role": "student"
-        },
-        {
-          "id": 5,
-          "username": "student3",
-          "role": "student"
-        }
+        { "id": 3, "username": "student1", "role": "student" },
+        { "id": 4, "username": "student2", "role": "student" },
+        { "id": 5, "username": "student3", "role": "student" }
       ]
     }
   }
@@ -165,14 +167,16 @@ This section covers the API endpoints for managing student groups in the AB Acad
 - **Headers**:
   ```
   Authorization: Bearer {token}
+  Content-Type: application/json
   ```
-- **Request Body**:
+- **Request Body** (all fields optional):
   ```json
   {
     "group_name": "Updated Science Group",
     "description": "Updated description",
-    "schedule_day": "Wednesday",
-    "schedule_time": "16:00"  // Time in 24-hour format (HH:MM)
+    "schedule_days": [
+      { "day": "Wednesday", "time": "16:00" }
+    ]
   }
   ```
 - **Success Response**:
@@ -184,8 +188,10 @@ This section covers the API endpoints for managing student groups in the AB Acad
       "group_name": "Updated Science Group",
       "group_teacher": 2,
       "description": "Updated description",
-      "schedule_day": "Wednesday",
-      "schedule_time": "16:00",
+      "class_code": "AB12CD34",
+      "schedule_days": [
+        { "day": "Wednesday", "time": "16:00" }
+      ],
       "formatted_schedule": "Wednesday at 16:00",
       "group_members": [3, 4, 5]
     }
@@ -216,6 +222,7 @@ This section covers the API endpoints for managing student groups in the AB Acad
 - **Headers**:
   ```
   Authorization: Bearer {token}
+  Content-Type: application/json
   ```
 - **Request Body**:
   ```json
@@ -226,17 +233,7 @@ This section covers the API endpoints for managing student groups in the AB Acad
 - **Success Response**:
   ```json
   {
-    "message": "Student added to group successfully",
-    "group": {
-      "group_id": 2,
-      "group_name": "Updated Science Group",
-      "group_teacher": 2,
-      "description": "Updated description",
-      "schedule_day": "Wednesday",
-      "schedule_time": "16:00",
-      "formatted_schedule": "Wednesday at 16:00",
-      "group_members": [3, 4, 5, 6]
-    }
+    "message": "Student added to group successfully"
   }
   ```
 
@@ -253,16 +250,7 @@ This section covers the API endpoints for managing student groups in the AB Acad
   ```json
   {
     "message": "Student removed from group successfully",
-    "group": {
-      "group_id": 2,
-      "group_name": "Updated Science Group",
-      "group_teacher": 2,
-      "description": "Updated description",
-      "schedule_day": "Wednesday",
-      "schedule_time": "16:00",
-      "formatted_schedule": "Wednesday at 16:00",
-      "group_members": [3, 4, 5]
-    }
+    "group": { ... }
   }
   ```
 
@@ -274,6 +262,7 @@ This section covers the API endpoints for managing student groups in the AB Acad
 - **Headers**:
   ```
   Authorization: Bearer {token}
+  Content-Type: application/json
   ```
 - **Request Body**:
   ```json
@@ -285,15 +274,6 @@ This section covers the API endpoints for managing student groups in the AB Acad
   ```json
   {
     "message": "Group members updated successfully",
-    "group": {
-      "group_id": 2,
-      "group_name": "Updated Science Group",
-      "group_teacher": 2,
-      "description": "Updated description",
-      "schedule_day": "Wednesday",
-      "schedule_time": "16:00",
-      "formatted_schedule": "Wednesday at 16:00",
-      "group_members": [3, 5, 7, 8]
-    }
+    "group": { ... }
   }
   ```

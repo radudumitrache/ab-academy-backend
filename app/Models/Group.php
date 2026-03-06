@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use App\Casts\TimeCast;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Group extends Model
 {
@@ -27,8 +27,8 @@ class Group extends Model
         'group_name',
         'group_teacher',
         'description',
-        'schedule_day',
-        'schedule_time',
+        'class_code',
+        'schedule_days',
         'normal_schedule', // Keep for backward compatibility
     ];
 
@@ -38,8 +38,8 @@ class Group extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'normal_schedule' => 'datetime',
-        'schedule_time' => TimeCast::class,
+        'normal_schedule'  => 'datetime',
+        'schedule_days'    => 'array',
     ];
 
     protected $appends = [
@@ -74,56 +74,55 @@ class Group extends Model
     
     /**
      * Get available days for scheduling.
-     *
-     * @return array
      */
-    public static function getAvailableDays()
+    public static function getAvailableDays(): array
     {
-        return [
-            'Monday',
-            'Tuesday',
-            'Wednesday',
-            'Thursday',
-            'Friday',
-            'Saturday',
-            'Sunday',
-        ];
+        return ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     }
-    
+
     /**
-     * Get available times for scheduling in 30-minute intervals.
-     *
-     * @return array
+     * Get available times for scheduling in 30-minute intervals (08:00–20:30).
      */
-    public static function getAvailableTimes()
+    public static function getAvailableTimes(): array
     {
         $times = [];
-        
-        // Generate times from 08:00 to 20:00 in 30-minute intervals
+
         for ($hour = 8; $hour <= 20; $hour++) {
-            $formattedHour = str_pad($hour, 2, '0', STR_PAD_LEFT);
-            $times[] = "{$formattedHour}:00";
-            $times[] = "{$formattedHour}:30";
+            $h = str_pad($hour, 2, '0', STR_PAD_LEFT);
+            $times[] = "{$h}:00";
+            $times[] = "{$h}:30";
         }
-        
+
         return $times;
     }
-    
+
     /**
-     * Get formatted schedule as a string.
-     *
-     * @return string|null
+     * Generate a unique 8-character alphanumeric class code.
      */
-    public function getFormattedScheduleAttribute()
+    public static function generateClassCode(): string
     {
-        if ($this->schedule_day && $this->schedule_time) {
-            $time = $this->schedule_time instanceof \DateTime 
-                ? $this->schedule_time->format('H:i') 
-                : $this->schedule_time;
-                
-            return "{$this->schedule_day} at {$time}";
+        do {
+            $code = strtoupper(Str::random(8));
+        } while (self::where('class_code', $code)->exists());
+
+        return $code;
+    }
+
+    /**
+     * Get formatted schedule as a human-readable string (all slots joined by ", ").
+     * Example: "Monday at 09:00, Wednesday at 11:00"
+     */
+    public function getFormattedScheduleAttribute(): ?string
+    {
+        if (empty($this->schedule_days)) {
+            return null;
         }
-        
-        return null;
+
+        $parts = array_map(
+            fn($s) => "{$s['day']} at {$s['time']}",
+            $this->schedule_days
+        );
+
+        return implode(', ', $parts);
     }
 }
