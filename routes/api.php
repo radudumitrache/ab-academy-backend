@@ -13,6 +13,16 @@ use Illuminate\Http\Request;
 
 Route::get('/hello', [HelloController::class, 'index']);
 
+Route::get('/debug-env', function () {
+    return response()->json([
+        'GOOGLE_CLOUD_BUCKET'     => env('GOOGLE_CLOUD_BUCKET') ?? 'NULL',
+        'GOOGLE_CLOUD_PROJECT_ID' => env('GOOGLE_CLOUD_PROJECT_ID') ?? 'NULL',
+        'GOOGLE_CLOUD_KEY_FILE'   => env('GOOGLE_CLOUD_KEY_FILE') ?? 'NULL',
+        'config_cached'           => file_exists(base_path('bootstrap/cache/config.php')),
+        'app_env'                 => env('APP_ENV'),
+    ]);
+});
+
 /**
  * API Documentation Route
  * 
