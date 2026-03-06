@@ -27,7 +27,12 @@ class GcsService
             $config['keyFilePath'] = $keyFile;
         }
 
-        $this->client     = new StorageClient($config);
+        // Suppress open_basedir warnings from the GCS SDK's environment detection
+        // (it tries to read /sys/class/dmi/id/product_name which is blocked on shared hosting)
+        $previousLevel = error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE);
+        $this->client  = new StorageClient($config);
+        error_reporting($previousLevel);
+
         $this->bucketName = env('GOOGLE_CLOUD_BUCKET');
     }
 
