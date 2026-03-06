@@ -15,10 +15,11 @@ All endpoints are scoped to the authenticated teacher — a teacher can only man
   "description": "Beginner English group.",
   "class_code": "AB12CD34",
   "schedule_days": [
-    { "day": "Monday",    "time": "18:00" },
-    { "day": "Wednesday", "time": "18:00" }
+    { "day": "Monday",    "time": "18:00", "duration": 90 },
+    { "day": "Wednesday", "time": "18:00", "duration": 90 }
   ],
-  "formatted_schedule": "Monday at 18:00, Wednesday at 18:00",
+  "formatted_schedule": "Monday at 18:00 (90min), Wednesday at 18:00 (90min)",
+  "total_weekly_minutes": 180,
   "group_members": [12, 15, 19],
   "students": [
     {
@@ -40,8 +41,12 @@ All endpoints are scoped to the authenticated teacher — a teacher can only man
 | `group_teacher` | User ID of the owning teacher |
 | `description` | Optional free-text description |
 | `class_code` | 8-character alphanumeric code students use to join the group (`null` until generated) |
-| `schedule_days` | Array of `{ day, time }` objects — one entry per session slot |
-| `formatted_schedule` | Human-readable schedule (e.g. `Monday at 18:00, Wednesday at 18:00`) |
+| `schedule_days` | Array of `{ day, time, duration }` objects — one entry per session slot |
+| `schedule_days[].day` | Day of the week (e.g. `Monday`) |
+| `schedule_days[].time` | Start time in `HH:MM` 24-hour format |
+| `schedule_days[].duration` | Session length in minutes (integer) |
+| `formatted_schedule` | Human-readable schedule (e.g. `Monday at 18:00 (90min), Wednesday at 18:00 (90min)`) |
+| `total_weekly_minutes` | Sum of all session durations per week |
 | `group_members` | Array of student user IDs currently in the group |
 | `students` | Full student objects (eager-loaded) |
 
@@ -147,8 +152,8 @@ Creates a new group. The group is automatically assigned to the authenticated te
     "group_name": "English A1",
     "description": "Beginner English group.",
     "schedule_days": [
-      { "day": "Monday",    "time": "18:00" },
-      { "day": "Wednesday", "time": "18:00" }
+      { "day": "Monday",    "time": "18:00", "duration": 90 },
+      { "day": "Wednesday", "time": "18:00", "duration": 90 }
     ],
     "group_members": [12, 15, 19]
   }
@@ -162,6 +167,7 @@ Creates a new group. The group is automatically assigned to the authenticated te
   | `schedule_days` | array | Yes | At least one entry required |
   | `schedule_days[].day` | string | Yes | Must be a valid day (see Schedule Options) |
   | `schedule_days[].time` | string | Yes | `HH:MM` 24-hour format (e.g. `18:00`) |
+  | `schedule_days[].duration` | integer | Yes | Session length in minutes (e.g. `90`) |
   | `group_members` | array | No | Array of valid student user IDs |
 
 - **Success Response** `201`:
@@ -209,8 +215,8 @@ Providing `schedule_days` replaces the entire schedule. Providing `group_members
   {
     "group_name": "English A1 — updated",
     "schedule_days": [
-      { "day": "Tuesday",  "time": "19:00" },
-      { "day": "Thursday", "time": "19:00" }
+      { "day": "Tuesday",  "time": "19:00", "duration": 60 },
+      { "day": "Thursday", "time": "19:00", "duration": 60 }
     ]
   }
   ```
@@ -427,6 +433,81 @@ Calling this endpoint again replaces the existing code with a new one.
   - **403** — group belongs to another teacher:
     ```json
     { "message": "Unauthorized" }
+    ```
+
+---
+
+## Take Attendance
+
+Records attendance for a group session. Can be called multiple times for the same session — subsequent calls overwrite previous records for the same student/session combination.
+
+Each student entry must have one of three statuses: `present`, `absent`, or `motivated_absent`.
+
+- **URL**: `/api/teacher/groups/{id}/attendance`
+- **Method**: `POST`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  Content-Type: application/json
+  ```
+- **Request Body**:
+  ```json
+  {
+    "session_date": "2026-03-10",
+    "session_time": "18:00",
+    "attendance": [
+      { "student_id": 12, "status": "present" },
+      { "student_id": 15, "status": "absent" },
+      { "student_id": 19, "status": "motivated_absent" }
+    ]
+  }
+  ```
+- **Field Notes**:
+
+  | Field | Type | Required | Notes |
+  |-------|------|----------|-------|
+  | `session_date` | string | Yes | `YYYY-MM-DD` format |
+  | `session_time` | string | Yes | `HH:MM` 24-hour format — should match a slot in `schedule_days` |
+  | `attendance` | array | Yes | At least one entry |
+  | `attendance[].student_id` | integer | Yes | Must be a member of this group |
+  | `attendance[].status` | string | Yes | `present`, `absent`, or `motivated_absent` |
+
+- **Success Response** `200`:
+  ```json
+  {
+    "message": "Attendance recorded successfully",
+    "session_date": "2026-03-10",
+    "session_time": "18:00",
+    "attendance": [
+      { "student_id": 12, "status": "present" },
+      { "student_id": 15, "status": "absent" },
+      { "student_id": 19, "status": "motivated_absent" }
+    ]
+  }
+  ```
+
+- **Error Responses**:
+  - **404** — group not found:
+    ```json
+    { "message": "Group not found" }
+    ```
+  - **403** — group belongs to another teacher:
+    ```json
+    { "message": "Unauthorized" }
+    ```
+  - **422** — student is not a group member:
+    ```json
+    { "message": "Student 99 is not a member of this group" }
+    ```
+  - **422** — validation failed:
+    ```json
+    {
+      "message": "Validation failed",
+      "errors": {
+        "attendance.0.status": ["The selected attendance.0.status is invalid."]
+      }
+    }
     ```
 
 ---

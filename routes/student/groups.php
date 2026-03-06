@@ -10,5 +10,6 @@ use Illuminate\Support\Facades\Route;
  */
 
 Route::middleware('auth:api')->group(function () {
-    Route::post('/groups/join', [GroupController::class, 'joinByCode']);
+    Route::post('/groups/join',    [GroupController::class, 'joinByCode']);
+    Route::get('/groups/hours',    [GroupController::class, 'courseHours']);
 });

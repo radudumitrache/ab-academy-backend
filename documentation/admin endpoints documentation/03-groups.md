@@ -2,7 +2,7 @@
 
 This section covers the API endpoints for managing student groups in the AB Academy platform.
 
-> **Note**: `schedule_days` is an array of `{ day, time }` objects — a group can have multiple session slots per week. Times use 24-hour `HH:MM` format.
+> **Note**: `schedule_days` is an array of `{ day, time, duration }` objects — a group can have multiple session slots per week. Times use 24-hour `HH:MM` format. `duration` is in minutes.
 
 > **Note**: The `class_code` field is a unique 8-character alphanumeric code that students use to join a group. It is `null` until the owning teacher generates one via `POST /api/teacher/groups/{id}/generate-code`. Admins have read-only visibility of this field.
 
@@ -27,10 +27,11 @@ This section covers the API endpoints for managing student groups in the AB Acad
         "description": "Advanced mathematics study group",
         "class_code": "AB12CD34",
         "schedule_days": [
-          { "day": "Monday",    "time": "14:30" },
-          { "day": "Wednesday", "time": "14:30" }
+          { "day": "Monday",    "time": "14:30", "duration": 90 },
+          { "day": "Wednesday", "time": "14:30", "duration": 90 }
         ],
-        "formatted_schedule": "Monday at 14:30, Wednesday at 14:30",
+        "formatted_schedule": "Monday at 14:30 (90min), Wednesday at 14:30 (90min)",
+        "total_weekly_minutes": 180,
         "group_members": [3, 4, 5],
         "teacher": {
           "id": 2,
@@ -82,8 +83,8 @@ This section covers the API endpoints for managing student groups in the AB Acad
     "group_teacher": 2,
     "description": "Physics and chemistry study group",
     "schedule_days": [
-      { "day": "Tuesday",  "time": "15:30" },
-      { "day": "Thursday", "time": "15:30" }
+      { "day": "Tuesday",  "time": "15:30", "duration": 90 },
+      { "day": "Thursday", "time": "15:30", "duration": 90 }
     ],
     "group_members": [3, 4, 5]
   }
@@ -98,6 +99,7 @@ This section covers the API endpoints for managing student groups in the AB Acad
   | `schedule_days` | array | Yes | At least one entry required |
   | `schedule_days[].day` | string | Yes | Must be a valid day (see Schedule Options) |
   | `schedule_days[].time` | string | Yes | `HH:MM` 24-hour format |
+  | `schedule_days[].duration` | integer | Yes | Session length in minutes (e.g. `90`) |
   | `group_members` | array | No | Array of valid student user IDs |
 
 - **Success Response**:
@@ -111,10 +113,11 @@ This section covers the API endpoints for managing student groups in the AB Acad
       "description": "Physics and chemistry study group",
       "class_code": null,
       "schedule_days": [
-        { "day": "Tuesday",  "time": "15:30" },
-        { "day": "Thursday", "time": "15:30" }
+        { "day": "Tuesday",  "time": "15:30", "duration": 90 },
+        { "day": "Thursday", "time": "15:30", "duration": 90 }
       ],
-      "formatted_schedule": "Tuesday at 15:30, Thursday at 15:30",
+      "formatted_schedule": "Tuesday at 15:30 (90min), Thursday at 15:30 (90min)",
+      "total_weekly_minutes": 180,
       "group_members": [3, 4, 5]
     }
   }
@@ -140,10 +143,11 @@ This section covers the API endpoints for managing student groups in the AB Acad
       "description": "Physics and chemistry study group",
       "class_code": "AB12CD34",
       "schedule_days": [
-        { "day": "Tuesday",  "time": "15:30" },
-        { "day": "Thursday", "time": "15:30" }
+        { "day": "Tuesday",  "time": "15:30", "duration": 90 },
+        { "day": "Thursday", "time": "15:30", "duration": 90 }
       ],
-      "formatted_schedule": "Tuesday at 15:30, Thursday at 15:30",
+      "formatted_schedule": "Tuesday at 15:30 (90min), Thursday at 15:30 (90min)",
+      "total_weekly_minutes": 180,
       "group_members": [3, 4, 5],
       "teacher": {
         "id": 2,
@@ -175,7 +179,7 @@ This section covers the API endpoints for managing student groups in the AB Acad
     "group_name": "Updated Science Group",
     "description": "Updated description",
     "schedule_days": [
-      { "day": "Wednesday", "time": "16:00" }
+      { "day": "Wednesday", "time": "16:00", "duration": 60 }
     ]
   }
   ```
@@ -190,9 +194,10 @@ This section covers the API endpoints for managing student groups in the AB Acad
       "description": "Updated description",
       "class_code": "AB12CD34",
       "schedule_days": [
-        { "day": "Wednesday", "time": "16:00" }
+        { "day": "Wednesday", "time": "16:00", "duration": 60 }
       ],
-      "formatted_schedule": "Wednesday at 16:00",
+      "formatted_schedule": "Wednesday at 16:00 (60min)",
+      "total_weekly_minutes": 60,
       "group_members": [3, 4, 5]
     }
   }

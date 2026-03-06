@@ -109,8 +109,16 @@ class Group extends Model
     }
 
     /**
+     * Attendance records for this group.
+     */
+    public function attendance()
+    {
+        return $this->hasMany(Attendance::class, 'group_id', 'group_id');
+    }
+
+    /**
      * Get formatted schedule as a human-readable string (all slots joined by ", ").
-     * Example: "Monday at 09:00, Wednesday at 11:00"
+     * Example: "Monday at 09:00 (90min), Wednesday at 11:00 (60min)"
      */
     public function getFormattedScheduleAttribute(): ?string
     {
@@ -118,11 +126,26 @@ class Group extends Model
             return null;
         }
 
-        $parts = array_map(
-            fn($s) => "{$s['day']} at {$s['time']}",
-            $this->schedule_days
-        );
+        $parts = array_map(function ($s) {
+            $label = "{$s['day']} at {$s['time']}";
+            if (!empty($s['duration'])) {
+                $label .= " ({$s['duration']}min)";
+            }
+            return $label;
+        }, $this->schedule_days);
 
         return implode(', ', $parts);
+    }
+
+    /**
+     * Total scheduled minutes per week across all session slots.
+     */
+    public function getTotalWeeklyMinutesAttribute(): int
+    {
+        if (empty($this->schedule_days)) {
+            return 0;
+        }
+
+        return (int) array_sum(array_map(fn($s) => $s['duration'] ?? 0, $this->schedule_days));
     }
 }

@@ -9,12 +9,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('groups', function (Blueprint $table) {
-            $table->json('schedule_days')->nullable()->after('description');
-        });
+        if (!Schema::hasColumn('groups', 'schedule_days')) {
+            Schema::table('groups', function (Blueprint $table) {
+                $table->json('schedule_days')->nullable()->after('description');
+            });
+        }
 
         // Migrate existing single schedule into the new array format
-        DB::table('groups')->whereNotNull('schedule_day')->each(function ($group) {
+        DB::table('groups')->whereNotNull('schedule_day')->orderBy('group_id')->each(function ($group) {
             $entry = [
                 'day'  => $group->schedule_day,
                 'time' => $group->schedule_time ?? null,
@@ -37,7 +39,7 @@ return new class extends Migration
         });
 
         // Restore first entry back into the old columns
-        DB::table('groups')->whereNotNull('schedule_days')->each(function ($group) {
+        DB::table('groups')->whereNotNull('schedule_days')->orderBy('group_id')->each(function ($group) {
             $entries = json_decode($group->schedule_days, true);
             if (!empty($entries)) {
                 DB::table('groups')
