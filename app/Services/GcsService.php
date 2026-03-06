@@ -33,7 +33,11 @@ class GcsService
         $this->client  = new StorageClient($config);
         error_reporting($previousLevel);
 
-        $this->bucketName = env('GOOGLE_CLOUD_BUCKET');
+        $bucket = env('GOOGLE_CLOUD_BUCKET');
+        if (!$bucket) {
+            throw new \RuntimeException('GOOGLE_CLOUD_BUCKET is not set in .env');
+        }
+        $this->bucketName = $bucket;
     }
 
     /**
