@@ -3,7 +3,8 @@
     "allow": [
       "Bash(php artisan tinker:*)",
       "Bash(php artisan route:list:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(php -r \":*)"
     ]
   }
 }

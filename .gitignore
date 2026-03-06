@@ -16,7 +16,7 @@
 *~
 .DS_Store
 Thumbs.db
-
+ab-storage-bucket-b5f658bacb89.json
 # Laravel specific
 /bootstrap/cache/*
 !/bootstrap/cache/.gitkeep

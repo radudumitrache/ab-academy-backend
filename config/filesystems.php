@@ -17,6 +17,16 @@ return [
             'visibility' => 'public',
             'throw' => false,
         ],
+
+        'gcs' => [
+            'driver'         => 'gcs',
+            'key_file'       => env('GOOGLE_CLOUD_KEY_FILE'),
+            'project_id'     => env('GOOGLE_CLOUD_PROJECT_ID'),
+            'bucket'         => env('GOOGLE_CLOUD_BUCKET'),
+            'path_prefix'    => env('GOOGLE_CLOUD_PATH_PREFIX', ''),
+            'visibility'     => 'private',
+            'throw'          => true,
+        ],
     ],
 
     'links' => [

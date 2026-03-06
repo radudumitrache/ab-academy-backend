@@ -18,6 +18,7 @@ This documentation provides comprehensive details about the AB Academy admin API
 12. [Homework System](12-homework-system.md)
 13. [Notifications](13-notifications.md)
 14. [Invoices](14-invoices.md)
+15. [Materials](15-materials.md)
 
 ## Base URL
 

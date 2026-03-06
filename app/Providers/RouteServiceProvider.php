@@ -43,6 +43,7 @@ class RouteServiceProvider extends ServiceProvider
                     require base_path('routes/admin/student_details.php');
                     require base_path('routes/admin/invoices.php');
                     require base_path('routes/admin/notifications.php');
+                    require base_path('routes/admin/materials.php');
                 });
 
             // Teacher routes
@@ -57,6 +58,7 @@ class RouteServiceProvider extends ServiceProvider
                     require base_path('routes/teacher/events.php');
                     require base_path('routes/teacher/notifications.php');
                     require base_path('routes/teacher/homework.php');
+                    require base_path('routes/teacher/materials.php');
                 });
 
             // Student routes
@@ -66,6 +68,7 @@ class RouteServiceProvider extends ServiceProvider
                     require base_path('routes/student/auth.php');
                     require base_path('routes/student/dashboard.php');
                     require base_path('routes/student/groups.php');
+                    require base_path('routes/student/materials.php');
                 });
 
             // Live session routes

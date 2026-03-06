@@ -12,6 +12,7 @@ This documentation covers all teacher-facing API endpoints for the AB Academy pl
 6. [Event Management](06-events.md)
 7. [Notifications](07-notifications.md)
 8. [Homework Management](08-homework.md)
+9. [Materials](09-materials.md)
 
 ## Base URL
 
@@ -78,6 +79,12 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | POST | `/api/teacher/homework/{homeworkId}/questions` | Yes | Add a question to a section |
 | PUT | `/api/teacher/homework/{homeworkId}/questions/{qId}` | Yes | Update a question |
 | DELETE | `/api/teacher/homework/{homeworkId}/questions/{qId}` | Yes | Delete a question |
+| POST | `/api/teacher/materials/setup` | Yes | Create GCS folder structure for the teacher |
+| GET | `/api/teacher/materials` | Yes | List own materials + all common-folder materials |
+| POST | `/api/teacher/materials/upload` | Yes | Upload a file to private or common folder |
+| GET | `/api/teacher/materials/{id}` | Yes | Get material details + signed download URL |
+| PUT | `/api/teacher/materials/{id}/access` | Yes | Update allowed_users on an owned material |
+| DELETE | `/api/teacher/materials/{id}` | Yes | Delete an owned material from GCS and DB |
 
 ## Teacher User Object
 

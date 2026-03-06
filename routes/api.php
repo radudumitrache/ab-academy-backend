@@ -13,6 +13,23 @@ use Illuminate\Http\Request;
 
 Route::get('/hello', [HelloController::class, 'index']);
 
+Route::post('/debug-upload', function (\Illuminate\Http\Request $request) {
+    return response()->json([
+        'has_file'    => $request->hasFile('file'),
+        'all_input'   => $request->all(),
+        'files'       => array_keys($request->allFiles()),
+        'content_type'=> $request->header('Content-Type'),
+    ]);
+});
+
+Route::get('/phpinfo-upload', function () {
+    return response()->json([
+        'file_uploads'        => ini_get('file_uploads'),
+        'upload_max_filesize' => ini_get('upload_max_filesize'),
+        'post_max_size'       => ini_get('post_max_size'),
+    ]);
+});
+
 /**
  * API Documentation Route
  * 
