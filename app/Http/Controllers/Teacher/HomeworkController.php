@@ -75,7 +75,7 @@ class HomeworkController extends Controller
         // Resolve all Material IDs to signed URLs in one batch
         $signedUrls = [];
         if (!empty($materialIds)) {
-            $materials = Material::whereIn('id', array_unique($materialIds))->get()->keyBy('id');
+            $materials = Material::whereIn('material_id', array_unique($materialIds))->get()->keyBy('material_id');
             foreach ($materials as $id => $material) {
                 try {
                     $signedUrls[$id] = $this->gcs->signedUrl($material->gcs_path, 60);
