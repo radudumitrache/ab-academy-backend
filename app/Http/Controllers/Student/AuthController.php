@@ -11,6 +11,37 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function register(Request $request)
+    {
+        $request->validate([
+            'username'  => 'required|string|unique:users,username',
+            'email'     => 'required|email|unique:users,email',
+            'telephone' => 'nullable|string|max:20',
+            'password'  => 'required|string|min:6',
+        ]);
+
+        $student = Student::create([
+            'username'  => $request->username,
+            'email'     => $request->email,
+            'telephone' => $request->telephone ?? null,
+            'password'  => Hash::make($request->password),
+        ]);
+
+        $token = $student->createToken('student-token')->accessToken;
+
+        return response()->json([
+            'message'      => 'Registration successful',
+            'user'         => [
+                'id'       => $student->id,
+                'username' => $student->username,
+                'email'    => $student->email,
+                'role'     => $student->role,
+            ],
+            'access_token' => $token,
+            'token_type'   => 'Bearer',
+        ], 201);
+    }
+
     public function login(Request $request)
     {
         try {

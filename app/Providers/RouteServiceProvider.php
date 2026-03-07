@@ -70,6 +70,13 @@ class RouteServiceProvider extends ServiceProvider
                     require base_path('routes/student/dashboard.php');
                     require base_path('routes/student/groups.php');
                     require base_path('routes/student/materials.php');
+                    require base_path('routes/student/homework.php');
+                    require base_path('routes/student/tests.php');
+                    require base_path('routes/student/events.php');
+                    require base_path('routes/student/exams.php');
+                    require base_path('routes/student/profile.php');
+                    require base_path('routes/student/schedule.php');
+                    require base_path('routes/student/chat.php');
                 });
 
             // Live session routes
