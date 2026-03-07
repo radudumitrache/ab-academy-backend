@@ -44,6 +44,8 @@ class RouteServiceProvider extends ServiceProvider
                     require base_path('routes/admin/invoices.php');
                     require base_path('routes/admin/notifications.php');
                     require base_path('routes/admin/materials.php');
+                    require base_path('routes/admin/homework.php');
+                    require base_path('routes/admin/tests.php');
                 });
 
             // Teacher routes

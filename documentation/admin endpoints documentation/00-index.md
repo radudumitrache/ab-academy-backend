@@ -15,10 +15,12 @@ This documentation provides comprehensive details about the AB Academy admin API
 9. [Student Details](09-student-details.md)
 10. [Chat System](10-chat-system.md)
 11. [Admin Chat System](11-admin-chat-system.md)
-12. [Homework System](12-homework-system.md)
+12. [Homework System (legacy model docs)](12-homework-system.md)
 13. [Notifications](13-notifications.md)
 14. [Invoices](14-invoices.md)
 15. [Materials](15-materials.md)
+16. [Homework (Admin CRUD + Submissions)](16-homework.md)
+17. [Tests (Admin CRUD + Submissions)](17-tests.md)
 
 ## Base URL
 
@@ -32,7 +34,7 @@ The AB Academy Admin API provides a comprehensive set of endpoints for managing 
 - Group and class management
 - Course management
 - Exam scheduling and grading
-- Homework assignment and management
+- Homework and test management (full CRUD + student submissions)
 - Event scheduling
 - Dashboard analytics
 - Chat functionality
