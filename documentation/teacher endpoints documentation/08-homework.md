@@ -31,9 +31,9 @@ POST /api/teacher/homework/{id}/questions         → add questions to a section
 
 Sections have:
 - `title` (optional)
-- `instruction_files` — JSON array of URLs (optional, for PDFs, images, etc.)
+- `instruction_files` — JSON array of **Material IDs** (integers from the `materials` table). When the homework is fetched via `GET /api/teacher/homework/{id}`, each ID is resolved to a 60-minute signed GCS URL and returned in `instruction_file_urls`.
 - **Reading only**: `passage` (required) — the text students read
-- **Listening only**: `audio_url` (required), `transcript` (optional)
+- **Listening only**: `audio_url` (external URL, optional) or `audio_material_id` (Material ID for a GCS-hosted audio file, optional). At least one must be provided. When fetched, `audio_url_signed` is added if `audio_material_id` is set.
 
 ---
 
@@ -62,9 +62,15 @@ Sections have:
   "homework_id": 1,
   "section_type": "Reading",
   "title": "Passage A",
-  "instruction_files": ["https://example.com/instructions.pdf"],
+  "instruction_files": [5, 7],
+  "instruction_file_urls": [
+    { "material_id": 5, "url": "https://storage.googleapis.com/...?X-Goog-Signature=..." },
+    { "material_id": 7, "url": "https://storage.googleapis.com/...?X-Goog-Signature=..." }
+  ],
   "passage": "The industrial revolution began in Britain...",
   "audio_url": null,
+  "audio_material_id": 9,
+  "audio_url_signed": "https://storage.googleapis.com/...?X-Goog-Signature=...",
   "transcript": null,
   "order": 1
 }

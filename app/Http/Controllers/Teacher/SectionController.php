@@ -57,12 +57,13 @@ class SectionController extends Controller
             'section_type'        => ['required', Rule::in(HomeworkSection::TYPES)],
             'title'               => 'nullable|string|max:255',
             'instruction_files'   => 'nullable|array',
-            'instruction_files.*' => 'url',
+            'instruction_files.*' => 'integer|exists:materials,id',
             'order'               => 'nullable|integer|min:1',
             // Reading-specific
             'passage'             => 'nullable|string',
             // Listening-specific
             'audio_url'           => 'nullable|url',
+            'audio_material_id'   => 'nullable|integer|exists:materials,id',
             'transcript'          => 'nullable|string',
         ]);
 
@@ -70,8 +71,10 @@ class SectionController extends Controller
             return response()->json(['message' => 'Reading sections require a passage'], 422);
         }
 
-        if ($validated['section_type'] === 'Listening' && empty($validated['audio_url'])) {
-            return response()->json(['message' => 'Listening sections require an audio_url'], 422);
+        if ($validated['section_type'] === 'Listening'
+            && empty($validated['audio_url'])
+            && empty($validated['audio_material_id'])) {
+            return response()->json(['message' => 'Listening sections require an audio_url or audio_material_id'], 422);
         }
 
         $section = HomeworkSection::create([
@@ -82,6 +85,7 @@ class SectionController extends Controller
             'order'             => $validated['order'] ?? null,
             'passage'           => $validated['passage'] ?? null,
             'audio_url'         => $validated['audio_url'] ?? null,
+            'audio_material_id' => $validated['audio_material_id'] ?? null,
             'transcript'        => $validated['transcript'] ?? null,
         ]);
 
@@ -109,10 +113,11 @@ class SectionController extends Controller
         $validated = $request->validate([
             'title'               => 'nullable|string|max:255',
             'instruction_files'   => 'nullable|array',
-            'instruction_files.*' => 'url',
+            'instruction_files.*' => 'integer|exists:materials,id',
             'order'               => 'nullable|integer|min:1',
             'passage'             => 'nullable|string',
             'audio_url'           => 'nullable|url',
+            'audio_material_id'   => 'nullable|integer|exists:materials,id',
             'transcript'          => 'nullable|string',
         ]);
 

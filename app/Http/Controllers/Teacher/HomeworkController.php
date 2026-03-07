@@ -5,12 +5,16 @@ namespace App\Http\Controllers\Teacher;
 use App\Http\Controllers\Controller;
 use App\Models\Group;
 use App\Models\Homework;
+use App\Models\Material;
+use App\Services\GcsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class HomeworkController extends Controller
 {
+    public function __construct(private GcsService $gcs) {}
+
     /**
      * List all homework created by the authenticated teacher.
      */
@@ -52,9 +56,58 @@ class HomeworkController extends Controller
             'sections.questions.readingQuestionDetails',
         ]);
 
+        // Collect all Material IDs referenced in instruction_files and audio_material_id
+        $materialIds = [];
+        foreach ($homework->sections as $section) {
+            foreach ((array) $section->instruction_files as $id) {
+                $materialIds[] = $id;
+            }
+            if ($section->audio_material_id) {
+                $materialIds[] = $section->audio_material_id;
+            }
+            foreach ($section->questions as $question) {
+                foreach ((array) $question->instruction_files as $id) {
+                    $materialIds[] = $id;
+                }
+            }
+        }
+
+        // Resolve all Material IDs to signed URLs in one batch
+        $signedUrls = [];
+        if (!empty($materialIds)) {
+            $materials = Material::whereIn('id', array_unique($materialIds))->get()->keyBy('id');
+            foreach ($materials as $id => $material) {
+                try {
+                    $signedUrls[$id] = $this->gcs->signedUrl($material->gcs_path, 60);
+                } catch (\Throwable) {
+                    $signedUrls[$id] = null;
+                }
+            }
+        }
+
+        // Attach resolved URLs to each section and question
+        $homeworkData = $homework->toArray();
+        foreach ($homeworkData['sections'] as &$sectionData) {
+            $sectionData['instruction_file_urls'] = array_map(
+                fn ($id) => ['material_id' => $id, 'url' => $signedUrls[$id] ?? null],
+                (array) ($sectionData['instruction_files'] ?? [])
+            );
+            if (!empty($sectionData['audio_material_id'])) {
+                $sectionData['audio_url_signed'] = $signedUrls[$sectionData['audio_material_id']] ?? null;
+            }
+            foreach ($sectionData['questions'] as &$questionData) {
+                $questionData['instruction_file_urls'] = array_map(
+                    fn ($id) => ['material_id' => $id, 'url' => $signedUrls[$id] ?? null],
+                    (array) ($questionData['instruction_files'] ?? [])
+                );
+            }
+            unset($questionData);
+        }
+        unset($sectionData);
+
         return response()->json([
             'message'  => 'Homework retrieved successfully',
-            'homework' => $homework,
+            'homework' => $homeworkData,
         ]);
     }
 

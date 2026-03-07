@@ -37,6 +37,7 @@ class HomeworkSection extends Model
         'instruction_files',
         'passage',
         'audio_url',
+        'audio_material_id',
         'transcript',
         'order',
     ];
@@ -53,5 +54,10 @@ class HomeworkSection extends Model
     public function questions()
     {
         return $this->hasMany(Question::class, 'section_id')->orderBy('order');
+    }
+
+    public function audioMaterial()
+    {
+        return $this->belongsTo(Material::class, 'audio_material_id');
     }
 }
