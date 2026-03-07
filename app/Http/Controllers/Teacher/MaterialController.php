@@ -175,6 +175,78 @@ class MaterialController extends Controller
     }
 
     /**
+     * List custom subfolders inside the teacher's private area.
+     */
+    public function listFolders()
+    {
+        $user    = Auth::user();
+        $prefix  = "teachers/{$user->username}/private/";
+        $folders = $this->gcs->listSubfolders($prefix);
+
+        return response()->json([
+            'message' => 'Folders retrieved successfully',
+            'folders' => $folders,
+        ]);
+    }
+
+    /**
+     * Create a new subfolder inside the teacher's private area.
+     * POST /api/teacher/folders  { "name": "homework-2026" }
+     */
+    public function createFolder(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z0-9_\-]+$/'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $user       = Auth::user();
+        $folderPath = "teachers/{$user->username}/private/{$request->input('name')}";
+        $created    = $this->gcs->createFolder($folderPath);
+
+        if (!$created) {
+            return response()->json(['message' => 'Folder already exists'], 409);
+        }
+
+        return response()->json([
+            'message' => 'Folder created successfully',
+            'folder'  => $request->input('name'),
+            'path'    => $folderPath . '/',
+        ], 201);
+    }
+
+    /**
+     * Delete a subfolder and all its contents from the teacher's private area.
+     * DELETE /api/teacher/folders/{name}
+     */
+    public function deleteFolder(string $name)
+    {
+        // Validate name to prevent path traversal
+        if (!preg_match('/^[a-zA-Z0-9_\-]+$/', $name)) {
+            return response()->json(['message' => 'Invalid folder name'], 422);
+        }
+
+        $user       = Auth::user();
+        $folderPath = "teachers/{$user->username}/private/{$name}";
+        $deleted    = $this->gcs->deleteFolder($folderPath);
+
+        if ($deleted === 0) {
+            return response()->json(['message' => 'Folder not found'], 404);
+        }
+
+        return response()->json([
+            'message'         => 'Folder deleted successfully',
+            'objects_deleted' => $deleted,
+        ]);
+    }
+
+    /**
      * Upload or replace the teacher's profile picture.
      * Stored at: teachers/{username}/profile/profile_picture.{ext}
      * The old picture (any extension) is deleted from GCS before uploading the new one.

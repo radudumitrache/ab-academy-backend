@@ -18,4 +18,7 @@ Route::middleware('auth:api')->group(function () {
     Route::delete('/materials/{id}',           [MaterialController::class, 'destroy']);
     Route::post('/profile-picture',            [MaterialController::class, 'uploadProfilePicture']);
     Route::get('/profile-picture',             [MaterialController::class, 'getProfilePicture']);
+    Route::get('/folders',                     [MaterialController::class, 'listFolders']);
+    Route::post('/folders',                    [MaterialController::class, 'createFolder']);
+    Route::delete('/folders/{name}',           [MaterialController::class, 'deleteFolder']);
 });

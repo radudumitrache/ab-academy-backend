@@ -124,4 +124,68 @@ class GcsService
 
         return $paths;
     }
+
+    /**
+     * Create a subfolder (placeholder .keep object) under a given prefix.
+     * Returns true if created, false if it already existed.
+     */
+    public function createFolder(string $folderPath): bool
+    {
+        // Normalise: ensure it ends with /
+        $folderPath = rtrim($folderPath, '/') . '/';
+        $keepPath   = $folderPath . '.keep';
+
+        $bucket = $this->client->bucket($this->bucketName);
+        $object = $bucket->object($keepPath);
+
+        if ($object->exists()) {
+            return false;
+        }
+
+        $bucket->upload('', ['name' => $keepPath]);
+
+        return true;
+    }
+
+    /**
+     * Delete all objects under a given folder prefix (including the .keep placeholder).
+     * Returns the number of objects deleted.
+     */
+    public function deleteFolder(string $folderPath): int
+    {
+        $folderPath = rtrim($folderPath, '/') . '/';
+        $bucket     = $this->client->bucket($this->bucketName);
+        $objects    = $bucket->objects(['prefix' => $folderPath]);
+
+        $count = 0;
+        foreach ($objects as $object) {
+            $object->delete();
+            $count++;
+        }
+
+        return $count;
+    }
+
+    /**
+     * List immediate subfolders under a prefix.
+     * Returns folder names (without the leading prefix).
+     */
+    public function listSubfolders(string $prefix): array
+    {
+        $prefix  = rtrim($prefix, '/') . '/';
+        $bucket  = $this->client->bucket($this->bucketName);
+        $objects = $bucket->objects(['prefix' => $prefix]);
+
+        $folders = [];
+        foreach ($objects as $object) {
+            $relative = substr($object->name(), strlen($prefix));
+            // An immediate subfolder has exactly one '/' and it's at the end
+            $parts = explode('/', rtrim($relative, '/'));
+            if (count($parts) === 2 && end($parts) === '.keep') {
+                $folders[] = $parts[0];
+            }
+        }
+
+        return array_values(array_unique($folders));
+    }
 }

@@ -243,3 +243,87 @@ Returns a signed download URL for the teacher's current profile picture, valid f
   ```json
   { "message": "No profile picture set" }
   ```
+
+---
+
+## List Private Folders
+
+Returns the names of all custom subfolders the teacher has created inside their private area (`teachers/{username}/private/`).
+
+- **URL**: `/api/teacher/folders`
+- **Method**: `GET`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  ```
+- **Success Response** (`200`):
+  ```json
+  {
+    "message": "Folders retrieved successfully",
+    "folders": ["homework-2026", "exercises", "tests"]
+  }
+  ```
+
+---
+
+## Create Private Folder
+
+Creates a new subfolder inside the teacher's private area. Folder names may only contain letters, numbers, hyphens, and underscores.
+
+- **URL**: `/api/teacher/folders`
+- **Method**: `POST`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  Content-Type: application/json
+  ```
+- **Body**:
+  ```json
+  { "name": "homework-2026" }
+  ```
+- **Success Response** (`201`):
+  ```json
+  {
+    "message": "Folder created successfully",
+    "folder": "homework-2026",
+    "path": "teachers/teacher1/private/homework-2026/"
+  }
+  ```
+- **Error Response** (`409`):
+  ```json
+  { "message": "Folder already exists" }
+  ```
+- **Error Response** (`422`):
+  ```json
+  {
+    "message": "Validation failed",
+    "errors": { "name": ["The name field may only contain letters, numbers, dashes and underscores."] }
+  }
+  ```
+
+---
+
+## Delete Private Folder
+
+Deletes a subfolder and **all files inside it** from the teacher's private area. This action is irreversible.
+
+- **URL**: `/api/teacher/folders/{name}`
+- **Method**: `DELETE`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  ```
+- **Success Response** (`200`):
+  ```json
+  {
+    "message": "Folder deleted successfully",
+    "objects_deleted": 5
+  }
+  ```
+- **Error Response** (`404`):
+  ```json
+  { "message": "Folder not found" }
+  ```

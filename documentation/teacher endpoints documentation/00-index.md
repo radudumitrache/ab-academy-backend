@@ -87,6 +87,9 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | DELETE | `/api/teacher/materials/{id}` | Yes | Delete an owned material from GCS and DB |
 | POST | `/api/teacher/profile-picture` | Yes | Upload or replace the teacher's profile picture |
 | GET | `/api/teacher/profile-picture` | Yes | Get a signed URL for the teacher's profile picture |
+| GET | `/api/teacher/folders` | Yes | List custom subfolders in the teacher's private area |
+| POST | `/api/teacher/folders` | Yes | Create a new subfolder in the teacher's private area |
+| DELETE | `/api/teacher/folders/{name}` | Yes | Delete a subfolder and all its contents |
 
 ## Teacher User Object
 
