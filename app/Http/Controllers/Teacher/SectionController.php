@@ -40,11 +40,11 @@ class SectionController extends Controller
     /**
      * Create a section on a homework owned by the teacher.
      *
-     * section_type: GrammarAndVocabulary | Writing | Reading | Listening
+     * section_type: GrammarAndVocabulary | Writing | Reading | Listening | Speaking
      *
      * Reading sections accept:  passage (required)
      * Listening sections accept: audio_url (required), transcript (optional)
-     * All sections accept: title, instruction_files, order
+     * All sections accept: title, instruction_text, instruction_files, order
      */
     public function store(Request $request, $homeworkId)
     {
@@ -56,6 +56,7 @@ class SectionController extends Controller
         $validated = $request->validate([
             'section_type'        => ['required', Rule::in(HomeworkSection::TYPES)],
             'title'               => 'nullable|string|max:255',
+            'instruction_text'    => 'nullable|string',
             'instruction_files'   => 'nullable|array',
             'instruction_files.*' => 'integer|exists:materials,material_id',
             'order'               => 'nullable|integer|min:1',
@@ -81,6 +82,7 @@ class SectionController extends Controller
             'homework_id'       => $homeworkId,
             'section_type'      => $validated['section_type'],
             'title'             => $validated['title'] ?? null,
+            'instruction_text'  => $validated['instruction_text'] ?? null,
             'instruction_files' => $validated['instruction_files'] ?? null,
             'order'             => $validated['order'] ?? null,
             'passage'           => $validated['passage'] ?? null,
@@ -112,6 +114,7 @@ class SectionController extends Controller
 
         $validated = $request->validate([
             'title'               => 'nullable|string|max:255',
+            'instruction_text'    => 'nullable|string',
             'instruction_files'   => 'nullable|array',
             'instruction_files.*' => 'integer|exists:materials,material_id',
             'order'               => 'nullable|integer|min:1',

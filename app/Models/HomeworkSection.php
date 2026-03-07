@@ -9,7 +9,7 @@ class HomeworkSection extends Model
 {
     use HasFactory;
 
-    const TYPES = ['GrammarAndVocabulary', 'Writing', 'Reading', 'Listening'];
+    const TYPES = ['GrammarAndVocabulary', 'Writing', 'Reading', 'Listening', 'Speaking'];
 
     /**
      * Question types allowed per section type.
@@ -20,7 +20,7 @@ class HomeworkSection extends Model
             'replace', 'correct', 'word_derivation', 'text_completion', 'correlation',
         ],
         'Writing' => [
-            'rephrase', 'word_formation', 'replace', 'correct', 'word_derivation',
+            'rephrase', 'word_formation', 'replace', 'correct', 'word_derivation', 'writing_question',
         ],
         'Reading' => [
             'reading_multiple_choice', 'reading_question',
@@ -28,12 +28,16 @@ class HomeworkSection extends Model
         'Listening' => [
             'listening_multiple_choice', 'text_completion',
         ],
+        'Speaking' => [
+            'speaking_question',
+        ],
     ];
 
     protected $fillable = [
         'homework_id',
         'section_type',
         'title',
+        'instruction_text',
         'instruction_files',
         'passage',
         'audio_url',

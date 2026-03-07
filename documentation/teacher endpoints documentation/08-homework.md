@@ -4,7 +4,7 @@ Teachers build homework by following this four-step flow:
 
 1. **Create homework** — title, description, due date
 2. **Assign students** — choose students or groups
-3. **Create sections** — add GrammarAndVocabulary / Writing / Reading / Listening sections, each with optional instructions / files
+3. **Create sections** — add GrammarAndVocabulary / Writing / Reading / Listening / Speaking sections, each with optional instructions / files
 4. **Add questions** — add questions to a section (each question must target a specific section)
 
 ---
@@ -25,12 +25,14 @@ POST /api/teacher/homework/{id}/questions         → add questions to a section
 | `section_type` | Allowed question types |
 |----------------|----------------------|
 | `GrammarAndVocabulary` | `multiple_choice`, `gap_fill`, `rephrase`, `word_formation`, `replace`, `correct`, `word_derivation`, `text_completion`, `correlation` |
-| `Writing` | `rephrase`, `word_formation`, `replace`, `correct`, `word_derivation` |
+| `Writing` | `rephrase`, `word_formation`, `replace`, `correct`, `word_derivation`, `writing_question` |
 | `Reading` | `reading_multiple_choice`, `reading_question` |
 | `Listening` | `listening_multiple_choice`, `text_completion` |
+| `Speaking` | `speaking_question` |
 
 Sections have:
 - `title` (optional)
+- `instruction_text` (optional) — large text field for written instructions shown to students
 - `instruction_files` — JSON array of **Material IDs** (integers from the `materials` table). When the homework is fetched via `GET /api/teacher/homework/{id}`, each ID is resolved to a 60-minute signed GCS URL and returned in `instruction_file_urls`.
 - **Reading only**: `passage` (required) — the text students read
 - **Listening only**: `audio_url` (external URL, optional) or `audio_material_id` (Material ID for a GCS-hosted audio file, optional). At least one must be provided. When fetched, `audio_url_signed` is added if `audio_material_id` is set.
@@ -205,8 +207,9 @@ Returns all sections of a homework with question counts.
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
-| `section_type` | string | Yes | `GrammarAndVocabulary`, `Writing`, `Reading`, or `Listening` |
+| `section_type` | string | Yes | `GrammarAndVocabulary`, `Writing`, `Reading`, `Listening`, or `Speaking` |
 | `title` | string | No | |
+| `instruction_text` | string | No | Large text shown as written instructions to students |
 | `instruction_files` | array | No | Array of **Material IDs** (integers from the `materials` table) |
 | `order` | integer | No | Display order |
 | `passage` | string | Required for `Reading` | |
@@ -254,13 +257,14 @@ Questions **must** belong to a section (`section_id` is required). The question 
 |------|-------------|
 | `multiple_choice` / `reading_multiple_choice` / `listening_multiple_choice` | `variants` (array of strings), `correct_variant` (0-based index) |
 | `gap_fill` | `with_variants` (bool), `variants` (array, optional), `correct_answers` (array of strings) |
-| `rephrase` / `reading_question` | `sample_answer` (string) |
+| `rephrase` / `reading_question` / `writing_question` | `sample_answer` (string) |
 | `word_formation` | `base_word`, `sample_answer` |
 | `replace` | `original_text`, `sample_answer` |
 | `correct` | `incorrect_text`, `sample_answer` |
 | `word_derivation` | `root_word`, `sample_answer` |
 | `text_completion` | `full_text` (blanks as `___`), `correct_answers` (array) |
 | `correlation` | `column_a` (array), `column_b` (array), `correct_pairs` ([[a_idx, b_idx], ...]) |
+| `speaking_question` | `speaking_instruction_files` (array of Material IDs, optional), `sample_answer` (string, optional) |
 
 **Response** `201` with question + detail record.
 

@@ -11,6 +11,8 @@ use App\Models\TypesOfTestQuestions\TestCorrectQuestion;
 use App\Models\TypesOfTestQuestions\TestGapFillQuestion;
 use App\Models\TypesOfTestQuestions\TestMultipleChoiceQuestion;
 use App\Models\TypesOfTestQuestions\TestReadingQuestion;
+use App\Models\TypesOfTestQuestions\TestWritingQuestion;
+use App\Models\TypesOfTestQuestions\TestSpeakingQuestion;
 use App\Models\TypesOfTestQuestions\TestRephraseQuestion;
 use App\Models\TypesOfTestQuestions\TestReplaceQuestion;
 use App\Models\TypesOfTestQuestions\TestTextCompletionQuestion;
@@ -42,6 +44,8 @@ class TestQuestionController extends Controller
             'text_completion'           => 'textCompletionDetails',
             'correlation'               => 'correlationDetails',
             'reading_question'          => 'readingQuestionDetails',
+            'writing_question'          => 'writingQuestionDetails',
+            'speaking_question'         => 'speakingQuestionDetails',
         ];
 
         $relation = $map[$question->question_type] ?? null;
@@ -87,7 +91,9 @@ class TestQuestionController extends Controller
             'column_a.*'          => 'string',
             'column_b'            => 'nullable|array',
             'column_b.*'          => 'string',
-            'correct_pairs'       => 'nullable|array',
+            'correct_pairs'                   => 'nullable|array',
+            'speaking_instruction_files'      => 'nullable|array',
+            'speaking_instruction_files.*'    => 'integer|exists:materials,material_id',
         ]);
 
         $section = TestSection::where('test_id', $testId)->find($validated['section_id']);
@@ -156,7 +162,9 @@ class TestQuestionController extends Controller
             'column_a.*'          => 'string',
             'column_b'            => 'nullable|array',
             'column_b.*'          => 'string',
-            'correct_pairs'       => 'nullable|array',
+            'correct_pairs'                   => 'nullable|array',
+            'speaking_instruction_files'      => 'nullable|array',
+            'speaking_instruction_files.*'    => 'integer|exists:materials,material_id',
         ]);
 
         $baseFields = array_filter([
@@ -272,6 +280,19 @@ class TestQuestionController extends Controller
                     'sample_answer'    => $data['sample_answer'] ?? null,
                 ]),
 
+            $type === 'writing_question'
+                => TestWritingQuestion::create([
+                    'test_question_id' => $qId,
+                    'sample_answer'    => $data['sample_answer'] ?? null,
+                ]),
+
+            $type === 'speaking_question'
+                => TestSpeakingQuestion::create([
+                    'test_question_id'  => $qId,
+                    'instruction_files' => $data['speaking_instruction_files'] ?? null,
+                    'sample_answer'     => $data['sample_answer'] ?? null,
+                ]),
+
             default => null,
         };
     }
@@ -374,6 +395,23 @@ class TestQuestionController extends Controller
                 $detail = TestReadingQuestion::where('test_question_id', $qId)->first();
                 if ($detail && isset($data['sample_answer'])) {
                     $detail->update(['sample_answer' => $data['sample_answer']]);
+                }
+            })(),
+
+            $type === 'writing_question' => (function () use ($qId, $data) {
+                $detail = TestWritingQuestion::where('test_question_id', $qId)->first();
+                if ($detail && isset($data['sample_answer'])) {
+                    $detail->update(['sample_answer' => $data['sample_answer']]);
+                }
+            })(),
+
+            $type === 'speaking_question' => (function () use ($qId, $data) {
+                $detail = TestSpeakingQuestion::where('test_question_id', $qId)->first();
+                if ($detail) {
+                    $detail->update(array_filter([
+                        'instruction_files' => $data['speaking_instruction_files'] ?? null,
+                        'sample_answer'     => $data['sample_answer'] ?? null,
+                    ], fn ($v) => !is_null($v)));
                 }
             })(),
 

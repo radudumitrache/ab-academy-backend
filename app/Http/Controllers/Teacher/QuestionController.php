@@ -13,9 +13,11 @@ use App\Models\TypesOfQuestions\MultipleChoiceQuestion;
 use App\Models\TypesOfQuestions\ReadingQuestion;
 use App\Models\TypesOfQuestions\RephraseQuestion;
 use App\Models\TypesOfQuestions\ReplaceQuestion;
+use App\Models\TypesOfQuestions\SpeakingQuestion;
 use App\Models\TypesOfQuestions\TextCompletionQuestion;
 use App\Models\TypesOfQuestions\WordDerivationQuestion;
 use App\Models\TypesOfQuestions\WordFormationQuestion;
+use App\Models\TypesOfQuestions\WritingQuestion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -42,6 +44,8 @@ class QuestionController extends Controller
             'text_completion'           => 'textCompletionDetails',
             'correlation'               => 'correlationDetails',
             'reading_question'          => 'readingQuestionDetails',
+            'writing_question'          => 'writingQuestionDetails',
+            'speaking_question'         => 'speakingQuestionDetails',
         ];
 
         $relation = $map[$question->question_type] ?? null;
@@ -66,29 +70,31 @@ class QuestionController extends Controller
         $allTypes = array_unique(array_merge(...array_values(HomeworkSection::ALLOWED_QUESTION_TYPES)));
 
         $validated = $request->validate([
-            'section_id'          => 'required|integer',
-            'question_text'       => 'required|string',
-            'question_type'       => ['required', Rule::in($allTypes)],
-            'order'               => 'nullable|integer|min:1',
-            'instruction_files'   => 'nullable|array',
-            'instruction_files.*' => 'integer|exists:materials,material_id',
-            'variants'            => 'nullable|array',
-            'variants.*'          => 'string',
-            'correct_variant'     => 'nullable|integer',
-            'with_variants'       => 'nullable|boolean',
-            'correct_answers'     => 'nullable|array',
-            'correct_answers.*'   => 'string',
-            'sample_answer'       => 'nullable|string',
-            'base_word'           => 'nullable|string',
-            'root_word'           => 'nullable|string',
-            'original_text'       => 'nullable|string',
-            'incorrect_text'      => 'nullable|string',
-            'full_text'           => 'nullable|string',
-            'column_a'            => 'nullable|array',
-            'column_a.*'          => 'string',
-            'column_b'            => 'nullable|array',
-            'column_b.*'          => 'string',
-            'correct_pairs'       => 'nullable|array',
+            'section_id'                      => 'required|integer',
+            'question_text'                   => 'required|string',
+            'question_type'                   => ['required', Rule::in($allTypes)],
+            'order'                           => 'nullable|integer|min:1',
+            'instruction_files'               => 'nullable|array',
+            'instruction_files.*'             => 'integer|exists:materials,material_id',
+            'variants'                        => 'nullable|array',
+            'variants.*'                      => 'string',
+            'correct_variant'                 => 'nullable|integer',
+            'with_variants'                   => 'nullable|boolean',
+            'correct_answers'                 => 'nullable|array',
+            'correct_answers.*'               => 'string',
+            'sample_answer'                   => 'nullable|string',
+            'base_word'                       => 'nullable|string',
+            'root_word'                       => 'nullable|string',
+            'original_text'                   => 'nullable|string',
+            'incorrect_text'                  => 'nullable|string',
+            'full_text'                       => 'nullable|string',
+            'column_a'                        => 'nullable|array',
+            'column_a.*'                      => 'string',
+            'column_b'                        => 'nullable|array',
+            'column_b.*'                      => 'string',
+            'correct_pairs'                   => 'nullable|array',
+            'speaking_instruction_files'      => 'nullable|array',
+            'speaking_instruction_files.*'    => 'integer|exists:materials,material_id',
         ]);
 
         $section = HomeworkSection::where('homework_id', $homeworkId)->find($validated['section_id']);
@@ -137,27 +143,29 @@ class QuestionController extends Controller
         }
 
         $validated = $request->validate([
-            'question_text'       => 'sometimes|string',
-            'order'               => 'nullable|integer|min:1',
-            'instruction_files'   => 'nullable|array',
-            'instruction_files.*' => 'integer|exists:materials,material_id',
-            'variants'            => 'nullable|array',
-            'variants.*'          => 'string',
-            'correct_variant'     => 'nullable|integer',
-            'with_variants'       => 'nullable|boolean',
-            'correct_answers'     => 'nullable|array',
-            'correct_answers.*'   => 'string',
-            'sample_answer'       => 'nullable|string',
-            'base_word'           => 'nullable|string',
-            'root_word'           => 'nullable|string',
-            'original_text'       => 'nullable|string',
-            'incorrect_text'      => 'nullable|string',
-            'full_text'           => 'nullable|string',
-            'column_a'            => 'nullable|array',
-            'column_a.*'          => 'string',
-            'column_b'            => 'nullable|array',
-            'column_b.*'          => 'string',
-            'correct_pairs'       => 'nullable|array',
+            'question_text'                   => 'sometimes|string',
+            'order'                           => 'nullable|integer|min:1',
+            'instruction_files'               => 'nullable|array',
+            'instruction_files.*'             => 'integer|exists:materials,material_id',
+            'variants'                        => 'nullable|array',
+            'variants.*'                      => 'string',
+            'correct_variant'                 => 'nullable|integer',
+            'with_variants'                   => 'nullable|boolean',
+            'correct_answers'                 => 'nullable|array',
+            'correct_answers.*'               => 'string',
+            'sample_answer'                   => 'nullable|string',
+            'base_word'                       => 'nullable|string',
+            'root_word'                       => 'nullable|string',
+            'original_text'                   => 'nullable|string',
+            'incorrect_text'                  => 'nullable|string',
+            'full_text'                       => 'nullable|string',
+            'column_a'                        => 'nullable|array',
+            'column_a.*'                      => 'string',
+            'column_b'                        => 'nullable|array',
+            'column_b.*'                      => 'string',
+            'correct_pairs'                   => 'nullable|array',
+            'speaking_instruction_files'      => 'nullable|array',
+            'speaking_instruction_files.*'    => 'integer|exists:materials,material_id',
         ]);
 
         $baseFields = array_filter([
@@ -273,6 +281,19 @@ class QuestionController extends Controller
                     'sample_answer' => $data['sample_answer'] ?? null,
                 ]),
 
+            $type === 'writing_question'
+                => WritingQuestion::create([
+                    'question_id'   => $qId,
+                    'sample_answer' => $data['sample_answer'] ?? null,
+                ]),
+
+            $type === 'speaking_question'
+                => SpeakingQuestion::create([
+                    'question_id'      => $qId,
+                    'instruction_files' => $data['speaking_instruction_files'] ?? null,
+                    'sample_answer'    => $data['sample_answer'] ?? null,
+                ]),
+
             default => null,
         };
     }
@@ -375,6 +396,23 @@ class QuestionController extends Controller
                 $detail = ReadingQuestion::where('question_id', $qId)->first();
                 if ($detail && isset($data['sample_answer'])) {
                     $detail->update(['sample_answer' => $data['sample_answer']]);
+                }
+            })(),
+
+            $type === 'writing_question' => (function () use ($qId, $data) {
+                $detail = WritingQuestion::where('question_id', $qId)->first();
+                if ($detail && isset($data['sample_answer'])) {
+                    $detail->update(['sample_answer' => $data['sample_answer']]);
+                }
+            })(),
+
+            $type === 'speaking_question' => (function () use ($qId, $data) {
+                $detail = SpeakingQuestion::where('question_id', $qId)->first();
+                if ($detail) {
+                    $detail->update(array_filter([
+                        'instruction_files' => $data['speaking_instruction_files'] ?? null,
+                        'sample_answer'     => $data['sample_answer'] ?? null,
+                    ], fn ($v) => !is_null($v)));
                 }
             })(),
 

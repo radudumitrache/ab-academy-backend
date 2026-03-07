@@ -7,6 +7,8 @@ use App\Models\TypesOfTestQuestions\TestCorrectQuestion;
 use App\Models\TypesOfTestQuestions\TestGapFillQuestion;
 use App\Models\TypesOfTestQuestions\TestMultipleChoiceQuestion;
 use App\Models\TypesOfTestQuestions\TestReadingQuestion;
+use App\Models\TypesOfTestQuestions\TestWritingQuestion;
+use App\Models\TypesOfTestQuestions\TestSpeakingQuestion;
 use App\Models\TypesOfTestQuestions\TestRephraseQuestion;
 use App\Models\TypesOfTestQuestions\TestReplaceQuestion;
 use App\Models\TypesOfTestQuestions\TestTextCompletionQuestion;
@@ -94,5 +96,15 @@ class TestQuestion extends Model
     public function readingQuestionDetails()
     {
         return $this->hasOne(TestReadingQuestion::class, 'test_question_id', 'test_question_id');
+    }
+
+    public function writingQuestionDetails()
+    {
+        return $this->hasOne(TestWritingQuestion::class, 'test_question_id', 'test_question_id');
+    }
+
+    public function speakingQuestionDetails()
+    {
+        return $this->hasOne(TestSpeakingQuestion::class, 'test_question_id', 'test_question_id');
     }
 }
