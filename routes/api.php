@@ -13,6 +13,15 @@ use Illuminate\Http\Request;
 
 Route::get('/hello', [HelloController::class, 'index']);
 
+Route::get('/clear-cache', function () {
+    $file = base_path('bootstrap/cache/config.php');
+    if (file_exists($file)) {
+        unlink($file);
+        return response()->json(['message' => 'Config cache cleared']);
+    }
+    return response()->json(['message' => 'No cache file found']);
+});
+
 Route::get('/debug-env', function () {
     return response()->json([
         'GOOGLE_CLOUD_BUCKET'     => env('GOOGLE_CLOUD_BUCKET') ?? 'NULL',
