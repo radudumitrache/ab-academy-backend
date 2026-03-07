@@ -12,7 +12,7 @@ return new class extends Migration
             // Foreign key to materials table for GCS-hosted audio files.
             // audio_url remains for external URLs; audio_material_id is for GCS materials.
             $table->unsignedBigInteger('audio_material_id')->nullable()->after('audio_url');
-            $table->foreign('audio_material_id')->references('id')->on('materials')->nullOnDelete();
+            $table->foreign('audio_material_id')->references('material_id')->on('materials')->nullOnDelete();
         });
     }
 

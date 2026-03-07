@@ -57,13 +57,13 @@ class SectionController extends Controller
             'section_type'        => ['required', Rule::in(HomeworkSection::TYPES)],
             'title'               => 'nullable|string|max:255',
             'instruction_files'   => 'nullable|array',
-            'instruction_files.*' => 'integer|exists:materials,id',
+            'instruction_files.*' => 'integer|exists:materials,material_id',
             'order'               => 'nullable|integer|min:1',
             // Reading-specific
             'passage'             => 'nullable|string',
             // Listening-specific
             'audio_url'           => 'nullable|url',
-            'audio_material_id'   => 'nullable|integer|exists:materials,id',
+            'audio_material_id'   => 'nullable|integer|exists:materials,material_id',
             'transcript'          => 'nullable|string',
         ]);
 
@@ -113,11 +113,11 @@ class SectionController extends Controller
         $validated = $request->validate([
             'title'               => 'nullable|string|max:255',
             'instruction_files'   => 'nullable|array',
-            'instruction_files.*' => 'integer|exists:materials,id',
+            'instruction_files.*' => 'integer|exists:materials,material_id',
             'order'               => 'nullable|integer|min:1',
             'passage'             => 'nullable|string',
             'audio_url'           => 'nullable|url',
-            'audio_material_id'   => 'nullable|integer|exists:materials,id',
+            'audio_material_id'   => 'nullable|integer|exists:materials,material_id',
             'transcript'          => 'nullable|string',
         ]);
 
