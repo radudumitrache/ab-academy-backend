@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
+use App\Models\Student;
 use Illuminate\Support\Facades\Auth;
 
 class ExamController extends Controller
@@ -13,7 +14,7 @@ class ExamController extends Controller
      */
     public function index()
     {
-        $student = Auth::user();
+        $student = Student::find(Auth::id());
 
         $exams = $student->enrolledExams()
             ->orderBy('date')
@@ -41,7 +42,7 @@ class ExamController extends Controller
      */
     public function show($id)
     {
-        $student = Auth::user();
+        $student = Student::find(Auth::id());
 
         $exam = $student->enrolledExams()->find($id);
 
