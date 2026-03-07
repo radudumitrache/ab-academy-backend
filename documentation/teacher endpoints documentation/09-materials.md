@@ -182,3 +182,64 @@ This section covers the API endpoints for managing course materials stored in Go
   ```json
   { "message": "Forbidden" }
   ```
+
+---
+
+## Upload Profile Picture
+
+Upload or replace the teacher's profile picture. The file is stored at `teachers/{username}/profile/profile_picture.{ext}`. If a previous profile picture exists it is automatically deleted from GCS before the new one is uploaded.
+
+- **URL**: `/api/teacher/profile-picture`
+- **Method**: `POST`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  Content-Type: multipart/form-data
+  ```
+- **Body** (`form-data`):
+
+  | Field | Type | Required | Description |
+  |-------|------|----------|-------------|
+  | `file` | File | Yes | Image file (jpeg, jpg, png, webp). Max 5 MB. |
+
+- **Success Response** (`200`):
+  ```json
+  {
+    "message": "Profile picture uploaded successfully",
+    "profile_picture_path": "teachers/teacher1/profile/profile_picture.jpg"
+  }
+  ```
+- **Error Response** (`422`):
+  ```json
+  {
+    "message": "Validation failed",
+    "errors": { "file": ["The file must be an image (jpeg, jpg, png, webp)."] }
+  }
+  ```
+
+---
+
+## Get Profile Picture
+
+Returns a signed download URL for the teacher's current profile picture, valid for 60 minutes.
+
+- **URL**: `/api/teacher/profile-picture`
+- **Method**: `GET`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  ```
+- **Success Response** (`200`):
+  ```json
+  {
+    "message": "Profile picture retrieved successfully",
+    "profile_picture_path": "teachers/teacher1/profile/profile_picture.jpg",
+    "url": "https://storage.googleapis.com/your-bucket/teachers/teacher1/profile/profile_picture.jpg?X-Goog-Signature=..."
+  }
+  ```
+- **Error Response** (`404`):
+  ```json
+  { "message": "No profile picture set" }
+  ```

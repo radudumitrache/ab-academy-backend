@@ -30,6 +30,7 @@ class User extends Authenticatable
         'role',
         'admin_notes',
         'languages_taught',
+        'profile_picture_path',
     ];
 
     /**

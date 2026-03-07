@@ -85,6 +85,8 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | GET | `/api/teacher/materials/{id}` | Yes | Get material details + signed download URL |
 | PUT | `/api/teacher/materials/{id}/access` | Yes | Update allowed_users on an owned material |
 | DELETE | `/api/teacher/materials/{id}` | Yes | Delete an owned material from GCS and DB |
+| POST | `/api/teacher/profile-picture` | Yes | Upload or replace the teacher's profile picture |
+| GET | `/api/teacher/profile-picture` | Yes | Get a signed URL for the teacher's profile picture |
 
 ## Teacher User Object
 

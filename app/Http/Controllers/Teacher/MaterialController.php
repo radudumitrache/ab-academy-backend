@@ -174,6 +174,64 @@ class MaterialController extends Controller
         return response()->json(['message' => 'Material deleted successfully']);
     }
 
+    /**
+     * Upload or replace the teacher's profile picture.
+     * Stored at: teachers/{username}/profile/profile_picture.{ext}
+     * The old picture (any extension) is deleted from GCS before uploading the new one.
+     */
+    public function uploadProfilePicture(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'file' => 'required|file|mimes:jpeg,jpg,png,webp|max:5120',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $user = Auth::user();
+        $file = $request->file('file');
+        $ext  = $file->getClientOriginalExtension();
+        $path = "teachers/{$user->username}/profile/profile_picture.{$ext}";
+
+        // Delete the old profile picture from GCS if one exists
+        if ($user->profile_picture_path) {
+            $this->gcs->delete($user->profile_picture_path);
+        }
+
+        $this->gcs->upload($file, $path);
+
+        $user->update(['profile_picture_path' => $path]);
+
+        return response()->json([
+            'message'              => 'Profile picture uploaded successfully',
+            'profile_picture_path' => $path,
+        ]);
+    }
+
+    /**
+     * Get a signed download URL for the teacher's profile picture.
+     */
+    public function getProfilePicture()
+    {
+        $user = Auth::user();
+
+        if (!$user->profile_picture_path) {
+            return response()->json(['message' => 'No profile picture set'], 404);
+        }
+
+        $url = $this->gcs->signedUrl($user->profile_picture_path, 60);
+
+        return response()->json([
+            'message'              => 'Profile picture retrieved successfully',
+            'profile_picture_path' => $user->profile_picture_path,
+            'url'                  => $url,
+        ]);
+    }
+
     // -------------------------------------------------------------------------
 
     private function uniquePath(string $path): string
