@@ -12,8 +12,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:api')->group(function () {
     Route::get('/chats',                [ChatController::class, 'index']);
-    Route::get('/chats/{id}',           [ChatController::class, 'show']);
-    Route::post('/chats/{id}/messages', [ChatController::class, 'sendMessage']);
     Route::get('/chats/unread/count',   [ChatController::class, 'unreadCount']);
-    Route::post('/chats/admin',         [AdminChatController::class, 'store']);
+    Route::get('/chats/{id}',           [ChatController::class, 'show']);
+    Route::post('/chats/{id}/messages', [AdminChatController::class, 'sendMessage']);
+    // Open (or resume) a chat with the admin
+    Route::post('/chats/admin',         [ChatController::class, 'store']);
 });
