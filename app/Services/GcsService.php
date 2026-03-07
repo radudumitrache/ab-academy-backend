@@ -12,7 +12,7 @@ class GcsService
 
     public function __construct()
     {
-        $keyFile = env('GOOGLE_CLOUD_KEY_FILE');
+        $keyFile = config('filesystems.disks.gcs.key_file');
 
         // Resolve relative paths from the Laravel project root
         if ($keyFile && !str_starts_with($keyFile, '/') && !preg_match('/^[A-Za-z]:/', $keyFile)) {
@@ -20,7 +20,7 @@ class GcsService
         }
 
         $config = [
-            'projectId' => env('GOOGLE_CLOUD_PROJECT_ID'),
+            'projectId' => config('filesystems.disks.gcs.project_id'),
         ];
 
         if ($keyFile && file_exists($keyFile)) {
@@ -33,7 +33,7 @@ class GcsService
         $this->client  = new StorageClient($config);
         error_reporting($previousLevel);
 
-        $bucket = env('GOOGLE_CLOUD_BUCKET');
+        $bucket = config('filesystems.disks.gcs.bucket');
         if (!$bucket) {
             throw new \RuntimeException('GOOGLE_CLOUD_BUCKET is not set in .env');
         }
