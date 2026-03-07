@@ -61,7 +61,7 @@ class MaterialController extends Controller
         $validator = Validator::make($request->all(), [
             'file'            => 'required|file|max:102400',
             'material_name'   => 'nullable|string|max:255',
-            'folder'          => 'required|in:private,common',
+            'folder'          => ['required', 'string', 'regex:/^(common|private(\/[a-zA-Z0-9_\-]+)?)$/'],
             'allowed_users'   => 'nullable|array',
             'allowed_users.*' => 'integer|exists:users,id',
         ]);
@@ -77,9 +77,12 @@ class MaterialController extends Controller
         $file   = $request->file('file');
         $folder = $request->input('folder');
 
-        $gcsPath = $folder === 'common'
-            ? 'common/' . $file->getClientOriginalName()
-            : "teachers/{$user->username}/private/" . $file->getClientOriginalName();
+        if ($folder === 'common') {
+            $gcsPath = 'common/' . $file->getClientOriginalName();
+        } else {
+            // $folder is 'private' or 'private/subfolder-name'
+            $gcsPath = "teachers/{$user->username}/{$folder}/" . $file->getClientOriginalName();
+        }
 
         $gcsPath = $this->uniquePath($gcsPath);
 

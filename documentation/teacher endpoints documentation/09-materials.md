@@ -88,9 +88,14 @@ This section covers the API endpoints for managing course materials stored in Go
   | Field | Type | Required | Notes |
   |-------|------|----------|-------|
   | `file` | file | Yes | Max 100 MB |
-  | `folder` | string | Yes | `private` or `common` |
+  | `folder` | string | Yes | `common`, `private`, or `private/{subfolder}`. Subfolder names may only contain letters, numbers, `-`, and `_`. |
   | `material_name` | string | No | Defaults to original filename |
   | `allowed_users` | array of integers | No | User IDs that can access this file |
+
+  **Folder examples:**
+  - `common` → stored at `common/{filename}`
+  - `private` → stored at `teachers/{username}/private/{filename}`
+  - `private/tema7-03-2026` → stored at `teachers/{username}/private/tema7-03-2026/{filename}`
 
 - **Success Response** (`201`):
   ```json
@@ -103,9 +108,9 @@ This section covers the API endpoints for managing course materials stored in Go
       "date_created": "2026-03-06T10:00:00.000000Z",
       "authors": [2],
       "allowed_users": [3, 4],
-      "gcs_path": "teachers/2/lecture_notes_week1.pdf",
+      "gcs_path": "teachers/teacher1/private/tema7-03-2026/lecture_notes.pdf",
       "uploader_id": 2,
-      "folder": "private"
+      "folder": "private/tema7-03-2026"
     }
   }
   ```
