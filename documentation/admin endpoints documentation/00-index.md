@@ -37,5 +37,6 @@ The AB Academy Admin API provides a comprehensive set of endpoints for managing 
 - Dashboard analytics
 - Chat functionality
 - Archive management
+- Material/file management (Google Cloud Storage)
 
 Each section of the documentation includes detailed information about the available endpoints, request/response formats, and example usage.

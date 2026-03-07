@@ -5,6 +5,7 @@ This documentation covers all student-facing API endpoints for the AB Academy pl
 ## Table of Contents
 
 1. [Materials](01-materials.md)
+2. [Groups](02-groups.md)
 
 ## Base URL
 

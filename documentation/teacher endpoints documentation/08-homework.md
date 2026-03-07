@@ -197,7 +197,7 @@ Returns all sections of a homework with question counts.
 {
   "section_type": "Reading",
   "title": "Passage A",
-  "instruction_files": ["https://example.com/passage_notes.pdf"],
+  "instruction_files": [5, 7],
   "passage": "The industrial revolution began...",
   "order": 1
 }
@@ -207,10 +207,11 @@ Returns all sections of a homework with question counts.
 |-------|------|----------|-------|
 | `section_type` | string | Yes | `GrammarAndVocabulary`, `Writing`, `Reading`, or `Listening` |
 | `title` | string | No | |
-| `instruction_files` | array | No | Array of URLs |
+| `instruction_files` | array | No | Array of **Material IDs** (integers from the `materials` table) |
 | `order` | integer | No | Display order |
 | `passage` | string | Required for `Reading` | |
-| `audio_url` | url | Required for `Listening` | |
+| `audio_url` | url | Required for `Listening` (if `audio_material_id` not provided) | External audio URL |
+| `audio_material_id` | integer | Required for `Listening` (if `audio_url` not provided) | Material ID of a GCS-hosted audio file |
 | `transcript` | string | No (`Listening` only) | |
 
 **Response** `201` with created section object.
@@ -245,7 +246,7 @@ Questions **must** belong to a section (`section_id` is required). The question 
 | `question_text` | string | Yes | The question prompt |
 | `question_type` | string | Yes | See section type table above |
 | `order` | integer | No | Display order within section |
-| `instruction_files` | array | No | Array of URLs for attachments on this question |
+| `instruction_files` | array | No | Array of **Material IDs** (integers) for attachments on this question |
 
 **Type-specific fields** (same as before):
 
