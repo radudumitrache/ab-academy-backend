@@ -9,9 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('homework_sections', function (Blueprint $table) {
-            // Foreign key to materials table for GCS-hosted audio files.
-            // audio_url remains for external URLs; audio_material_id is for GCS materials.
-            $table->unsignedBigInteger('audio_material_id')->nullable()->after('audio_url');
+            // Column may already exist from a previous partial run; only add if missing.
+            if (!Schema::hasColumn('homework_sections', 'audio_material_id')) {
+                $table->unsignedBigInteger('audio_material_id')->nullable()->after('audio_url');
+            }
             $table->foreign('audio_material_id')->references('material_id')->on('materials')->nullOnDelete();
         });
     }
