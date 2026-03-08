@@ -18,6 +18,7 @@ class Exam extends Model
      */
     protected $fillable = [
         'name',
+        'exam_type',
         'date',
         'status',
     ];

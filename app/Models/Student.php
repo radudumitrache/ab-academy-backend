@@ -25,7 +25,7 @@ class Student extends User
     public function enrolledExams(): BelongsToMany
     {
         return $this->belongsToMany(Exam::class, 'student_exam')
-                    ->withPivot('score', 'feedback')
+                    ->withPivot('score', 'feedback', 'student_score', 'notes')
                     ->withTimestamps();
     }
     

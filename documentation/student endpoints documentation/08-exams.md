@@ -1,19 +1,26 @@
 # Exams (Student)
 
-Two separate exam systems exist for students:
-
-1. **Admin-enrolled exams** — formal exams the admin has enrolled the student in. Read-only from the student side.
-2. **Personal exams** — exams the student registers themselves (e.g. IELTS, Cambridge, TOEFL) and tracks their own score and notes.
+Students have a single unified exam list. Exams can be added by the admin (with the student enrolled) or created by the student themselves. In both cases the student can record their own score and notes.
 
 ---
 
-## Admin-Enrolled Exams (Read-Only)
+## Endpoints
 
-### List Enrolled Exams
+```
+GET    /api/student/exams              → list all enrolled exams
+POST   /api/student/exams              → create a new exam and self-enroll
+GET    /api/student/exams/{id}         → get a single exam
+PATCH  /api/student/exams/{id}/score   → update own score / notes
+DELETE /api/student/exams/{id}         → delete a self-created exam
+```
+
+---
+
+## List Exams
 
 `GET /api/student/exams`
 
-Returns all exams the student has been enrolled in by the admin, ordered by date.
+Returns all exams the student is enrolled in, ordered by date.
 
 **Response** `200`:
 ```json
@@ -24,24 +31,30 @@ Returns all exams the student has been enrolled in by the admin, ordered by date
     {
       "id": 1,
       "name": "Cambridge B2 Mock Exam",
+      "exam_type": "Cambridge",
       "date": "2026-04-15",
       "status": "upcoming",
-      "score": null,
-      "feedback": null
+      "admin_score": null,
+      "feedback": null,
+      "student_score": null,
+      "notes": null
     },
     {
-      "id": 2,
-      "name": "Internal Grammar Test",
-      "date": "2026-03-01",
-      "status": "passed",
-      "score": 87,
-      "feedback": "Excellent work on the reading section."
+      "id": 3,
+      "name": "IELTS Academic",
+      "exam_type": "IELTS",
+      "date": "2026-05-10",
+      "status": "upcoming",
+      "admin_score": null,
+      "feedback": null,
+      "student_score": "7.5",
+      "notes": "Passed with band 7.5 overall."
     }
   ]
 }
 ```
 
-#### Exam Status Values
+### Exam Status Values
 
 | Status | Meaning |
 |--------|---------|
@@ -52,136 +65,105 @@ Returns all exams the student has been enrolled in by the admin, ordered by date
 
 ---
 
-### Get Single Enrolled Exam
+## Create an Exam
 
-`GET /api/student/exams/{id}`
+`POST /api/student/exams`
 
-**Response** `200`:
-```json
-{
-  "message": "Exam retrieved successfully",
-  "exam": {
-    "id": 1,
-    "name": "Cambridge B2 Mock Exam",
-    "date": "2026-04-15",
-    "status": "upcoming",
-    "score": null,
-    "feedback": null
-  }
-}
-```
-
-**Errors**: `404` if not found or student is not enrolled.
-
----
-
-## Personal Exams (Student-Managed)
-
-Students can record exams they have personally registered for and update their score once results are available.
-
-### List Personal Exams
-
-`GET /api/student/personal-exams`
-
-**Response** `200`:
-```json
-{
-  "message": "Personal exams retrieved successfully",
-  "count": 1,
-  "exams": [
-    {
-      "id": 1,
-      "student_id": 12,
-      "name": "IELTS Academic",
-      "exam_type": "IELTS",
-      "date": "2026-05-10",
-      "score": null,
-      "notes": "Registered at the British Council centre.",
-      "created_at": "2026-03-07T10:00:00.000000Z",
-      "updated_at": "2026-03-07T10:00:00.000000Z"
-    }
-  ]
-}
-```
-
----
-
-### Create a Personal Exam
-
-`POST /api/student/personal-exams`
+Students register an exam they have signed up for. The student is automatically enrolled.
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
 | `name` | string | Yes | Max 255 characters |
 | `exam_type` | string | No | e.g. `IELTS`, `Cambridge B2`, `TOEFL` |
 | `date` | date | No | `YYYY-MM-DD` |
-| `score` | string | No | Free text: `"7.5"`, `"B2"`, `"87/100"` |
-| `notes` | string | No | Any additional notes |
 
 **Response** `201`:
 ```json
 {
-  "message": "Personal exam created successfully",
+  "message": "Exam created successfully",
   "exam": {
-    "id": 1,
-    "student_id": 12,
+    "id": 3,
     "name": "IELTS Academic",
     "exam_type": "IELTS",
     "date": "2026-05-10",
-    "score": null,
-    "notes": "Registered at the British Council centre.",
-    "created_at": "2026-03-08T10:00:00.000000Z",
-    "updated_at": "2026-03-08T10:00:00.000000Z"
+    "status": "upcoming",
+    "admin_score": null,
+    "feedback": null,
+    "student_score": null,
+    "notes": null
   }
 }
 ```
 
 ---
 
-### Get Single Personal Exam
+## Get Single Exam
 
-`GET /api/student/personal-exams/{id}`
+`GET /api/student/exams/{id}`
 
-**Response** `200` with exam object. **Errors**: `404` if not found or not owned by the student.
+**Response** `200` with the exam object above.
+
+**Errors**: `404` if not found or student is not enrolled.
 
 ---
 
-### Update a Personal Exam
+## Update Score / Notes
 
-`PUT /api/student/personal-exams/{id}`
+`PATCH /api/student/exams/{id}/score`
 
-All fields optional. Typically used to add a score after results are received.
+Students record their own grade after taking the exam. Does not affect the admin-set `admin_score` or `feedback`.
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `student_score` | string | No | Free text — `"7.5"`, `"B2"`, `"87/100"` |
+| `notes` | string | No | Personal notes about the result |
 
 ```json
-{ "score": "7.5", "notes": "Passed with band 7.5 overall." }
+{ "student_score": "7.5", "notes": "Passed with band 7.5 overall." }
 ```
 
 **Response** `200`:
 ```json
 {
-  "message": "Personal exam updated successfully",
+  "message": "Score updated successfully",
   "exam": {
-    "id": 1,
+    "id": 3,
     "name": "IELTS Academic",
     "exam_type": "IELTS",
     "date": "2026-05-10",
-    "score": "7.5",
+    "status": "upcoming",
+    "admin_score": null,
+    "feedback": null,
+    "student_score": "7.5",
     "notes": "Passed with band 7.5 overall."
   }
 }
 ```
 
-**Errors**: `404` if not found or not owned by the student.
+**Errors**: `404` if not enrolled in this exam.
 
 ---
 
-### Delete a Personal Exam
+## Delete an Exam
 
-`DELETE /api/student/personal-exams/{id}`
+`DELETE /api/student/exams/{id}`
+
+Students can only delete exams they created themselves. Blocked if an admin has already set a score or feedback.
 
 **Response** `200`:
 ```json
-{ "message": "Personal exam deleted successfully" }
+{ "message": "Exam deleted successfully" }
 ```
 
-**Errors**: `404` if not found or not owned by the student.
+**Errors**: `403` if the exam has been graded by an admin, `404` if not enrolled.
+
+---
+
+## Field Reference
+
+| Field | Set by | Description |
+|-------|--------|-------------|
+| `admin_score` | Admin | Score entered by the admin after correction |
+| `feedback` | Admin | Textual feedback from the admin |
+| `student_score` | Student | Grade the student recorded themselves |
+| `notes` | Student | Personal notes about the exam |

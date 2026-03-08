@@ -5,16 +5,13 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\Student;
-use App\Models\StudentPersonalExam;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class ExamController extends Controller
 {
-    // ── Admin-enrolled exams (read-only) ──────────────────────────────────────
-
     /**
-     * List all exams the authenticated student is enrolled in by the admin.
+     * List all exams the student is enrolled in.
      */
     public function index()
     {
@@ -23,16 +20,7 @@ class ExamController extends Controller
         $exams = $student->enrolledExams()
             ->orderBy('date')
             ->get()
-            ->map(function ($exam) {
-                return [
-                    'id'         => $exam->id,
-                    'name'       => $exam->name,
-                    'date'       => $exam->date,
-                    'status'     => $exam->status,
-                    'score'      => $exam->pivot->score ?? null,
-                    'feedback'   => $exam->pivot->feedback ?? null,
-                ];
-            });
+            ->map(fn($exam) => $this->format($exam));
 
         return response()->json([
             'message' => 'Exams retrieved successfully',
@@ -47,8 +35,7 @@ class ExamController extends Controller
     public function show($id)
     {
         $student = Student::find(Auth::id());
-
-        $exam = $student->enrolledExams()->find($id);
+        $exam    = $student->enrolledExams()->find($id);
 
         if (!$exam) {
             return response()->json(['message' => 'Exam not found'], 404);
@@ -56,120 +43,106 @@ class ExamController extends Controller
 
         return response()->json([
             'message' => 'Exam retrieved successfully',
-            'exam'    => [
-                'id'       => $exam->id,
-                'name'     => $exam->name,
-                'date'     => $exam->date,
-                'status'   => $exam->status,
-                'score'    => $exam->pivot->score ?? null,
-                'feedback' => $exam->pivot->feedback ?? null,
-            ],
-        ]);
-    }
-
-    // ── Personal exams (student-managed) ─────────────────────────────────────
-
-    /**
-     * List all personal exams created by the student.
-     */
-    public function personalIndex()
-    {
-        $exams = StudentPersonalExam::where('student_id', Auth::id())
-            ->orderBy('date')
-            ->get();
-
-        return response()->json([
-            'message' => 'Personal exams retrieved successfully',
-            'count'   => $exams->count(),
-            'exams'   => $exams,
+            'exam'    => $this->format($exam),
         ]);
     }
 
     /**
-     * Create a new personal exam record.
+     * Create a new exam and self-enroll the student in it.
      */
-    public function personalStore(Request $request)
+    public function store(Request $request)
     {
         $request->validate([
             'name'      => 'required|string|max:255',
             'exam_type' => 'nullable|string|max:100',
             'date'      => 'nullable|date',
-            'score'     => 'nullable|string|max:50',
-            'notes'     => 'nullable|string',
         ]);
 
-        $exam = StudentPersonalExam::create([
-            'student_id' => Auth::id(),
-            'name'       => $request->name,
-            'exam_type'  => $request->exam_type,
-            'date'       => $request->date,
-            'score'      => $request->score,
-            'notes'      => $request->notes,
+        $exam = Exam::create([
+            'name'      => $request->name,
+            'exam_type' => $request->exam_type,
+            'date'      => $request->date,
+            'status'    => Exam::STATUS_UPCOMING,
         ]);
+
+        $exam->students()->attach(Auth::id());
+
+        $student = Student::find(Auth::id());
+        $created = $student->enrolledExams()->find($exam->id);
 
         return response()->json([
-            'message' => 'Personal exam created successfully',
-            'exam'    => $exam,
+            'message' => 'Exam created successfully',
+            'exam'    => $this->format($created),
         ], 201);
     }
 
     /**
-     * Show a single personal exam.
+     * Update the student's own score and notes on an exam.
      */
-    public function personalShow($id)
+    public function updateScore(Request $request, $id)
     {
-        $exam = StudentPersonalExam::where('student_id', Auth::id())->find($id);
-
-        if (!$exam) {
-            return response()->json(['message' => 'Exam not found'], 404);
-        }
-
-        return response()->json([
-            'message' => 'Personal exam retrieved successfully',
-            'exam'    => $exam,
-        ]);
-    }
-
-    /**
-     * Update a personal exam record (e.g. add score after taking the exam).
-     */
-    public function personalUpdate(Request $request, $id)
-    {
-        $exam = StudentPersonalExam::where('student_id', Auth::id())->find($id);
+        $student = Student::find(Auth::id());
+        $exam    = $student->enrolledExams()->find($id);
 
         if (!$exam) {
             return response()->json(['message' => 'Exam not found'], 404);
         }
 
         $request->validate([
-            'name'      => 'sometimes|string|max:255',
-            'exam_type' => 'nullable|string|max:100',
-            'date'      => 'nullable|date',
-            'score'     => 'nullable|string|max:50',
-            'notes'     => 'nullable|string',
+            'student_score' => 'nullable|string|max:50',
+            'notes'         => 'nullable|string',
         ]);
 
-        $exam->update($request->only(['name', 'exam_type', 'date', 'score', 'notes']));
+        $exam->pivot->update([
+            'student_score' => $request->student_score,
+            'notes'         => $request->notes,
+        ]);
+
+        $fresh = $student->enrolledExams()->find($id);
 
         return response()->json([
-            'message' => 'Personal exam updated successfully',
-            'exam'    => $exam,
+            'message' => 'Score updated successfully',
+            'exam'    => $this->format($fresh),
         ]);
     }
 
     /**
-     * Delete a personal exam record.
+     * Delete an exam the student created themselves.
+     * Blocked if the admin has already set a score or feedback.
      */
-    public function personalDestroy($id)
+    public function destroy($id)
     {
-        $exam = StudentPersonalExam::where('student_id', Auth::id())->find($id);
+        $student = Student::find(Auth::id());
+        $exam    = $student->enrolledExams()->find($id);
 
         if (!$exam) {
             return response()->json(['message' => 'Exam not found'], 404);
         }
 
+        if ($exam->pivot->score !== null || $exam->pivot->feedback !== null) {
+            return response()->json([
+                'message' => 'Cannot delete an exam that has been graded by an admin.',
+            ], 403);
+        }
+
+        $exam->students()->detach(Auth::id());
         $exam->delete();
 
-        return response()->json(['message' => 'Personal exam deleted successfully']);
+        return response()->json(['message' => 'Exam deleted successfully']);
+    }
+
+    private function format(Exam $exam): array
+    {
+        return [
+            'id'            => $exam->id,
+            'name'          => $exam->name,
+            'exam_type'     => $exam->exam_type,
+            'date'          => $exam->date,
+            'status'        => $exam->status,
+            'admin_score'   => $exam->pivot->score ?? null,
+            'feedback'      => $exam->pivot->feedback ?? null,
+            'student_score' => $exam->pivot->student_score ?? null,
+            'notes'         => $exam->pivot->notes ?? null,
+        ];
     }
 }
