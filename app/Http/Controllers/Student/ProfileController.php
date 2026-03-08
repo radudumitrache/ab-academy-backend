@@ -14,6 +14,26 @@ class ProfileController extends Controller
     public function __construct(private GcsService $gcs) {}
 
     /**
+     * Create the GCS folder structure for the authenticated student.
+     * Creates: students/{username}/profile/
+     * Safe to call multiple times — skips folders that already exist.
+     */
+    public function setupStorage()
+    {
+        $user    = Auth::user();
+        $created = $this->gcs->createStudentFolders($user->username);
+
+        return response()->json([
+            'message'         => 'Storage setup completed',
+            'username'        => $user->username,
+            'folders_created' => $created,
+            'structure'       => [
+                "students/{$user->username}/profile/",
+            ],
+        ]);
+    }
+
+    /**
      * Return the authenticated student's profile.
      */
     public function show()

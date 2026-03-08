@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
  */
 
 Route::middleware('auth:api')->group(function () {
+    Route::post('/profile/setup',           [ProfileController::class, 'setupStorage']);
     Route::get('/profile',                  [ProfileController::class, 'show']);
     Route::put('/profile',                  [ProfileController::class, 'update']);
     Route::post('/profile/change-password', [ProfileController::class, 'changePassword']);

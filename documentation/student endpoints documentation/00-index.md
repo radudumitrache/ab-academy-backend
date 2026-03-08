@@ -43,6 +43,7 @@ Authorization: Bearer {access_token}
 | POST | `/api/student/logout` | Yes | Revoke the current token |
 | GET | `/api/student/profile` | Yes | Get own profile |
 | PUT | `/api/student/profile` | Yes | Update own profile |
+| POST | `/api/student/profile/setup` | Yes | Create GCS folder structure for the student |
 | POST | `/api/student/profile/change-password` | Yes | Change password |
 | POST | `/api/student/profile/picture` | Yes | Upload or replace profile picture |
 | GET | `/api/student/profile/picture` | Yes | Get signed profile picture URL |

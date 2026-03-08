@@ -93,6 +93,30 @@ All fields are optional. Send only the fields you want to change.
 
 ---
 
+## Setup Storage
+
+`POST /api/student/profile/setup`
+
+Creates the GCS folder structure for the student (`students/{username}/profile/`). Safe to call multiple times — skips folders that already exist. Should be called once after registration before uploading a profile picture.
+
+**Response** `200`:
+```json
+{
+  "message": "Storage setup completed",
+  "username": "john_doe",
+  "folders_created": [
+    "students/john_doe/profile/.keep"
+  ],
+  "structure": [
+    "students/john_doe/profile/"
+  ]
+}
+```
+
+> If the folder already exists, `folders_created` will be an empty array.
+
+---
+
 ## Upload Profile Picture
 
 `POST /api/student/profile/picture`
