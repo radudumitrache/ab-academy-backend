@@ -5,12 +5,95 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Group;
+use App\Models\Homework;
+use App\Models\HomeworkSubmission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class GroupController extends Controller
 {
+    /**
+     * List all groups the student belongs to.
+     */
+    public function index()
+    {
+        $studentId = Auth::id();
+
+        $groups = Group::whereHas('students', fn($q) => $q->where('student_id', $studentId))
+            ->with('teacher:id,username')
+            ->get()
+            ->map(fn($g) => [
+                'group_id'         => $g->group_id,
+                'group_name'       => $g->group_name,
+                'description'      => $g->description,
+                'schedule_days'    => $g->schedule_days,
+                'formatted_schedule' => $g->formatted_schedule,
+                'teacher'          => $g->teacher,
+            ]);
+
+        return response()->json([
+            'message' => 'Groups retrieved successfully',
+            'count'   => $groups->count(),
+            'groups'  => $groups,
+        ]);
+    }
+
+    /**
+     * Get details for a single group the student belongs to, including assigned homework.
+     */
+    public function show($id)
+    {
+        $studentId = Auth::id();
+
+        $group = Group::whereHas('students', fn($q) => $q->where('student_id', $studentId))
+            ->with('teacher:id,username')
+            ->where('group_id', $id)
+            ->first();
+
+        if (!$group) {
+            return response()->json(['message' => 'Group not found'], 404);
+        }
+
+        // Homework assigned to this group
+        $homework = Homework::where(function ($q) use ($group) {
+            $q->whereJsonContains('groups_assigned', (int) $group->group_id);
+        })
+        ->orderByDesc('due_date')
+        ->get();
+
+        // Attach submission status for this student
+        $submissionMap = HomeworkSubmission::where('student_id', $studentId)
+            ->whereIn('homework_id', $homework->pluck('id'))
+            ->get()
+            ->keyBy('homework_id');
+
+        $homeworkData = $homework->map(function ($hw) use ($submissionMap) {
+            $sub = $submissionMap->get($hw->id);
+            return [
+                'id'               => $hw->id,
+                'homework_title'   => $hw->homework_title,
+                'homework_description' => $hw->homework_description,
+                'due_date'         => $hw->due_date,
+                'submission_status' => $sub ? $sub->status : 'not_started',
+                'submitted_at'     => $sub ? $sub->submitted_at : null,
+            ];
+        });
+
+        return response()->json([
+            'message' => 'Group retrieved successfully',
+            'group'   => [
+                'group_id'           => $group->group_id,
+                'group_name'         => $group->group_name,
+                'description'        => $group->description,
+                'schedule_days'      => $group->schedule_days,
+                'formatted_schedule' => $group->formatted_schedule,
+                'teacher'            => $group->teacher,
+                'homework'           => $homeworkData,
+            ],
+        ]);
+    }
+
     /**
      * Join a group using a class code.
      */
