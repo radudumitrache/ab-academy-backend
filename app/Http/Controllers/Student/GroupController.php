@@ -166,7 +166,7 @@ class GroupController extends Controller
 
             // Find the duration for a given session_time from the group's schedule_days
             $durationMap = collect($group->schedule_days ?? [])
-                ->keyBy('time')
+                ->keyBy(fn($s) => $s['time'])
                 ->map(fn($s) => $s['duration'] ?? 0);
 
             $minutesScheduled = $records->sum(fn($r) => $durationMap[$r->session_time] ?? 0);
