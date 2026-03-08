@@ -12,16 +12,18 @@ use Illuminate\Support\Facades\Validator;
 class ExamController extends Controller
 {
     /**
-     * Display a listing of all exams.
+     * Display a listing of all exams with full pivot data.
      */
     public function index()
     {
-        $exams = Exam::with(['students'])->get();
+        $exams = Exam::with(['students' => function ($q) {
+            $q->withPivot('score', 'feedback', 'student_score', 'notes');
+        }])->get();
 
         return response()->json([
             'message' => 'Exams retrieved successfully',
-            'count' => $exams->count(),
-            'exams' => $exams
+            'count'   => $exams->count(),
+            'exams'   => $exams,
         ], 200);
     }
 
@@ -31,34 +33,34 @@ class ExamController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'date' => 'required|date_format:Y-m-d',
-            'status' => 'nullable|in:upcoming,to_be_corrected,passed,failed',
-            'student_ids' => 'nullable|array',
+            'name'         => 'required|string|max:255',
+            'exam_type'    => 'nullable|string|max:100',
+            'date'         => 'required|date_format:Y-m-d',
+            'status'       => 'nullable|in:upcoming,to_be_corrected,passed,failed',
+            'student_ids'  => 'nullable|array',
             'student_ids.*' => 'exists:users,id',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
         $exam = Exam::create([
-            'name' => $request->name,
-            'date' => $request->date,
-            'status' => $request->status ?? Exam::STATUS_UPCOMING,
+            'name'      => $request->name,
+            'exam_type' => $request->exam_type,
+            'date'      => $request->date,
+            'status'    => $request->status ?? Exam::STATUS_UPCOMING,
         ]);
 
-        // Record initial status in history
         $exam->statusHistory()->create([
-            'old_status' => null,
-            'new_status' => $exam->status,
-            'changed_by_user_id' => Auth::id(),
+            'old_status'          => null,
+            'new_status'          => $exam->status,
+            'changed_by_user_id'  => Auth::id(),
         ]);
 
-        // Enroll students if provided
         if ($request->has('student_ids') && is_array($request->student_ids)) {
             $studentIds = Student::whereIn('id', $request->student_ids)->pluck('id')->all();
             $exam->students()->attach($studentIds);
@@ -66,26 +68,27 @@ class ExamController extends Controller
 
         return response()->json([
             'message' => 'Exam created successfully',
-            'exam' => $exam->load(['students', 'statusHistory'])
+            'exam'    => $exam->load(['students', 'statusHistory']),
         ], 201);
     }
 
     /**
-     * Display the specified exam.
+     * Display the specified exam with full pivot data per student.
      */
     public function show($id)
     {
-        $exam = Exam::with(['students', 'statusHistory'])->find($id);
+        $exam = Exam::with([
+            'students' => fn($q) => $q->withPivot('score', 'feedback', 'student_score', 'notes'),
+            'statusHistory',
+        ])->find($id);
 
         if (!$exam) {
-            return response()->json([
-                'message' => 'Exam not found'
-            ], 404);
+            return response()->json(['message' => 'Exam not found'], 404);
         }
 
         return response()->json([
             'message' => 'Exam retrieved successfully',
-            'exam' => $exam
+            'exam'    => $exam,
         ], 200);
     }
 
@@ -97,36 +100,33 @@ class ExamController extends Controller
         $exam = Exam::find($id);
 
         if (!$exam) {
-            return response()->json([
-                'message' => 'Exam not found'
-            ], 404);
+            return response()->json(['message' => 'Exam not found'], 404);
         }
 
         $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|required|string|max:255',
-            'date' => 'sometimes|required|date_format:Y-m-d',
-            'status' => 'sometimes|required|in:upcoming,to_be_corrected,passed,failed',
+            'name'      => 'sometimes|required|string|max:255',
+            'exam_type' => 'nullable|string|max:100',
+            'date'      => 'sometimes|required|date_format:Y-m-d',
+            'status'    => 'sometimes|required|in:upcoming,to_be_corrected,passed,failed',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
-        // Handle status update separately to track history
         if ($request->filled('status') && $exam->status !== $request->status) {
             $exam->updateStatus($request->status, Auth::id());
         }
 
-        // Update other fields
-        $exam->fill($request->except('status'));
+        $exam->fill($request->only(['name', 'exam_type', 'date']));
         $exam->save();
 
         return response()->json([
             'message' => 'Exam updated successfully',
-            'exam' => $exam->fresh(['students', 'statusHistory'])
+            'exam'    => $exam->fresh(['students', 'statusHistory']),
         ], 200);
     }
 
@@ -138,16 +138,12 @@ class ExamController extends Controller
         $exam = Exam::find($id);
 
         if (!$exam) {
-            return response()->json([
-                'message' => 'Exam not found'
-            ], 404);
+            return response()->json(['message' => 'Exam not found'], 404);
         }
 
         $exam->delete();
 
-        return response()->json([
-            'message' => 'Exam deleted successfully'
-        ], 200);
+        return response()->json(['message' => 'Exam deleted successfully'], 200);
     }
 
     /**
@@ -158,37 +154,63 @@ class ExamController extends Controller
         $exam = Exam::find($id);
 
         if (!$exam) {
-            return response()->json([
-                'message' => 'Exam not found'
-            ], 404);
+            return response()->json(['message' => 'Exam not found'], 404);
         }
 
         $validator = Validator::make($request->all(), [
-            'student_ids' => 'required|array',
+            'student_ids'   => 'required|array',
             'student_ids.*' => 'exists:users,id',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
-        // Verify all IDs belong to students
         $studentIds = Student::whereIn('id', $request->student_ids)->pluck('id')->all();
 
         if (count($studentIds) !== count($request->student_ids)) {
-            return response()->json([
-                'message' => 'All student_ids must belong to students'
-            ], 422);
+            return response()->json(['message' => 'All student_ids must belong to students'], 422);
         }
 
         $exam->students()->syncWithoutDetaching($studentIds);
 
         return response()->json([
             'message' => 'Students enrolled in exam successfully',
-            'exam' => $exam->fresh(['students'])
+            'exam'    => $exam->fresh(['students']),
+        ], 200);
+    }
+
+    /**
+     * Set the admin score and feedback for a specific student on an exam.
+     */
+    public function gradeStudent(Request $request, $examId, $studentId)
+    {
+        $exam = Exam::find($examId);
+
+        if (!$exam) {
+            return response()->json(['message' => 'Exam not found'], 404);
+        }
+
+        if (!$exam->students()->where('student_id', $studentId)->exists()) {
+            return response()->json(['message' => 'Student is not enrolled in this exam'], 404);
+        }
+
+        $request->validate([
+            'score'    => 'nullable|numeric',
+            'feedback' => 'nullable|string',
+        ]);
+
+        $exam->students()->updateExistingPivot($studentId, [
+            'score'    => $request->score,
+            'feedback' => $request->feedback,
+        ]);
+
+        return response()->json([
+            'message' => 'Student graded successfully',
+            'exam'    => $exam->load(['students' => fn($q) => $q->withPivot('score', 'feedback', 'student_score', 'notes')]),
         ], 200);
     }
 
@@ -200,30 +222,24 @@ class ExamController extends Controller
         $exam = Exam::find($examId);
 
         if (!$exam) {
-            return response()->json([
-                'message' => 'Exam not found'
-            ], 404);
+            return response()->json(['message' => 'Exam not found'], 404);
         }
 
         $student = Student::find($studentId);
 
         if (!$student) {
-            return response()->json([
-                'message' => 'Student not found'
-            ], 404);
+            return response()->json(['message' => 'Student not found'], 404);
         }
 
         if (!$exam->students()->where('student_id', $studentId)->exists()) {
-            return response()->json([
-                'message' => 'Student is not enrolled in this exam'
-            ], 404);
+            return response()->json(['message' => 'Student is not enrolled in this exam'], 404);
         }
 
         $exam->students()->detach($studentId);
 
         return response()->json([
             'message' => 'Student removed from exam successfully',
-            'exam' => $exam->fresh(['students'])
+            'exam'    => $exam->fresh(['students']),
         ], 200);
     }
 }

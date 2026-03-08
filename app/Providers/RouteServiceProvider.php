@@ -80,6 +80,15 @@ class RouteServiceProvider extends ServiceProvider
                     require base_path('routes/student/profile.php');
                     require base_path('routes/student/schedule.php');
                     require base_path('routes/student/chat.php');
+                    require base_path('routes/student/notifications.php');
+                    require base_path('routes/student/invoices.php');
+                });
+
+            // EuPlatesc webhook routes (no auth — called directly by EuPlatesc servers)
+            Route::middleware('api')
+                ->prefix('api/euplatesc')
+                ->group(function () {
+                    require base_path('routes/euplatesc.php');
                 });
 
             // Live session routes

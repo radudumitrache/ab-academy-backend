@@ -289,6 +289,7 @@ class HomeworkController extends Controller
 
     /**
      * List all student submissions for a homework.
+     * File responses include a signed GCS download URL.
      */
     public function submissions($homeworkId)
     {
@@ -299,6 +300,21 @@ class HomeworkController extends Controller
         $submissions = HomeworkSubmission::where('homework_id', $homeworkId)
             ->with(['student:id,username,email', 'responses'])
             ->get();
+
+        // Attach signed URLs for any file-based responses
+        $submissions->each(function ($submission) {
+            $submission->responses->each(function ($response) {
+                if ($response->file_path) {
+                    try {
+                        $response->file_url = $this->gcs->signedUrl($response->file_path, 60);
+                    } catch (\Throwable) {
+                        $response->file_url = null;
+                    }
+                } else {
+                    $response->file_url = null;
+                }
+            });
+        });
 
         return response()->json([
             'message'     => 'Submissions retrieved successfully',

@@ -16,6 +16,7 @@ Route::get('/exams/{id}', [ExamController::class, 'show'])->middleware('auth:api
 Route::put('/exams/{id}', [ExamController::class, 'update'])->middleware('auth:api');
 Route::delete('/exams/{id}', [ExamController::class, 'destroy'])->middleware('auth:api');
 
-// Exam student enrollment
-Route::post('/exams/{id}/students', [ExamController::class, 'enrollStudents'])->middleware('auth:api');
-Route::delete('/exams/{examId}/students/{studentId}', [ExamController::class, 'removeStudent'])->middleware('auth:api');
+// Exam student enrollment and grading
+Route::post('/exams/{id}/students',                          [ExamController::class, 'enrollStudents'])->middleware('auth:api');
+Route::put('/exams/{examId}/students/{studentId}/grade',     [ExamController::class, 'gradeStudent'])->middleware('auth:api');
+Route::delete('/exams/{examId}/students/{studentId}',        [ExamController::class, 'removeStudent'])->middleware('auth:api');

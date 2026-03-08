@@ -43,6 +43,7 @@ class ProfileController extends Controller
         $user = Auth::user();
 
         $validated = $request->validate([
+            'username'     => 'sometimes|string|max:255|unique:users,username,' . $user->id,
             'email'        => 'sometimes|email|unique:users,email,' . $user->id,
             'telephone'    => 'nullable|string|max:20',
             'address'      => 'nullable|string|max:255',
@@ -55,6 +56,8 @@ class ProfileController extends Controller
         ]);
 
         $user->update($validated);
+
+        $user->refresh();
 
         return response()->json([
             'message' => 'Profile updated successfully',
