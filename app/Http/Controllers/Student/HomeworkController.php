@@ -10,6 +10,7 @@ use App\Models\QuestionResponse;
 use App\Services\GcsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class HomeworkController extends Controller
 {
@@ -29,7 +30,6 @@ class HomeworkController extends Controller
               });
         })
         ->orWhere(function ($q) use ($studentId) {
-            // Find group IDs the student belongs to
             $groupIds = \App\Models\Group::whereHas('students', fn($s) => $s->where('student_id', $studentId))
                 ->pluck('group_id')
                 ->toArray();
@@ -43,7 +43,6 @@ class HomeworkController extends Controller
         ->orderByDesc('due_date')
         ->get();
 
-        // Attach submission status for this student
         $submissionMap = HomeworkSubmission::where('student_id', $studentId)
             ->whereIn('homework_id', $homework->pluck('id'))
             ->get()
@@ -65,8 +64,7 @@ class HomeworkController extends Controller
     }
 
     /**
-     * Show a single homework with all sections and questions.
-     * The student must be assigned (directly or via group).
+     * Show a single homework with all sections, questions, and existing responses.
      */
     public function show($id)
     {
@@ -94,7 +92,6 @@ class HomeworkController extends Controller
 
         $homeworkData = $this->resolveSignedUrls($homework);
 
-        // Attach submission state
         $sub = HomeworkSubmission::where('homework_id', $id)
             ->where('student_id', $studentId)
             ->with('responses')
@@ -103,11 +100,23 @@ class HomeworkController extends Controller
         $homeworkData['submission_status'] = $sub ? $sub->status : 'not_started';
         $homeworkData['submitted_at']      = $sub ? $sub->submitted_at : null;
 
-        // Map existing responses by question_id so the frontend can pre-populate
         if ($sub) {
-            $homeworkData['responses'] = $sub->responses->keyBy('related_question')
-                ->map(fn($r) => ['question_id' => $r->related_question, 'answer' => $r->answer])
-                ->values();
+            $homeworkData['responses'] = $sub->responses->map(function ($r) {
+                $response = [
+                    'question_id' => $r->related_question,
+                    'answer'      => $r->answer,
+                    'file_path'   => $r->file_path,
+                    'file_url'    => null,
+                ];
+                if ($r->file_path) {
+                    try {
+                        $response['file_url'] = $this->gcs->signedUrl($r->file_path, 60);
+                    } catch (\Throwable) {
+                        $response['file_url'] = null;
+                    }
+                }
+                return $response;
+            })->values();
         } else {
             $homeworkData['responses'] = [];
         }
@@ -119,8 +128,14 @@ class HomeworkController extends Controller
     }
 
     /**
-     * Save (or update) answers for a homework — creates/updates the submission record.
-     * Can be called multiple times before final submission.
+     * Save (or update) answers for a homework.
+     *
+     * Accepts multipart/form-data with:
+     *   - answers[]  (JSON string of [{question_id, answer}] for text answers)
+     *   - files[{question_id}]  (uploaded file for a specific question)
+     *
+     * File path in GCS:
+     *   teachers/{teacher_username}/{student_id}_{homework_slug}_{section_slug}_{question_index}.{ext}
      */
     public function saveAnswers(Request $request, $id)
     {
@@ -131,11 +146,17 @@ class HomeworkController extends Controller
             return response()->json(['message' => 'Homework not found'], 404);
         }
 
-        $validated = $request->validate([
-            'answers'              => 'required|array',
-            'answers.*.question_id' => 'required|integer|exists:questions,question_id',
-            'answers.*.answer'     => 'required|string',
+        $request->validate([
+            'answers'   => 'sometimes|array',
+            'answers.*.question_id' => 'required_with:answers|integer|exists:questions,question_id',
+            'answers.*.answer'      => 'required_with:answers|string',
+            'files'     => 'sometimes|array',
+            'files.*'   => 'file|max:51200', // 50 MB per file
         ]);
+
+        if (empty($request->answers) && !$request->hasFile('files')) {
+            return response()->json(['message' => 'No answers or files provided'], 422);
+        }
 
         $submission = HomeworkSubmission::firstOrCreate(
             ['homework_id' => $id, 'student_id' => $studentId],
@@ -146,10 +167,11 @@ class HomeworkController extends Controller
             return response()->json(['message' => 'Homework already submitted'], 409);
         }
 
-        foreach ($validated['answers'] as $item) {
+        // ── Text answers ──────────────────────────────────────────────────────
+        foreach ($request->answers ?? [] as $item) {
             QuestionResponse::updateOrCreate(
                 [
-                    'submission_id'   => $submission->id,
+                    'submission_id'    => $submission->id,
                     'related_question' => $item['question_id'],
                 ],
                 [
@@ -159,6 +181,68 @@ class HomeworkController extends Controller
             );
         }
 
+        // ── File answers ──────────────────────────────────────────────────────
+        if ($request->hasFile('files')) {
+            // Load teacher username + section info for path building
+            $homework->load(['teacher', 'sections.questions']);
+            $teacherUsername = $homework->teacher->username ?? 'unknown';
+
+            // Build a lookup: question_id → [section_title, question_index]
+            $questionMeta = [];
+            foreach ($homework->sections as $section) {
+                $sectionSlug = Str::slug($section->title ?? $section->section_type);
+                foreach ($section->questions as $index => $question) {
+                    $questionMeta[$question->question_id] = [
+                        'section_slug'    => $sectionSlug,
+                        'question_index'  => $index + 1,
+                    ];
+                }
+            }
+
+            $homeworkSlug = Str::slug($homework->homework_title);
+
+            foreach ($request->file('files') as $questionId => $file) {
+                $questionId = (int) $questionId;
+
+                // Validate the question belongs to this homework
+                if (!isset($questionMeta[$questionId])) {
+                    continue;
+                }
+
+                $meta      = $questionMeta[$questionId];
+                $ext       = $file->getClientOriginalExtension();
+                $filename  = "{$studentId}_{$homeworkSlug}_{$meta['section_slug']}_{$meta['question_index']}.{$ext}";
+                $gcsPath   = "teachers/{$teacherUsername}/{$filename}";
+
+                // Delete old file if one already exists for this question
+                $existing = QuestionResponse::where('submission_id', $submission->id)
+                    ->where('related_question', $questionId)
+                    ->first();
+
+                if ($existing && $existing->file_path) {
+                    try {
+                        $this->gcs->delete($existing->file_path);
+                    } catch (\Throwable) {
+                        // non-fatal
+                    }
+                }
+
+                $this->gcs->upload($file, $gcsPath);
+
+                QuestionResponse::updateOrCreate(
+                    [
+                        'submission_id'    => $submission->id,
+                        'related_question' => $questionId,
+                    ],
+                    [
+                        'related_student' => $studentId,
+                        'answer'          => null,
+                        'file_path'       => $gcsPath,
+                    ]
+                );
+            }
+        }
+
         return response()->json([
             'message'    => 'Answers saved successfully',
             'submission' => $submission->fresh()->load('responses'),
@@ -166,7 +250,7 @@ class HomeworkController extends Controller
     }
 
     /**
-     * Submit the homework — marks status as 'submitted' and records submitted_at.
+     * Submit the homework — marks status as 'submitted'.
      */
     public function submit($id)
     {

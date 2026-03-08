@@ -26,6 +26,7 @@ class QuestionResponse extends Model
         'related_question',
         'related_student',
         'answer',
+        'file_path',
     ];
     
     public function submission()
