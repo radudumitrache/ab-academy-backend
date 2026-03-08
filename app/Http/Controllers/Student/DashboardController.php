@@ -37,16 +37,18 @@ class DashboardController extends Controller
         $groupIds = $groups->pluck('group_id')->toArray();
 
         // ── Upcoming events (next 7 days) ──────────────────────────────────────
-        $upcomingEvents = Event::whereHas('participants', fn($q) => $q->where('user_id', $studentId))
-            ->where('start_time', '>=', $now)
-            ->where('start_time', '<=', $now->copy()->addDays(7))
-            ->orderBy('start_time')
-            ->get(['id', 'title', 'start_time', 'end_time'])
+        $upcomingEvents = Event::whereJsonContains('guests', $studentId)
+            ->where('event_date', '>=', $now->toDateString())
+            ->where('event_date', '<=', $now->copy()->addDays(7)->toDateString())
+            ->orderBy('event_date')
+            ->orderBy('event_time')
+            ->get(['id', 'title', 'event_date', 'event_time', 'event_duration'])
             ->map(fn($e) => [
-                'id'         => $e->id,
-                'title'      => $e->title,
-                'start_time' => $e->start_time,
-                'end_time'   => $e->end_time,
+                'id'             => $e->id,
+                'title'          => $e->title,
+                'event_date'     => $e->event_date?->toDateString(),
+                'event_time'     => $e->event_time,
+                'event_duration' => $e->event_duration,
             ]);
 
         // ── Pending homework ───────────────────────────────────────────────────
