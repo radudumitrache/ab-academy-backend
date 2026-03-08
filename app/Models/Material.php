@@ -17,15 +17,17 @@ class Material extends Model
         'date_created',
         'authors',
         'allowed_users',
+        'allowed_groups',
         'gcs_path',
         'uploader_id',
         'folder',
     ];
 
     protected $casts = [
-        'date_created'  => 'datetime',
-        'authors'       => 'array',
-        'allowed_users' => 'array',
+        'date_created'   => 'datetime',
+        'authors'        => 'array',
+        'allowed_users'  => 'array',
+        'allowed_groups' => 'array',
     ];
 
     public function uploader()

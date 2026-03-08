@@ -5,7 +5,7 @@ This documentation covers all student-facing API endpoints for the AB Academy pl
 ## Table of Contents
 
 1. [Authentication](01-authentication.md) — register, login, logout
-2. [Profile](02-profile.md) — view and update personal details, change password
+2. [Profile](02-profile.md) — view and update personal details, change password, profile picture
 3. [Groups](03-groups.md) — list groups, view group detail with homework, join by code, course hours
 4. [Schedule](04-schedule.md) — weekly schedule overview across all groups
 5. [Events](05-events.md) — meetings and events the student is invited to
@@ -44,6 +44,8 @@ Authorization: Bearer {access_token}
 | GET | `/api/student/profile` | Yes | Get own profile |
 | PUT | `/api/student/profile` | Yes | Update own profile |
 | POST | `/api/student/profile/change-password` | Yes | Change password |
+| POST | `/api/student/profile/picture` | Yes | Upload or replace profile picture |
+| GET | `/api/student/profile/picture` | Yes | Get signed profile picture URL |
 | GET | `/api/student/groups` | Yes | List all groups the student belongs to |
 | GET | `/api/student/groups/{id}` | Yes | Group detail with assigned homework |
 | POST | `/api/student/groups/join` | Yes | Join a group by class code |

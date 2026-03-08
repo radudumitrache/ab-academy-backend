@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
+use App\Models\Group;
 use App\Models\Material;
 use App\Models\User;
 use App\Services\GcsService;
@@ -128,7 +129,8 @@ class MaterialController extends Controller
     }
 
     /**
-     * Update the allowed_users list on a material the teacher owns.
+     * Update allowed_users and/or allowed_groups on a material the teacher owns.
+     * Students in allowed_groups are automatically granted access alongside allowed_users.
      */
     public function updateAccess(Request $request, $id)
     {
@@ -140,8 +142,10 @@ class MaterialController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'allowed_users'   => 'required|array',
-            'allowed_users.*' => 'integer|exists:users,id',
+            'allowed_users'    => 'nullable|array',
+            'allowed_users.*'  => 'integer|exists:users,id',
+            'allowed_groups'   => 'nullable|array',
+            'allowed_groups.*' => 'integer|exists:groups,group_id',
         ]);
 
         if ($validator->fails()) {
@@ -151,7 +155,13 @@ class MaterialController extends Controller
             ], 422);
         }
 
-        $material->update(['allowed_users' => $request->input('allowed_users')]);
+        $allowedUsers  = $request->input('allowed_users', $material->allowed_users ?? []);
+        $allowedGroups = $request->input('allowed_groups', $material->allowed_groups ?? []);
+
+        $material->update([
+            'allowed_users'  => array_values(array_unique(array_map('intval', $allowedUsers))),
+            'allowed_groups' => array_values(array_unique(array_map('intval', $allowedGroups))),
+        ]);
 
         return response()->json([
             'message'  => 'Access updated successfully',

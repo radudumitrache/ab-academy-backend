@@ -8,7 +8,7 @@ This section covers the API endpoints for managing course materials stored in Go
 
 > **Note**: Downloads are served as **signed URLs** valid for 60 minutes. The file is never proxied through the server.
 
-> **Note**: Access to a material is controlled by the `allowed_users` field — an array of user IDs. Students can only see materials where their ID appears in this list.
+> **Note**: Access to a material is controlled by two fields: `allowed_users` (individual student IDs) and `allowed_groups` (group IDs). A student can access a material if their ID is in `allowed_users` **or** they belong to a group in `allowed_groups`.
 
 ---
 
@@ -142,7 +142,7 @@ This section covers the API endpoints for managing course materials stored in Go
 
 ---
 
-## Update Access (allowed_users)
+## Update Access (allowed_users / allowed_groups)
 
 - **URL**: `/api/teacher/materials/{id}/access`
 - **Method**: `PUT`
@@ -152,18 +152,25 @@ This section covers the API endpoints for managing course materials stored in Go
   Authorization: Bearer {token}
   Content-Type: application/json
   ```
-- **Notes**: Teacher must own the material.
+- **Notes**: Teacher must own the material. Both fields are optional — omitting one leaves it unchanged. Students gain access if their ID appears in `allowed_users` **or** they are a member of a group in `allowed_groups`.
 - **Request Body**:
   ```json
   {
-    "allowed_users": [3, 4, 5, 6]
+    "allowed_users": [3, 4, 5],
+    "allowed_groups": [1, 2]
   }
   ```
+  You may send just `allowed_users`, just `allowed_groups`, or both.
 - **Success Response**:
   ```json
   {
     "message": "Access updated successfully",
-    "material": { ... }
+    "material": {
+      "material_id": 1,
+      "allowed_users": [3, 4, 5],
+      "allowed_groups": [1, 2],
+      ...
+    }
   }
   ```
 

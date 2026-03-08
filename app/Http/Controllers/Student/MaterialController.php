@@ -12,16 +12,15 @@ class MaterialController extends Controller
     public function __construct(private GcsService $gcs) {}
 
     /**
-     * List all materials the student has been given access to.
+     * List all materials the student has access to (via allowed_users or allowed_groups).
      */
     public function index()
     {
         $studentId = Auth::id();
+        $groupIds  = $this->studentGroupIds($studentId);
 
-        // Fetch all materials and filter those where allowed_users contains this student's ID.
-        // Using a JSON-contains approach that works across databases.
-        $materials = Material::all()->filter(function ($material) use ($studentId) {
-            return in_array($studentId, $material->allowed_users ?? []);
+        $materials = Material::all()->filter(function ($material) use ($studentId, $groupIds) {
+            return $this->hasAccess($material, $studentId, $groupIds);
         })->values();
 
         return response()->json([
@@ -36,9 +35,10 @@ class MaterialController extends Controller
     public function show($id)
     {
         $studentId = Auth::id();
+        $groupIds  = $this->studentGroupIds($studentId);
         $material  = Material::findOrFail($id);
 
-        if (!in_array($studentId, $material->allowed_users ?? [])) {
+        if (!$this->hasAccess($material, $studentId, $groupIds)) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -49,5 +49,35 @@ class MaterialController extends Controller
             'material'     => $material,
             'download_url' => $url,
         ]);
+    }
+
+    // -------------------------------------------------------------------------
+
+    /**
+     * Return the group IDs the student belongs to.
+     */
+    private function studentGroupIds(int $studentId): array
+    {
+        return \App\Models\Group::whereHas('students', fn($q) => $q->where('student_id', $studentId))
+            ->pluck('group_id')
+            ->toArray();
+    }
+
+    /**
+     * Check whether a student has access to a material via direct user or group grant.
+     */
+    private function hasAccess(Material $material, int $studentId, array $groupIds): bool
+    {
+        if (in_array($studentId, $material->allowed_users ?? [])) {
+            return true;
+        }
+
+        foreach ($groupIds as $gid) {
+            if (in_array($gid, $material->allowed_groups ?? [])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

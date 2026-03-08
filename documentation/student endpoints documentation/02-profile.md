@@ -22,10 +22,13 @@ Returns the authenticated student's profile.
     "county": "Ilfov",
     "country": "Romania",
     "occupation": "Student",
-    "role": "student"
+    "role": "student",
+    "profile_picture_url": "https://storage.googleapis.com/...signed-url..."
   }
 }
 ```
+
+> `profile_picture_url` is a 60-minute signed GCS URL, or `null` if no picture has been uploaded.
 
 ---
 
@@ -87,3 +90,45 @@ All fields are optional. Send only the fields you want to change.
 ```
 
 **Errors**: `422` if `current_password` is incorrect.
+
+---
+
+## Upload Profile Picture
+
+`POST /api/student/profile/picture`
+
+Upload or replace the student's profile picture. Send as `multipart/form-data`.
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `image` | file | Yes | jpeg, jpg, png, or webp — max 5 MB |
+
+Stored in GCS at `students/{username}/profile/profile_picture.{ext}`. The student's folder structure is created automatically on first upload. If a previous picture exists, it is deleted before the new one is stored.
+
+**Response** `200`:
+```json
+{
+  "message": "Profile picture uploaded successfully",
+  "profile_picture_url": "https://storage.googleapis.com/...signed-url..."
+}
+```
+
+**Errors**: `422` if the file is missing or fails validation.
+
+---
+
+## Get Profile Picture
+
+`GET /api/student/profile/picture`
+
+Returns a 60-minute signed download URL for the student's profile picture.
+
+**Response** `200`:
+```json
+{
+  "message": "Profile picture retrieved successfully",
+  "profile_picture_url": "https://storage.googleapis.com/...signed-url..."
+}
+```
+
+**Errors**: `404` if no profile picture has been uploaded.

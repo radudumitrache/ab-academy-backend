@@ -109,6 +109,29 @@ class GcsService
     }
 
     /**
+     * Create the standard folder structure for a student.
+     * Structure: students/{username}/profile/.keep
+     */
+    public function createStudentFolders(string $username): array
+    {
+        $bucket  = $this->client->bucket($this->bucketName);
+        $folders = [
+            "students/{$username}/profile/.keep",
+        ];
+
+        $created = [];
+        foreach ($folders as $path) {
+            $object = $bucket->object($path);
+            if (!$object->exists()) {
+                $bucket->upload('', ['name' => $path]);
+                $created[] = $path;
+            }
+        }
+
+        return $created;
+    }
+
+    /**
      * List all objects under a given prefix.
      * Returns an array of object names.
      */
