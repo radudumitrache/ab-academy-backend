@@ -8,13 +8,17 @@ use App\Models\Material;
 use App\Models\Test;
 use App\Models\TestSubmission;
 use App\Models\TestQuestionResponse;
+use App\Services\AchievementService;
 use App\Services\GcsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class TestController extends Controller
 {
-    public function __construct(private GcsService $gcs) {}
+    public function __construct(
+        private GcsService $gcs,
+        private AchievementService $achievements,
+    ) {}
 
     /**
      * List all tests assigned to the authenticated student.
@@ -169,14 +173,24 @@ class TestController extends Controller
             return response()->json(['message' => 'Test already submitted'], 409);
         }
 
+        $submittedAt = now();
+
         $submission->update([
             'status'       => 'submitted',
-            'submitted_at' => now(),
+            'submitted_at' => $submittedAt,
         ]);
 
+        $newAchievements = $this->achievements->recordSubmission(
+            $studentId,
+            $submittedAt,
+            'test',
+            (int) $id
+        );
+
         return response()->json([
-            'message'    => 'Test submitted successfully',
-            'submission' => $submission->fresh(),
+            'message'          => 'Test submitted successfully',
+            'submission'       => $submission->fresh(),
+            'new_achievements' => $newAchievements,
         ]);
     }
 

@@ -16,6 +16,7 @@ This documentation covers all student-facing API endpoints for the AB Academy pl
 10. [Chat](10-chat.md) — messaging with teachers and admin
 11. [Notifications](11-notifications.md) — view, mark as seen, delete notifications
 12. [Invoices & Payments](12-invoices.md) — view invoices, pay via EuPlatesc
+13. [Dashboard & Achievements](13-dashboard.md) — dashboard overview, streak, achievements
 
 ## Base URL
 
@@ -77,6 +78,8 @@ Authorization: Bearer {access_token}
 | GET | `/api/student/invoices` | Yes | List all invoices |
 | GET | `/api/student/invoices/{id}` | Yes | Get invoice detail + payment history |
 | POST | `/api/student/invoices/{id}/pay` | Yes | Initiate EuPlatesc checkout (returns HTML) |
+| GET | `/api/student/dashboard` | Yes | Full dashboard overview |
+| GET | `/api/student/achievements` | Yes | Streak + achievement list |
 
 ## Error Format
 

@@ -7,6 +7,7 @@ use App\Models\Homework;
 use App\Models\HomeworkSubmission;
 use App\Models\Material;
 use App\Models\QuestionResponse;
+use App\Services\AchievementService;
 use App\Services\GcsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +15,10 @@ use Illuminate\Support\Str;
 
 class HomeworkController extends Controller
 {
-    public function __construct(private GcsService $gcs) {}
+    public function __construct(
+        private GcsService $gcs,
+        private AchievementService $achievements,
+    ) {}
 
     /**
      * List all homework assigned to the authenticated student.
@@ -270,14 +274,24 @@ class HomeworkController extends Controller
             return response()->json(['message' => 'Homework already submitted'], 409);
         }
 
+        $submittedAt = now();
+
         $submission->update([
             'status'       => 'submitted',
-            'submitted_at' => now(),
+            'submitted_at' => $submittedAt,
         ]);
 
+        $newAchievements = $this->achievements->recordSubmission(
+            $studentId,
+            $submittedAt,
+            'homework',
+            (int) $id
+        );
+
         return response()->json([
-            'message'    => 'Homework submitted successfully',
-            'submission' => $submission->fresh(),
+            'message'          => 'Homework submitted successfully',
+            'submission'       => $submission->fresh(),
+            'new_achievements' => $newAchievements,
         ]);
     }
 
