@@ -1,16 +1,16 @@
-# Homework
+# Homework (Student)
 
-Students can view homework assigned to them (directly or via a group), save answers at any time as a draft, and then submit when done.
+Students can view homework assigned to them (directly or via a group), save answers at any time as a draft, and submit when done. Answers can be text or file uploads.
 
 ---
 
 ## Submission Flow
 
 ```
-GET  /api/student/homework           → list all assigned homework
-GET  /api/student/homework/{id}      → view homework with questions
-POST /api/student/homework/{id}/answers  → save answers (can repeat)
-POST /api/student/homework/{id}/submit   → finalize submission
+GET  /api/student/homework                   → list all assigned homework
+GET  /api/student/homework/{id}              → view homework with questions + existing responses
+POST /api/student/homework/{id}/answers      → save answers (text and/or files, repeatable)
+POST /api/student/homework/{id}/submit       → finalize submission
 ```
 
 ---
@@ -43,11 +43,11 @@ Returns all homework assigned to this student (directly or via group), ordered b
 
 ---
 
-## Get Single Homework (with questions)
+## Get Single Homework (with questions and responses)
 
 `GET /api/student/homework/{id}`
 
-Returns the homework with all sections and questions eagerly loaded. Material IDs in `instruction_files` are resolved to 60-minute signed GCS URLs.
+Returns the full homework with all sections, questions, and the student's existing responses. Material IDs in `instruction_files` are resolved to 60-minute signed GCS URLs. File responses include a signed download URL.
 
 **Response** `200`:
 ```json
@@ -60,7 +60,18 @@ Returns the homework with all sections and questions eagerly loaded. Material ID
     "submission_status": "in_progress",
     "submitted_at": null,
     "responses": [
-      { "question_id": 5, "answer": "went" }
+      {
+        "question_id": 5,
+        "answer": "Steam power",
+        "file_path": null,
+        "file_url": null
+      },
+      {
+        "question_id": 6,
+        "answer": null,
+        "file_path": "teachers/teacherTest/private/submissions/12_unit-5-practice_writing_1.pdf",
+        "file_url": "https://storage.googleapis.com/...?X-Goog-Signature=..."
+      }
     ],
     "sections": [
       {
@@ -76,19 +87,7 @@ Returns the homework with all sections and questions eagerly loaded. Material ID
         "audio_url": null,
         "audio_material_id": null,
         "order": 1,
-        "questions": [
-          {
-            "question_id": 5,
-            "question_type": "reading_multiple_choice",
-            "question_text": "What triggered the industrial revolution?",
-            "multiple_choice_details": {
-              "variants": ["Steam power", "Electricity", "Wind power"],
-              "correct_variant": 0
-            },
-            "instruction_files": [],
-            "instruction_file_urls": []
-          }
-        ]
+        "questions": [ { "..." : "..." } ]
       }
     ]
   }
@@ -103,22 +102,45 @@ Returns the homework with all sections and questions eagerly loaded. Material ID
 
 `POST /api/student/homework/{id}/answers`
 
-Saves answers without submitting. Can be called multiple times — each call upserts the answers for the provided question IDs. Answers for questions not included are preserved.
+Saves answers without submitting. Can be called multiple times — each call upserts the provided answers. Answers for questions not included in the request are preserved.
 
-```json
-{
-  "answers": [
-    { "question_id": 5, "answer": "Steam power" },
-    { "question_id": 6, "answer": "My essay answer here." }
-  ]
-}
+Accepts **`multipart/form-data`** to support both text and file answers in the same request.
+
+### Text answers
+
+Send `answers` as a JSON array in the form body:
+
 ```
+answers[0][question_id] = 5
+answers[0][answer]      = Steam power
+answers[1][question_id] = 7
+answers[1][answer]      = My essay answer here.
+```
+
+### File answers
+
+Send files keyed by the question ID:
+
+```
+files[6] = <uploaded file>
+files[8] = <uploaded file>
+```
+
+**File storage path:**
+```
+teachers/{teacher_username}/private/submissions/{student_id}_{homework-slug}_{section-slug}_{question-index}.{ext}
+```
+
+The `submissions` folder is created automatically if it does not exist.
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
-| `answers` | array | Yes | Array of question/answer pairs |
-| `answers.*.question_id` | integer | Yes | Must belong to this homework |
-| `answers.*.answer` | string | Yes | The student's answer |
+| `answers` | array | No* | Array of `{question_id, answer}` pairs for text answers |
+| `answers.*.question_id` | integer | Yes (if answers sent) | Must belong to this homework |
+| `answers.*.answer` | string | Yes (if answers sent) | The student's text answer |
+| `files[{question_id}]` | file | No* | File upload keyed by question ID. Max 50 MB per file |
+
+\* At least one of `answers` or `files` must be provided.
 
 **Response** `200`:
 ```json
@@ -131,7 +153,8 @@ Saves answers without submitting. Can be called multiple times — each call ups
     "status": "in_progress",
     "submitted_at": null,
     "responses": [
-      { "response_id": 7, "related_question": 5, "answer": "Steam power" }
+      { "response_id": 7, "related_question": 5, "answer": "Steam power", "file_path": null },
+      { "response_id": 8, "related_question": 6, "answer": null, "file_path": "teachers/teacherTest/private/submissions/12_unit-5-practice_writing_1.pdf" }
     ]
   }
 }
@@ -140,6 +163,7 @@ Saves answers without submitting. Can be called multiple times — each call ups
 **Errors**:
 - `404` — homework not found or not assigned
 - `409` — homework already submitted
+- `422` — neither answers nor files provided
 
 ---
 

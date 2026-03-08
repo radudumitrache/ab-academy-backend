@@ -289,14 +289,28 @@ class HomeworkController extends Controller
             ->pluck('group_id')
             ->toArray();
 
-        $query = Homework::where(function ($q) use ($studentId, $groupIds) {
-            $q->whereJsonContains('people_assigned', (int) $studentId);
-            foreach ($groupIds as $gid) {
-                $q->orWhereJsonContains('groups_assigned', (int) $gid);
-            }
-        });
+        // Fetch by ID first, then verify assignment in PHP — avoids any
+        // MySQL JSON type-coercion issues with whereJsonContains + find().
+        $homework = Homework::find((int) $homeworkId);
 
-        return $query->find($homeworkId);
+        if (!$homework) {
+            return null;
+        }
+
+        $peopleAssigned = array_map('intval', (array) $homework->people_assigned);
+        $groupsAssigned = array_map('intval', (array) $homework->groups_assigned);
+
+        if (in_array($studentId, $peopleAssigned, true)) {
+            return $homework;
+        }
+
+        foreach ($groupIds as $gid) {
+            if (in_array((int) $gid, $groupsAssigned, true)) {
+                return $homework;
+            }
+        }
+
+        return null;
     }
 
     private function resolveSignedUrls(Homework $homework): array
