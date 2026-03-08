@@ -23,21 +23,14 @@ class HomeworkController extends Controller
     {
         $studentId = Auth::id();
 
-        $homework = Homework::where(function ($q) use ($studentId) {
-            $q->whereJsonContains('people_assigned', $studentId)
-              ->orWhereHas('sections', function () {
-                  // always false fallback — groups_assigned checked below
-              });
-        })
-        ->orWhere(function ($q) use ($studentId) {
-            $groupIds = \App\Models\Group::whereHas('students', fn($s) => $s->where('student_id', $studentId))
-                ->pluck('group_id')
-                ->toArray();
+        $groupIds = \App\Models\Group::whereHas('students', fn($s) => $s->where('student_id', $studentId))
+            ->pluck('group_id')
+            ->toArray();
 
-            if (!empty($groupIds)) {
-                foreach ($groupIds as $gid) {
-                    $q->orWhereJsonContains('groups_assigned', $gid);
-                }
+        $homework = Homework::where(function ($q) use ($studentId, $groupIds) {
+            $q->whereJsonContains('people_assigned', (int) $studentId);
+            foreach ($groupIds as $gid) {
+                $q->orWhereJsonContains('groups_assigned', (int) $gid);
             }
         })
         ->orderByDesc('due_date')
@@ -135,7 +128,7 @@ class HomeworkController extends Controller
      *   - files[{question_id}]  (uploaded file for a specific question)
      *
      * File path in GCS:
-     *   teachers/{teacher_username}/{student_id}_{homework_slug}_{section_slug}_{question_index}.{ext}
+     *   teachers/{teacher_username}/private/submissions/{student_id}_{homework_slug}_{section_slug}_{question_index}.{ext}
      */
     public function saveAnswers(Request $request, $id)
     {
@@ -187,14 +180,18 @@ class HomeworkController extends Controller
             $homework->load(['teacher', 'sections.questions']);
             $teacherUsername = $homework->teacher->username ?? 'unknown';
 
-            // Build a lookup: question_id → [section_title, question_index]
+            // Ensure the submissions folder exists
+            $submissionsFolder = "teachers/{$teacherUsername}/private/submissions";
+            $this->gcs->createFolder($submissionsFolder);
+
+            // Build a lookup: question_id → [section_slug, question_index]
             $questionMeta = [];
             foreach ($homework->sections as $section) {
                 $sectionSlug = Str::slug($section->title ?? $section->section_type);
                 foreach ($section->questions as $index => $question) {
                     $questionMeta[$question->question_id] = [
-                        'section_slug'    => $sectionSlug,
-                        'question_index'  => $index + 1,
+                        'section_slug'   => $sectionSlug,
+                        'question_index' => $index + 1,
                     ];
                 }
             }
@@ -212,7 +209,7 @@ class HomeworkController extends Controller
                 $meta      = $questionMeta[$questionId];
                 $ext       = $file->getClientOriginalExtension();
                 $filename  = "{$studentId}_{$homeworkSlug}_{$meta['section_slug']}_{$meta['question_index']}.{$ext}";
-                $gcsPath   = "teachers/{$teacherUsername}/{$filename}";
+                $gcsPath   = "{$submissionsFolder}/{$filename}";
 
                 // Delete old file if one already exists for this question
                 $existing = QuestionResponse::where('submission_id', $submission->id)
@@ -293,9 +290,9 @@ class HomeworkController extends Controller
             ->toArray();
 
         $query = Homework::where(function ($q) use ($studentId, $groupIds) {
-            $q->whereJsonContains('people_assigned', $studentId);
+            $q->whereJsonContains('people_assigned', (int) $studentId);
             foreach ($groupIds as $gid) {
-                $q->orWhereJsonContains('groups_assigned', $gid);
+                $q->orWhereJsonContains('groups_assigned', (int) $gid);
             }
         });
 
