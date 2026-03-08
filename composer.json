@@ -13,7 +13,9 @@
         "laravel/passport": "^11.8",
         "league/flysystem-google-cloud-storage": "^3.31",
         "php-http/httplug": "^2.4",
-        "pusher/pusher-php-server": "^7.2"
+        "pusher/pusher-php-server": "^7.2",
+        "symfony/dotenv": "^6.4",
+        "symfony/http-client": "^6.4"
     },
     "autoload": {
         "psr-4": {
