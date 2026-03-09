@@ -15,6 +15,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/events/{id}',              [EventController::class, 'show']);
     Route::put('/events/{id}',              [EventController::class, 'update']);
     Route::delete('/events/{id}',           [EventController::class, 'destroy']);
-    Route::put('/events/{id}/attendance',           [EventController::class, 'markAttendance']);
-    Route::post('/events/{id}/guests/by-username',  [EventController::class, 'addGuestsByUsername']);
+    Route::put('/events/{id}/attendance',              [EventController::class, 'markAttendance']);
+    Route::post('/events/{id}/guests/by-username',     [EventController::class, 'addGuestsByUsername']);
+    Route::post('/events/{id}/create-zoom-meeting',    [EventController::class, 'createZoomMeeting']);
 });

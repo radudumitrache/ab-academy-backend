@@ -351,6 +351,37 @@ Only the event organizer may call this endpoint.
 
 ---
 
+## Create Zoom Meeting
+
+Automatically selects an available (non-conflicting) meeting account and creates a Zoom meeting for the event. Only the event organizer may call this. Stores the resulting join URL in `event_meet_link` and associates the chosen account via `meeting_account_id`.
+
+- **URL**: `POST /api/teacher/events/{id}/create-zoom-meeting`
+- **Auth Required**: Yes
+- **Body**: none
+- **Success Response** `200`:
+  ```json
+  {
+    "message": "Zoom meeting created successfully",
+    "event": {
+      "id": 1,
+      "title": "Math Class",
+      "event_meet_link": "https://us05web.zoom.us/j/12345678?pwd=...",
+      "meeting_account_id": 1,
+      ...
+    },
+    "meeting_link": "https://us05web.zoom.us/j/12345678?pwd=..."
+  }
+  ```
+- **Error Responses**:
+  - `403` — authenticated teacher is not the event organizer
+  - `404` — event not found
+  - `422` — no available meeting accounts for this time slot
+  - `502` — Zoom API call failed (error message included)
+
+**How account selection works**: All active meeting accounts already assigned to another event with an overlapping time window on the same date are excluded. The first remaining active account is used.
+
+---
+
 ## Event Type Reference
 
 | Value | Meaning |

@@ -20,6 +20,7 @@ class Event extends Model
         'present_guests',
         'event_meet_link',
         'event_notes',
+        'meeting_account_id',
     ];
 
     protected $casts = [
@@ -31,5 +32,10 @@ class Event extends Model
     public function organizer()
     {
         return $this->belongsTo(User::class, 'event_organizer');
+    }
+
+    public function meetingAccount()
+    {
+        return $this->belongsTo(MeetingAccount::class, 'meeting_account_id');
     }
 }

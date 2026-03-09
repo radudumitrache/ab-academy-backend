@@ -13,3 +13,4 @@ Route::post('/events', [EventController::class, 'store'])->middleware('auth:api'
 Route::get('/events/{id}', [EventController::class, 'show'])->middleware('auth:api');
 Route::put('/events/{id}', [EventController::class, 'update'])->middleware('auth:api');
 Route::delete('/events/{id}', [EventController::class, 'destroy'])->middleware('auth:api');
+Route::post('/events/{id}/create-zoom-meeting', [EventController::class, 'createZoomMeeting'])->middleware('auth:api');

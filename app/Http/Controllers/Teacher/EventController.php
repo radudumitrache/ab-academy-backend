@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use App\Models\MeetingAccount;
 use App\Models\User;
+use App\Services\ZoomService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -222,6 +224,65 @@ class EventController extends Controller
             'message'     => 'Guests added successfully',
             'guests'      => $mergedIds,
             'guest_users' => $allGuestUsers,
+        ]);
+    }
+
+    /**
+     * Automatically select an available meeting account and create a Zoom meeting for the event.
+     * Only the organizer may call this.
+     */
+    public function createZoomMeeting(ZoomService $zoom, $id)
+    {
+        $event = Event::find($id);
+
+        if (!$event) {
+            return response()->json(['message' => 'Event not found'], 404);
+        }
+
+        if ((int) $event->event_organizer !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized — only the event organizer can create a Zoom meeting'], 403);
+        }
+
+        // Find account IDs already booked for a time-overlapping event on the same date
+        $eventStart = strtotime($event->event_date->format('Y-m-d') . ' ' . $event->event_time);
+        $eventEnd   = $eventStart + ($event->event_duration * 60);
+
+        $busyAccountIds = Event::whereDate('event_date', $event->event_date)
+            ->whereNotNull('meeting_account_id')
+            ->where('id', '!=', $event->id)
+            ->get()
+            ->filter(function ($other) use ($eventStart, $eventEnd) {
+                $otherStart = strtotime($other->event_date->format('Y-m-d') . ' ' . $other->event_time);
+                $otherEnd   = $otherStart + ($other->event_duration * 60);
+                return $otherStart < $eventEnd && $otherEnd > $eventStart;
+            })
+            ->pluck('meeting_account_id')
+            ->unique()
+            ->toArray();
+
+        $account = MeetingAccount::where('is_active', true)
+            ->whereNotIn('id', $busyAccountIds)
+            ->first();
+
+        if (!$account) {
+            return response()->json(['message' => 'No available meeting accounts for this time slot'], 422);
+        }
+
+        try {
+            $joinUrl = $zoom->createMeeting($account, $event);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Zoom meeting creation failed: ' . $e->getMessage()], 502);
+        }
+
+        $event->update([
+            'meeting_account_id' => $account->id,
+            'event_meet_link'    => $joinUrl,
+        ]);
+
+        return response()->json([
+            'message'      => 'Zoom meeting created successfully',
+            'event'        => $event->fresh('organizer'),
+            'meeting_link' => $joinUrl,
         ]);
     }
 
