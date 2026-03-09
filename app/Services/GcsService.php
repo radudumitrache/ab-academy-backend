@@ -109,6 +109,31 @@ class GcsService
     }
 
     /**
+     * Create the standard folder structure for an admin.
+     * Structure: admin/profile/.keep
+     *            admin/files/.keep
+     */
+    public function createAdminFolders(): array
+    {
+        $bucket  = $this->client->bucket($this->bucketName);
+        $folders = [
+            'admin/profile/.keep',
+            'admin/files/.keep',
+        ];
+
+        $created = [];
+        foreach ($folders as $path) {
+            $object = $bucket->object($path);
+            if (!$object->exists()) {
+                $bucket->upload('', ['name' => $path]);
+                $created[] = $path;
+            }
+        }
+
+        return $created;
+    }
+
+    /**
      * Create the standard folder structure for a student.
      * Structure: students/{username}/profile/.keep
      */

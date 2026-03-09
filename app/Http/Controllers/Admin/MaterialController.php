@@ -35,7 +35,7 @@ class MaterialController extends Controller
         $validator = Validator::make($request->all(), [
             'file'            => 'required|file|max:102400',
             'material_name'   => 'nullable|string|max:255',
-            'folder'          => 'required|in:private,common',
+            'folder'          => 'required|in:private,common,admin',
             'uploader_id'     => 'nullable|integer|exists:users,id',
             'allowed_users'   => 'nullable|array',
             'allowed_users.*' => 'integer|exists:users,id',
@@ -53,9 +53,14 @@ class MaterialController extends Controller
         $file       = $request->file('file');
         $folder     = $request->input('folder');
 
-        $gcsPath = $folder === 'common'
-            ? 'common/' . $file->getClientOriginalName()
-            : "teachers/{$uploader->username}/private/" . $file->getClientOriginalName();
+        if ($folder === 'common') {
+            $gcsPath = 'common/' . $file->getClientOriginalName();
+        } elseif ($folder === 'admin') {
+            $this->gcs->createAdminFolders();
+            $gcsPath = 'admin/files/' . $file->getClientOriginalName();
+        } else {
+            $gcsPath = "teachers/{$uploader->username}/private/" . $file->getClientOriginalName();
+        }
 
         $gcsPath = $this->uniquePath($gcsPath);
 

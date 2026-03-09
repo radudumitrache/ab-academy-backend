@@ -14,6 +14,7 @@ This documentation covers all teacher-facing API endpoints for the AB Academy pl
 8. [Homework Management](08-homework.md)
 9. [Materials](09-materials.md)
 10. [Test Management](10-tests.md)
+11. [Profile](11-profile.md)
 
 ## Base URL
 
@@ -63,6 +64,7 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | DELETE | `/api/teacher/events/{id}` | Yes | Delete an event (organizer only) |
 | PUT | `/api/teacher/events/{id}/attendance` | Yes | Record guest attendance (organizer only) |
 | POST | `/api/teacher/events/{id}/guests/by-username` | Yes | Add guests to an event by username (organizer only) |
+| POST | `/api/teacher/events/{id}/create-zoom-meeting` | Yes | Auto-create a Zoom meeting for an event (organizer only) |
 | GET | `/api/teacher/notifications` | Yes | List own notifications (filterable) |
 | PUT | `/api/teacher/notifications/seen-all` | Yes | Mark all notifications as seen |
 | PUT | `/api/teacher/notifications/{id}/seen` | Yes | Mark a single notification as seen |
@@ -107,11 +109,12 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | GET | `/api/teacher/materials/{id}` | Yes | Get material details + signed download URL |
 | PUT | `/api/teacher/materials/{id}/access` | Yes | Update allowed_users on an owned material |
 | DELETE | `/api/teacher/materials/{id}` | Yes | Delete an owned material from GCS and DB |
-| POST | `/api/teacher/profile-picture` | Yes | Upload or replace the teacher's profile picture |
-| GET | `/api/teacher/profile-picture` | Yes | Get a signed URL for the teacher's profile picture |
-| GET | `/api/teacher/folders` | Yes | List custom subfolders in the teacher's private area |
-| POST | `/api/teacher/folders` | Yes | Create a new subfolder in the teacher's private area |
-| DELETE | `/api/teacher/folders/{name}` | Yes | Delete a subfolder and all its contents |
+| POST | `/api/teacher/profile/setup` | Yes | Create GCS folder structure for the teacher |
+| GET | `/api/teacher/profile` | Yes | Get own profile (with signed profile picture URL) |
+| PUT | `/api/teacher/profile` | Yes | Update profile details (name, email, telephone, etc.) |
+| POST | `/api/teacher/profile/change-password` | Yes | Change own password |
+| POST | `/api/teacher/profile/picture` | Yes | Upload or replace the teacher's profile picture |
+| GET | `/api/teacher/profile/picture` | Yes | Get a signed URL for the teacher's profile picture |
 
 ## Teacher User Object
 

@@ -4,9 +4,10 @@ This section covers the admin API endpoints for full management of course materi
 
 > **Note**: Admins have unrestricted access to all materials regardless of folder or uploader.
 
-> **Note**: Files are stored in two locations:
-> - `private` — under `teachers/{username}/private/` in the bucket
+> **Note**: Files are stored in three locations:
+> - `private` — under `teachers/{username}/private/` in the bucket (attributed to a specific teacher via `uploader_id`)
 > - `common` — under `common/` in the bucket, visible to all teachers
+> - `admin` — under `admin/files/` in the bucket, for admin-owned files (GCS folder auto-created on first upload)
 
 > **Note**: Downloads are served as **signed URLs** valid for 60 minutes.
 
@@ -62,9 +63,9 @@ This section covers the admin API endpoints for full management of course materi
   | Field | Type | Required | Notes |
   |-------|------|----------|-------|
   | `file` | file | Yes | Max 100 MB |
-  | `folder` | string | Yes | `private` or `common` |
+  | `folder` | string | Yes | `private`, `common`, or `admin` |
   | `material_name` | string | No | Defaults to original filename |
-  | `uploader_id` | integer | No | User ID to attribute upload to; defaults to the admin's own ID |
+  | `uploader_id` | integer | No | User ID to attribute upload to; defaults to the admin's own ID. Ignored when `folder = "admin"` |
   | `allowed_users` | array of integers | No | User IDs that can access this file |
 
 - **Success Response** (`201`):
