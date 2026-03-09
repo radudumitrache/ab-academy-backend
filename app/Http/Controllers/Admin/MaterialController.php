@@ -140,6 +140,102 @@ class MaterialController extends Controller
     }
 
     // -------------------------------------------------------------------------
+    // Folder management — admins can operate on any path in the bucket
+    // -------------------------------------------------------------------------
+
+    /**
+     * List all objects under a given bucket prefix.
+     * GET /api/admin/storage/list?prefix=teachers/teacher1/private/
+     */
+    public function listObjects(Request $request)
+    {
+        $prefix  = $request->query('prefix', '');
+        $objects = $this->gcs->listFolder($prefix);
+
+        return response()->json([
+            'message' => 'Objects retrieved successfully',
+            'prefix'  => $prefix,
+            'objects' => $objects,
+        ]);
+    }
+
+    /**
+     * List immediate subfolders under a given bucket prefix.
+     * GET /api/admin/storage/folders?prefix=teachers/teacher1/private/
+     */
+    public function listFolders(Request $request)
+    {
+        $prefix  = $request->query('prefix', '');
+        $folders = $this->gcs->listSubfolders($prefix);
+
+        return response()->json([
+            'message' => 'Folders retrieved successfully',
+            'prefix'  => $prefix,
+            'folders' => $folders,
+        ]);
+    }
+
+    /**
+     * Create a folder (placeholder .keep object) at any path in the bucket.
+     * POST /api/admin/storage/folders  { "path": "teachers/teacher1/private/new-folder" }
+     */
+    public function createFolder(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'path' => ['required', 'string', 'max:500', 'regex:/^[a-zA-Z0-9_\-\/\.]+$/'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $path    = trim($request->input('path'), '/');
+        $created = $this->gcs->createFolder($path);
+
+        if (!$created) {
+            return response()->json(['message' => 'Folder already exists'], 409);
+        }
+
+        return response()->json([
+            'message' => 'Folder created successfully',
+            'path'    => $path . '/',
+        ], 201);
+    }
+
+    /**
+     * Delete a folder and all its contents at any path in the bucket.
+     * DELETE /api/admin/storage/folders  { "path": "teachers/teacher1/private/old-folder" }
+     */
+    public function deleteFolder(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'path' => ['required', 'string', 'max:500', 'regex:/^[a-zA-Z0-9_\-\/\.]+$/'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $path    = trim($request->input('path'), '/');
+        $deleted = $this->gcs->deleteFolder($path);
+
+        if ($deleted === 0) {
+            return response()->json(['message' => 'Folder not found or already empty'], 404);
+        }
+
+        return response()->json([
+            'message'         => 'Folder deleted successfully',
+            'objects_deleted' => $deleted,
+        ]);
+    }
+
+    // -------------------------------------------------------------------------
 
     private function uniquePath(string $path): string
     {

@@ -148,3 +148,81 @@ This section covers the admin API endpoints for full management of course materi
   ```json
   { "message": "Material deleted successfully" }
   ```
+
+---
+
+## Storage Folder Management
+
+Admins can inspect and manage the raw folder structure across the entire bucket — including teacher folders, common, and admin areas.
+
+> **Path format**: Use forward-slash-separated paths without a leading slash, e.g. `teachers/teacher1/private/` or `admin/files/`.
+
+### List All Objects Under a Prefix
+
+- **URL**: `GET /api/admin/storage/list?prefix={prefix}`
+- **Auth Required**: Yes
+- **Query Params**: `prefix` — bucket path prefix (defaults to root if omitted)
+- **Success Response**:
+  ```json
+  {
+    "message": "Objects retrieved successfully",
+    "prefix": "teachers/teacher1/private/",
+    "objects": [
+      "teachers/teacher1/private/.keep",
+      "teachers/teacher1/private/notes.pdf",
+      "teachers/teacher1/private/homework/sheet1.docx"
+    ]
+  }
+  ```
+
+### List Immediate Subfolders Under a Prefix
+
+- **URL**: `GET /api/admin/storage/folders?prefix={prefix}`
+- **Auth Required**: Yes
+- **Query Params**: `prefix` — bucket path prefix (defaults to root if omitted)
+- **Success Response**:
+  ```json
+  {
+    "message": "Folders retrieved successfully",
+    "prefix": "teachers/teacher1/private/",
+    "folders": ["homework", "corrections", "exams"]
+  }
+  ```
+
+### Create a Folder
+
+- **URL**: `POST /api/admin/storage/folders`
+- **Auth Required**: Yes
+- **Body**:
+  ```json
+  { "path": "teachers/teacher1/private/new-folder" }
+  ```
+- **Validation**: `path` — alphanumeric, hyphens, underscores, dots, and forward slashes only; max 500 chars
+- **Success Response** `201`:
+  ```json
+  {
+    "message": "Folder created successfully",
+    "path": "teachers/teacher1/private/new-folder/"
+  }
+  ```
+- **Error Response** `409` — folder already exists.
+
+### Delete a Folder
+
+Deletes the folder placeholder and **all objects** inside it.
+
+- **URL**: `DELETE /api/admin/storage/folders`
+- **Auth Required**: Yes
+- **Body**:
+  ```json
+  { "path": "teachers/teacher1/private/old-folder" }
+  ```
+- **Validation**: same as create
+- **Success Response**:
+  ```json
+  {
+    "message": "Folder deleted successfully",
+    "objects_deleted": 5
+  }
+  ```
+- **Error Response** `404` — folder not found or already empty.

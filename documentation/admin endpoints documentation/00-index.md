@@ -96,6 +96,10 @@ Authorization: Bearer {access_token}
 | GET | `/api/admin/materials/{id}` | Yes | Get material + signed download URL |
 | PUT | `/api/admin/materials/{id}/access` | Yes | Update allowed_users on a material |
 | DELETE | `/api/admin/materials/{id}` | Yes | Delete a material |
+| GET | `/api/admin/storage/list` | Yes | List all objects under a bucket prefix |
+| GET | `/api/admin/storage/folders` | Yes | List immediate subfolders under a bucket prefix |
+| POST | `/api/admin/storage/folders` | Yes | Create a folder at any bucket path |
+| DELETE | `/api/admin/storage/folders` | Yes | Delete a folder and all its contents at any path |
 | GET | `/api/admin/homework` | Yes | List all homework |
 | POST | `/api/admin/homework` | Yes | Create homework |
 | GET | `/api/admin/homework/{id}` | Yes | Get homework with sections and questions |
