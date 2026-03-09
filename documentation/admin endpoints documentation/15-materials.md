@@ -63,7 +63,7 @@ This section covers the admin API endpoints for full management of course materi
   | Field | Type | Required | Notes |
   |-------|------|----------|-------|
   | `file` | file | Yes | Max 100 MB |
-  | `folder` | string | Yes | `private`, `common`, or `admin` |
+  | `folder` | string | Yes | `private`, `admin`, `common`, or `common/subfolder-name` |
   | `material_name` | string | No | Defaults to original filename |
   | `uploader_id` | integer | No | User ID to attribute upload to; defaults to the admin's own ID. Ignored when `folder = "admin"` |
   | `allowed_users` | array of integers | No | User IDs that can access this file |
@@ -153,25 +153,26 @@ This section covers the admin API endpoints for full management of course materi
 
 ## Storage Folder Management
 
-Admins can inspect and manage the raw folder structure across the entire bucket — including teacher folders, common, and admin areas.
+Admins can inspect and manage the raw folder structure across the entire bucket — including teacher folders, common, admin, and student areas.
 
-> **Path format**: Use forward-slash-separated paths without a leading slash, e.g. `teachers/teacher1/private/` or `admin/files/`.
+> **Path format**: Use forward-slash-separated paths without a leading slash, e.g. `teachers/teacher1/private/` or `common/`. Omit `prefix` entirely to browse from the bucket root.
 
-### List All Objects Under a Prefix
+> **Empty folders**: Both listing endpoints use GCS delimiter-based listing, which surfaces all virtual directories — including those with no files in them.
+
+### List Contents at a Prefix (folders + files)
+
+Returns immediate subfolders and direct files at the given prefix. Does not recurse.
 
 - **URL**: `GET /api/admin/storage/list?prefix={prefix}`
 - **Auth Required**: Yes
-- **Query Params**: `prefix` — bucket path prefix (defaults to root if omitted)
+- **Query Params**: `prefix` — bucket path prefix (optional, defaults to root)
 - **Success Response**:
   ```json
   {
-    "message": "Objects retrieved successfully",
-    "prefix": "teachers/teacher1/private/",
-    "objects": [
-      "teachers/teacher1/private/.keep",
-      "teachers/teacher1/private/notes.pdf",
-      "teachers/teacher1/private/homework/sheet1.docx"
-    ]
+    "message": "Contents retrieved successfully",
+    "prefix": "common/",
+    "folders": ["common/worksheets/", "common/exams/"],
+    "files": ["common/syllabus.pdf", "common/schedule.xlsx"]
   }
   ```
 
@@ -179,7 +180,7 @@ Admins can inspect and manage the raw folder structure across the entire bucket 
 
 - **URL**: `GET /api/admin/storage/folders?prefix={prefix}`
 - **Auth Required**: Yes
-- **Query Params**: `prefix` — bucket path prefix (defaults to root if omitted)
+- **Query Params**: `prefix` — bucket path prefix (optional, defaults to root)
 - **Success Response**:
   ```json
   {
@@ -191,32 +192,36 @@ Admins can inspect and manage the raw folder structure across the entire bucket 
 
 ### Create a Folder
 
+Works anywhere in the bucket — teacher areas, common, admin, etc.
+
 - **URL**: `POST /api/admin/storage/folders`
 - **Auth Required**: Yes
 - **Body**:
   ```json
-  { "path": "teachers/teacher1/private/new-folder" }
+  { "path": "common/worksheets" }
   ```
+  Other examples: `"teachers/teacher1/private/essays"`, `"admin/files/reports"`
 - **Validation**: `path` — alphanumeric, hyphens, underscores, dots, and forward slashes only; max 500 chars
 - **Success Response** `201`:
   ```json
   {
     "message": "Folder created successfully",
-    "path": "teachers/teacher1/private/new-folder/"
+    "path": "common/worksheets/"
   }
   ```
 - **Error Response** `409` — folder already exists.
 
 ### Delete a Folder
 
-Deletes the folder placeholder and **all objects** inside it.
+Deletes the folder placeholder and **all objects** inside it. Works anywhere in the bucket.
 
 - **URL**: `DELETE /api/admin/storage/folders`
 - **Auth Required**: Yes
 - **Body**:
   ```json
-  { "path": "teachers/teacher1/private/old-folder" }
+  { "path": "common/old-worksheets" }
   ```
+  Other examples: `"teachers/teacher1/private/old-essays"`, `"admin/files/archive"`
 - **Validation**: same as create
 - **Success Response**:
   ```json

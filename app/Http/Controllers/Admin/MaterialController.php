@@ -35,7 +35,8 @@ class MaterialController extends Controller
         $validator = Validator::make($request->all(), [
             'file'            => 'required|file|max:102400',
             'material_name'   => 'nullable|string|max:255',
-            'folder'          => 'required|in:private,common,admin',
+            // folder accepts: 'private', 'admin', 'common', or 'common/subfolder-name'
+            'folder'          => ['required', 'string', 'regex:/^(private|admin|common(\/[a-zA-Z0-9_\-]+)*)$/'],
             'uploader_id'     => 'nullable|integer|exists:users,id',
             'allowed_users'   => 'nullable|array',
             'allowed_users.*' => 'integer|exists:users,id',
@@ -54,8 +55,9 @@ class MaterialController extends Controller
         $file       = is_array($files['file']) ? $files['file'][0] : $files['file'];
         $folder     = $request->input('folder');
 
-        if ($folder === 'common') {
-            $gcsPath = 'common/' . $file->getClientOriginalName();
+        if (str_starts_with($folder, 'common')) {
+            // 'common' → common/  or  'common/subfolder' → common/subfolder/
+            $gcsPath = $folder . '/' . $file->getClientOriginalName();
         } elseif ($folder === 'admin') {
             $this->gcs->createAdminFolders();
             $gcsPath = 'admin/files/' . $file->getClientOriginalName();
@@ -144,23 +146,26 @@ class MaterialController extends Controller
     // -------------------------------------------------------------------------
 
     /**
-     * List all objects under a given bucket prefix.
+     * List the contents (subfolders + files) at a given bucket prefix.
+     * Uses GCS delimiter listing — surfaces all virtual directories, even empty ones.
      * GET /api/admin/storage/list?prefix=teachers/teacher1/private/
      */
     public function listObjects(Request $request)
     {
-        $prefix  = $request->query('prefix', '');
-        $objects = $this->gcs->listFolder($prefix);
+        $prefix   = $request->query('prefix', '');
+        $contents = $this->gcs->listContents($prefix);
 
         return response()->json([
-            'message' => 'Objects retrieved successfully',
+            'message' => 'Contents retrieved successfully',
             'prefix'  => $prefix,
-            'objects' => $objects,
+            'folders' => $contents['folders'],
+            'files'   => $contents['files'],
         ]);
     }
 
     /**
      * List immediate subfolders under a given bucket prefix.
+     * Uses GCS delimiter listing — finds all virtual directories including empty ones.
      * GET /api/admin/storage/folders?prefix=teachers/teacher1/private/
      */
     public function listFolders(Request $request)

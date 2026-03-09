@@ -215,25 +215,85 @@ class GcsService
     }
 
     /**
-     * List immediate subfolders under a prefix.
+     * List immediate subfolders under a prefix using GCS delimiter-based listing.
      * Returns folder names (without the leading prefix).
+     * This finds ALL virtual folders — even those with no .keep placeholder.
      */
     public function listSubfolders(string $prefix): array
     {
-        $prefix  = rtrim($prefix, '/') . '/';
+        $prefix  = $prefix === '' ? '' : rtrim($prefix, '/') . '/';
         $bucket  = $this->client->bucket($this->bucketName);
-        $objects = $bucket->objects(['prefix' => $prefix]);
 
-        $folders = [];
-        foreach ($objects as $object) {
+        // Use the delimiter API to get virtual directory prefixes
+        $options = ['delimiter' => '/'];
+        if ($prefix !== '') {
+            $options['prefix'] = $prefix;
+        }
+
+        $objects  = $bucket->objects($options);
+        $folders  = [];
+
+        // Iterate to exhaust the result (needed to populate prefixes())
+        foreach ($objects as $object) {}
+
+        foreach ($objects->prefixes() as $commonPrefix) {
+            // Strip the leading prefix and trailing slash to get just the folder name
+            $name = rtrim(substr($commonPrefix, strlen($prefix)), '/');
+            if ($name !== '') {
+                $folders[] = $name;
+            }
+        }
+
+        // Also detect folders via .keep objects (for backwards compatibility)
+        $keepObjects = $bucket->objects(['prefix' => $prefix ?: '']);
+        foreach ($keepObjects as $object) {
             $relative = substr($object->name(), strlen($prefix));
-            // An immediate subfolder has exactly one '/' and it's at the end
-            $parts = explode('/', rtrim($relative, '/'));
+            $parts    = explode('/', rtrim($relative, '/'));
             if (count($parts) === 2 && end($parts) === '.keep') {
                 $folders[] = $parts[0];
             }
         }
 
         return array_values(array_unique($folders));
+    }
+
+    /**
+     * List the contents of a prefix as a structured tree:
+     * Returns both immediate subfolders (virtual directories) and direct files.
+     */
+    public function listContents(string $prefix): array
+    {
+        $prefix  = $prefix === '' ? '' : rtrim($prefix, '/') . '/';
+        $bucket  = $this->client->bucket($this->bucketName);
+
+        $options = ['delimiter' => '/'];
+        if ($prefix !== '') {
+            $options['prefix'] = $prefix;
+        }
+
+        $objects = $bucket->objects($options);
+        $files   = [];
+
+        foreach ($objects as $object) {
+            $name = $object->name();
+            // Skip .keep placeholders and the prefix itself
+            if (str_ends_with($name, '/.keep') || str_ends_with($name, '.keep') || $name === $prefix) {
+                continue;
+            }
+            $files[] = $name;
+        }
+
+        $folders = [];
+        foreach ($objects->prefixes() as $commonPrefix) {
+            $name = rtrim(substr($commonPrefix, strlen($prefix)), '/');
+            if ($name !== '') {
+                $folders[] = $commonPrefix; // full path with trailing slash
+            }
+        }
+
+        return [
+            'folders' => $folders,
+            'files'   => $files,
+        ];
     }
 }
