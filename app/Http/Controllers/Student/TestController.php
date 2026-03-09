@@ -47,6 +47,8 @@ class TestController extends Controller
             $sub  = $submissionMap->get($test->id);
             $data['submission_status'] = $sub ? $sub->status : 'not_started';
             $data['submitted_at']      = $sub ? $sub->submitted_at : null;
+            $data['grade']             = $sub ? $sub->grade : null;
+            $data['observation']       = $sub ? $sub->observation : null;
             return $data;
         });
 
@@ -93,6 +95,8 @@ class TestController extends Controller
 
         $testData['submission_status'] = $sub ? $sub->status : 'not_started';
         $testData['submitted_at']      = $sub ? $sub->submitted_at : null;
+        $testData['grade']             = $sub ? $sub->grade : null;
+        $testData['observation']       = $sub ? $sub->observation : null;
         $testData['responses'] = $sub
             ? $sub->responses->map(fn($r) => ['question_id' => $r->related_question, 'answer' => $r->answer])->values()
             : [];

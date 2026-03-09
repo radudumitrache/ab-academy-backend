@@ -267,6 +267,112 @@ Questions **must** belong to a section (`section_id` is required). The question 
 
 ---
 
+## Submission Endpoints
+
+Teachers can view and grade student submissions for tests they own. Only submissions with `status = "submitted"` are returned by the list endpoint.
+
+### List Submissions
+
+`GET /api/teacher/tests/{testId}/submissions`
+
+Returns all submitted submissions for the given test (owner only).
+
+**Response** `200`:
+```json
+{
+  "message": "Submissions retrieved successfully",
+  "count": 2,
+  "submissions": [
+    {
+      "id": 7,
+      "test_id": 1,
+      "student_id": 12,
+      "status": "submitted",
+      "submitted_at": "2026-03-10T15:00:00.000000Z",
+      "grade": null,
+      "observation": null,
+      "student": { "id": 12, "username": "student1", "email": "s1@example.com" },
+      "responses": [ { ... } ]
+    }
+  ]
+}
+```
+
+**Errors**:
+- `404` — test not found or not owned by this teacher
+
+---
+
+### Get Single Submission
+
+`GET /api/teacher/tests/{testId}/submissions/{submissionId}`
+
+Returns a single submission with all student responses and question details.
+
+**Response** `200`:
+```json
+{
+  "message": "Submission retrieved successfully",
+  "submission": {
+    "id": 7,
+    "test_id": 1,
+    "student_id": 12,
+    "status": "submitted",
+    "submitted_at": "2026-03-10T15:00:00.000000Z",
+    "grade": null,
+    "observation": null,
+    "student": { "id": 12, "username": "student1", "email": "s1@example.com" },
+    "responses": [
+      {
+        "id": 33,
+        "submission_id": 7,
+        "question_id": 3,
+        "answer_text": "Steam power",
+        "question": { "test_question_id": 3, "question_type": "reading_multiple_choice", ... }
+      }
+    ]
+  }
+}
+```
+
+**Errors**:
+- `404` — test not found, not owned by teacher, or submission not found
+
+---
+
+### Grade a Submission
+
+`PATCH /api/teacher/tests/{testId}/submissions/{submissionId}/grade`
+
+Saves a grade and/or observation on a submitted test. Can be called multiple times to update.
+
+**Request Body** (all fields optional):
+```json
+{
+  "grade": "9/10",
+  "observation": "Excellent work. Minor errors in the writing section."
+}
+```
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `grade` | string | No | Free-form grade string (e.g. `"9/10"`, `"A"`, `"Pass"`) — max 50 characters |
+| `observation` | string | No | Teacher feedback text |
+
+**Response** `200`:
+```json
+{
+  "message": "Submission graded successfully",
+  "submission": { ... }
+}
+```
+
+**Errors**:
+- `404` — test not found or submission not found
+- `422` — submission status is not `"submitted"`
+
+---
+
 ## Full Workflow Example
 
 ```

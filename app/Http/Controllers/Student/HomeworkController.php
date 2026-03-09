@@ -50,6 +50,8 @@ class HomeworkController extends Controller
             $sub  = $submissionMap->get($hw->id);
             $data['submission_status'] = $sub ? $sub->status : 'not_started';
             $data['submitted_at']      = $sub ? $sub->submitted_at : null;
+            $data['grade']             = $sub ? $sub->grade : null;
+            $data['observation']       = $sub ? $sub->observation : null;
             return $data;
         });
 
@@ -96,6 +98,8 @@ class HomeworkController extends Controller
 
         $homeworkData['submission_status'] = $sub ? $sub->status : 'not_started';
         $homeworkData['submitted_at']      = $sub ? $sub->submitted_at : null;
+        $homeworkData['grade']             = $sub ? $sub->grade : null;
+        $homeworkData['observation']       = $sub ? $sub->observation : null;
 
         if ($sub) {
             $homeworkData['responses'] = $sub->responses->map(function ($r) {

@@ -14,6 +14,8 @@ class HomeworkSubmission extends Model
         'student_id',
         'status',
         'submitted_at',
+        'grade',
+        'observation',
     ];
 
     protected $casts = [

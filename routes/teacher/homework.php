@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Teacher\HomeworkController;
+use App\Http\Controllers\Teacher\HomeworkSubmissionController;
 use App\Http\Controllers\Teacher\QuestionController;
 use App\Http\Controllers\Teacher\SectionController;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +27,11 @@ Route::middleware('auth:api')->group(function () {
     Route::put('/homework/{id}',         [HomeworkController::class, 'update']);
     Route::delete('/homework/{id}',      [HomeworkController::class, 'destroy']);
     Route::post('/homework/{id}/assign', [HomeworkController::class, 'assignStudents']);
+
+    // ── Submissions ───────────────────────────────────────────────────────────
+    Route::get('/homework/{homeworkId}/submissions',                          [HomeworkSubmissionController::class, 'index']);
+    Route::get('/homework/{homeworkId}/submissions/{submissionId}',           [HomeworkSubmissionController::class, 'show']);
+    Route::patch('/homework/{homeworkId}/submissions/{submissionId}/grade',   [HomeworkSubmissionController::class, 'grade']);
 
     // ── Sections CRUD ─────────────────────────────────────────────────────────
     Route::get('/homework/{homeworkId}/sections',               [SectionController::class, 'index']);

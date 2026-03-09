@@ -3,6 +3,7 @@
 use App\Http\Controllers\Teacher\TestController;
 use App\Http\Controllers\Teacher\TestQuestionController;
 use App\Http\Controllers\Teacher\TestSectionController;
+use App\Http\Controllers\Teacher\TestSubmissionController;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -26,6 +27,11 @@ Route::middleware('auth:api')->group(function () {
     Route::put('/tests/{id}',         [TestController::class, 'update']);
     Route::delete('/tests/{id}',      [TestController::class, 'destroy']);
     Route::post('/tests/{id}/assign', [TestController::class, 'assignStudents']);
+
+    // ── Submissions ───────────────────────────────────────────────────────────
+    Route::get('/tests/{testId}/submissions',                        [TestSubmissionController::class, 'index']);
+    Route::get('/tests/{testId}/submissions/{submissionId}',         [TestSubmissionController::class, 'show']);
+    Route::patch('/tests/{testId}/submissions/{submissionId}/grade', [TestSubmissionController::class, 'grade']);
 
     // ── Sections CRUD ─────────────────────────────────────────────────────────
     Route::get('/tests/{testId}/sections',                 [TestSectionController::class, 'index']);

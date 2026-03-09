@@ -93,9 +93,15 @@ Returns a single event. Accessible to any authenticated teacher.
   ```json
   {
     "message": "Event retrieved successfully",
-    "event": { ... }
+    "event": { ... },
+    "guest_users": [
+      { "id": 12, "username": "student1", "email": "student1@example.com", "role": "student" },
+      { "id": 15, "username": "teacher2", "email": "teacher2@example.com", "role": "teacher" }
+    ]
   }
   ```
+
+  > `guest_users` is the resolved list of full user objects for each ID in `guests`. The list endpoint returns raw guest IDs only; `show` resolves them to full objects.
 
 - **Error Responses**:
   - **404** — event not found:

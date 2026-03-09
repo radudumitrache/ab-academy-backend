@@ -149,6 +149,10 @@ Returns the homework with all sections eagerly loaded. Each section includes its
 | `homework_title` | string | Yes | Max 255 characters |
 | `homework_description` | string | No | |
 | `due_date` | string | Yes | `YYYY-MM-DD` |
+| `people_assigned` | array of integers | No | Individual student user IDs to assign at creation |
+| `groups_assigned` | array of integers | No | Group IDs to assign at creation — must be groups owned by the teacher |
+
+Assignment fields are optional at creation. You can also assign later via `POST /homework/{id}/assign`.
 
 **Response** `201` with created homework object.
 
@@ -283,6 +287,112 @@ Questions **must** belong to a section (`section_id` is required). The question 
 ### Delete Question
 
 `DELETE /api/teacher/homework/{homeworkId}/questions/{questionId}` — detail record cascade-deleted.
+
+---
+
+## Submission Endpoints
+
+Teachers can view and grade student submissions for homework they own. Only submissions with `status = "submitted"` are returned by the list endpoint.
+
+### List Submissions
+
+`GET /api/teacher/homework/{homeworkId}/submissions`
+
+Returns all submitted submissions for the given homework (owner only).
+
+**Response** `200`:
+```json
+{
+  "message": "Submissions retrieved successfully",
+  "count": 2,
+  "submissions": [
+    {
+      "id": 14,
+      "homework_id": 1,
+      "student_id": 12,
+      "status": "submitted",
+      "submitted_at": "2026-03-10T14:00:00.000000Z",
+      "grade": null,
+      "observation": null,
+      "student": { "id": 12, "username": "student1", "email": "s1@example.com" },
+      "responses": [ { ... } ]
+    }
+  ]
+}
+```
+
+**Errors**:
+- `404` — homework not found or not owned by this teacher
+
+---
+
+### Get Single Submission
+
+`GET /api/teacher/homework/{homeworkId}/submissions/{submissionId}`
+
+Returns a single submission with all student responses and question details.
+
+**Response** `200`:
+```json
+{
+  "message": "Submission retrieved successfully",
+  "submission": {
+    "id": 14,
+    "homework_id": 1,
+    "student_id": 12,
+    "status": "submitted",
+    "submitted_at": "2026-03-10T14:00:00.000000Z",
+    "grade": null,
+    "observation": null,
+    "student": { "id": 12, "username": "student1", "email": "s1@example.com" },
+    "responses": [
+      {
+        "id": 55,
+        "submission_id": 14,
+        "question_id": 5,
+        "answer_text": "ran",
+        "question": { "question_id": 5, "question_type": "multiple_choice", ... }
+      }
+    ]
+  }
+}
+```
+
+**Errors**:
+- `404` — homework not found, not owned by teacher, or submission not found
+
+---
+
+### Grade a Submission
+
+`PATCH /api/teacher/homework/{homeworkId}/submissions/{submissionId}/grade`
+
+Saves a grade and/or observation on a submitted homework. Can be called multiple times to update.
+
+**Request Body** (all fields optional):
+```json
+{
+  "grade": "8/10",
+  "observation": "Good effort, but check your grammar in section 2."
+}
+```
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `grade` | string | No | Free-form grade string (e.g. `"8/10"`, `"B+"`, `"Excellent"`) — max 50 characters |
+| `observation` | string | No | Teacher feedback text |
+
+**Response** `200`:
+```json
+{
+  "message": "Submission graded successfully",
+  "submission": { ... }
+}
+```
+
+**Errors**:
+- `404` — homework not found or submission not found
+- `422` — submission status is not `"submitted"`
 
 ---
 

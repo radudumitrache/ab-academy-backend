@@ -32,14 +32,18 @@ Returns all homework assigned to this student (directly or via group), ordered b
       "homework_title": "Unit 5 Practice",
       "homework_description": "Complete all sections before the due date.",
       "due_date": "2026-03-15",
-      "submission_status": "not_started",
-      "submitted_at": null
+      "submission_status": "submitted",
+      "submitted_at": "2026-03-14T18:30:00.000000Z",
+      "grade": "8/10",
+      "observation": "Good effort, but check your grammar in section 2."
     }
   ]
 }
 ```
 
 `submission_status` values: `not_started`, `in_progress`, `submitted`.
+
+`grade` and `observation` are `null` until the teacher grades the submission.
 
 ---
 
@@ -57,8 +61,10 @@ Returns the full homework with all sections, questions, and the student's existi
     "id": 1,
     "homework_title": "Unit 5 Practice",
     "due_date": "2026-03-15",
-    "submission_status": "in_progress",
-    "submitted_at": null,
+    "submission_status": "submitted",
+    "submitted_at": "2026-03-14T18:30:00.000000Z",
+    "grade": "8/10",
+    "observation": "Good effort, but check your grammar in section 2.",
     "responses": [
       {
         "question_id": 5,

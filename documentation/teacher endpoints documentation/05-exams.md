@@ -79,7 +79,7 @@ Returns all exams in the system. Teachers need to see all exams to be able to en
 ## Get Single Exam
 
 Returns a single exam with full student enrollment and status history.
-Only accessible if at least one of the teacher's students is enrolled in it.
+Accessible to any authenticated teacher.
 
 - **URL**: `/api/teacher/exams/{id}`
 - **Method**: `GET`
@@ -104,10 +104,6 @@ Only accessible if at least one of the teacher's students is enrolled in it.
   - **404** — exam not found:
     ```json
     { "message": "Exam not found" }
-    ```
-  - **403** — none of the teacher's students are enrolled:
-    ```json
-    { "message": "Unauthorized" }
     ```
 
 ---

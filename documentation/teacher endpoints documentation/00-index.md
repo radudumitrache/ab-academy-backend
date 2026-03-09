@@ -80,6 +80,9 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | POST | `/api/teacher/homework/{homeworkId}/questions` | Yes | Add a question to a section |
 | PUT | `/api/teacher/homework/{homeworkId}/questions/{qId}` | Yes | Update a question |
 | DELETE | `/api/teacher/homework/{homeworkId}/questions/{qId}` | Yes | Delete a question |
+| GET | `/api/teacher/homework/{homeworkId}/submissions` | Yes | List submitted submissions for a homework |
+| GET | `/api/teacher/homework/{homeworkId}/submissions/{sId}` | Yes | Get a single homework submission with responses |
+| PATCH | `/api/teacher/homework/{homeworkId}/submissions/{sId}/grade` | Yes | Grade a homework submission |
 | GET | `/api/teacher/tests` | Yes | List own tests |
 | POST | `/api/teacher/tests` | Yes | Create a test |
 | GET | `/api/teacher/tests/{id}` | Yes | Get test with all sections and questions |
@@ -93,6 +96,9 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | POST | `/api/teacher/tests/{testId}/questions` | Yes | Add a question to a section |
 | PUT | `/api/teacher/tests/{testId}/questions/{qId}` | Yes | Update a question |
 | DELETE | `/api/teacher/tests/{testId}/questions/{qId}` | Yes | Delete a question |
+| GET | `/api/teacher/tests/{testId}/submissions` | Yes | List submitted submissions for a test |
+| GET | `/api/teacher/tests/{testId}/submissions/{sId}` | Yes | Get a single test submission with responses |
+| PATCH | `/api/teacher/tests/{testId}/submissions/{sId}/grade` | Yes | Grade a test submission |
 | POST | `/api/teacher/materials/setup` | Yes | Create GCS folder structure for the teacher |
 | GET | `/api/teacher/materials` | Yes | List own materials + all common-folder materials |
 | POST | `/api/teacher/materials/upload` | Yes | Upload a file to private or common folder |

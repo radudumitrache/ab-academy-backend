@@ -32,14 +32,18 @@ Returns all tests assigned to this student (directly or via group), ordered by d
       "test_title": "Unit 5 Final Test",
       "test_description": "Covers grammar and reading comprehension.",
       "due_date": "2026-04-01",
-      "submission_status": "not_started",
-      "submitted_at": null
+      "submission_status": "submitted",
+      "submitted_at": "2026-03-30T14:00:00.000000Z",
+      "grade": "9/10",
+      "observation": "Excellent work. Minor errors in the writing section."
     }
   ]
 }
 ```
 
 `submission_status` values: `not_started`, `in_progress`, `submitted`.
+
+`grade` and `observation` are `null` until the teacher grades the submission.
 
 ---
 
@@ -57,8 +61,10 @@ Returns the test with all sections and questions eagerly loaded. Material IDs re
     "id": 2,
     "test_title": "Unit 5 Final Test",
     "due_date": "2026-04-01",
-    "submission_status": "not_started",
-    "submitted_at": null,
+    "submission_status": "submitted",
+    "submitted_at": "2026-03-30T14:00:00.000000Z",
+    "grade": "9/10",
+    "observation": "Excellent work. Minor errors in the writing section.",
     "responses": [],
     "sections": [
       {
