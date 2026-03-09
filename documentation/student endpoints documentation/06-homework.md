@@ -70,7 +70,9 @@ Returns the full homework with all sections, questions, and the student's existi
         "question_id": 5,
         "answer": "Steam power",
         "file_path": null,
-        "file_url": null
+        "file_url": null,
+        "grade": "2/2",
+        "observation": "Perfect answer."
       },
       {
         "question_id": 6,

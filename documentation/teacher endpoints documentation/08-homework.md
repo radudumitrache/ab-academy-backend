@@ -396,6 +396,44 @@ Saves a grade and/or observation on a submitted homework. Can be called multiple
 
 ---
 
+### Grade Individual Question Responses
+
+`PATCH /api/teacher/homework/{homeworkId}/submissions/{submissionId}/grade-responses`
+
+Sets a grade and/or observation on one or more individual question responses within a submission. Can be called multiple times — each call updates only the responses listed.
+
+**Request Body**:
+```json
+{
+  "responses": [
+    { "response_id": 55, "grade": "2/2", "observation": "Perfect answer." },
+    { "response_id": 56, "grade": "1/2", "observation": "Partially correct — see sample answer." },
+    { "response_id": 57, "grade": null, "observation": "File not readable, please resubmit." }
+  ]
+}
+```
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `responses` | array | Yes | At least one entry |
+| `responses.*.response_id` | integer | Yes | `response_id` from the submission's `responses` array |
+| `responses.*.grade` | string | No | Per-question grade — max 50 characters |
+| `responses.*.observation` | string | No | Per-question teacher comment |
+
+**Response** `200`:
+```json
+{
+  "message": "Responses graded successfully",
+  "submission": { ... }
+}
+```
+
+**Errors**:
+- `404` — homework, submission, or a response ID not found in this submission
+- `422` — submission not yet submitted, or validation failed
+
+---
+
 ## Full Workflow Example
 
 ```

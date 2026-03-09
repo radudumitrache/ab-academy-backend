@@ -16,6 +16,8 @@ class TestQuestionResponse extends Model
         'related_question',
         'related_student',
         'answer',
+        'grade',
+        'observation',
     ];
 
     public function submission()

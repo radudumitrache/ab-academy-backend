@@ -65,7 +65,14 @@ Returns the test with all sections and questions eagerly loaded. Material IDs re
     "submitted_at": "2026-03-30T14:00:00.000000Z",
     "grade": "9/10",
     "observation": "Excellent work. Minor errors in the writing section.",
-    "responses": [],
+    "responses": [
+      {
+        "question_id": 7,
+        "answer": "went",
+        "grade": "1/1",
+        "observation": "Correct."
+      }
+    ],
     "sections": [
       {
         "id": 3,

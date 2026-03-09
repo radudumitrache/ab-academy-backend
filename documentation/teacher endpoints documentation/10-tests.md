@@ -373,6 +373,43 @@ Saves a grade and/or observation on a submitted test. Can be called multiple tim
 
 ---
 
+### Grade Individual Question Responses
+
+`PATCH /api/teacher/tests/{testId}/submissions/{submissionId}/grade-responses`
+
+Sets a grade and/or observation on one or more individual question responses within a submission. Can be called multiple times — each call updates only the responses listed.
+
+**Request Body**:
+```json
+{
+  "responses": [
+    { "response_id": 33, "grade": "3/3", "observation": "Excellent." },
+    { "response_id": 34, "grade": "1/3", "observation": "Wrong option selected — see correct answer." }
+  ]
+}
+```
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `responses` | array | Yes | At least one entry |
+| `responses.*.response_id` | integer | Yes | `response_id` from the submission's `responses` array |
+| `responses.*.grade` | string | No | Per-question grade — max 50 characters |
+| `responses.*.observation` | string | No | Per-question teacher comment |
+
+**Response** `200`:
+```json
+{
+  "message": "Responses graded successfully",
+  "submission": { ... }
+}
+```
+
+**Errors**:
+- `404` — test, submission, or a response ID not found in this submission
+- `422` — submission not yet submitted, or validation failed
+
+---
+
 ## Full Workflow Example
 
 ```

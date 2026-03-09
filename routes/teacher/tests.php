@@ -29,9 +29,10 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/tests/{id}/assign', [TestController::class, 'assignStudents']);
 
     // ── Submissions ───────────────────────────────────────────────────────────
-    Route::get('/tests/{testId}/submissions',                        [TestSubmissionController::class, 'index']);
-    Route::get('/tests/{testId}/submissions/{submissionId}',         [TestSubmissionController::class, 'show']);
-    Route::patch('/tests/{testId}/submissions/{submissionId}/grade', [TestSubmissionController::class, 'grade']);
+    Route::get('/tests/{testId}/submissions',                                  [TestSubmissionController::class, 'index']);
+    Route::get('/tests/{testId}/submissions/{submissionId}',                   [TestSubmissionController::class, 'show']);
+    Route::patch('/tests/{testId}/submissions/{submissionId}/grade',           [TestSubmissionController::class, 'grade']);
+    Route::patch('/tests/{testId}/submissions/{submissionId}/grade-responses', [TestSubmissionController::class, 'gradeResponses']);
 
     // ── Sections CRUD ─────────────────────────────────────────────────────────
     Route::get('/tests/{testId}/sections',                 [TestSectionController::class, 'index']);

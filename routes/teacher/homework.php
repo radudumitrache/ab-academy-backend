@@ -29,9 +29,10 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/homework/{id}/assign', [HomeworkController::class, 'assignStudents']);
 
     // ── Submissions ───────────────────────────────────────────────────────────
-    Route::get('/homework/{homeworkId}/submissions',                          [HomeworkSubmissionController::class, 'index']);
-    Route::get('/homework/{homeworkId}/submissions/{submissionId}',           [HomeworkSubmissionController::class, 'show']);
-    Route::patch('/homework/{homeworkId}/submissions/{submissionId}/grade',   [HomeworkSubmissionController::class, 'grade']);
+    Route::get('/homework/{homeworkId}/submissions',                                       [HomeworkSubmissionController::class, 'index']);
+    Route::get('/homework/{homeworkId}/submissions/{submissionId}',                        [HomeworkSubmissionController::class, 'show']);
+    Route::patch('/homework/{homeworkId}/submissions/{submissionId}/grade',                [HomeworkSubmissionController::class, 'grade']);
+    Route::patch('/homework/{homeworkId}/submissions/{submissionId}/grade-responses',      [HomeworkSubmissionController::class, 'gradeResponses']);
 
     // ── Sections CRUD ─────────────────────────────────────────────────────────
     Route::get('/homework/{homeworkId}/sections',               [SectionController::class, 'index']);
