@@ -72,13 +72,17 @@ Returns the full homework with all sections, questions, and the student's existi
         "file_path": null,
         "file_url": null,
         "grade": "2/2",
-        "observation": "Perfect answer."
+        "observation": "See attached correction.",
+        "correction_file_url": "https://storage.googleapis.com/...?X-Goog-Signature=..."
       },
       {
         "question_id": 6,
         "answer": null,
         "file_path": "teachers/teacherTest/private/submissions/12_unit-5-practice_writing_1.pdf",
-        "file_url": "https://storage.googleapis.com/...?X-Goog-Signature=..."
+        "file_url": "https://storage.googleapis.com/...?X-Goog-Signature=...",
+        "grade": "1/2",
+        "observation": "Good structure.",
+        "correction_file_url": null
       }
     ],
     "sections": [

@@ -104,16 +104,26 @@ class HomeworkController extends Controller
         if ($sub) {
             $homeworkData['responses'] = $sub->responses->map(function ($r) {
                 $response = [
-                    'question_id' => $r->related_question,
-                    'answer'      => $r->answer,
-                    'file_path'   => $r->file_path,
-                    'file_url'    => null,
+                    'question_id'         => $r->related_question,
+                    'answer'              => $r->answer,
+                    'file_path'           => $r->file_path,
+                    'file_url'            => null,
+                    'grade'               => $r->grade,
+                    'observation'         => $r->observation,
+                    'correction_file_url' => null,
                 ];
                 if ($r->file_path) {
                     try {
                         $response['file_url'] = $this->gcs->signedUrl($r->file_path, 60);
                     } catch (\Throwable) {
                         $response['file_url'] = null;
+                    }
+                }
+                if ($r->correction_file_path) {
+                    try {
+                        $response['correction_file_url'] = $this->gcs->signedUrl($r->correction_file_path, 60);
+                    } catch (\Throwable) {
+                        $response['correction_file_url'] = null;
                     }
                 }
                 return $response;

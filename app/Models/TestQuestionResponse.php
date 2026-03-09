@@ -18,6 +18,7 @@ class TestQuestionResponse extends Model
         'answer',
         'grade',
         'observation',
+        'correction_file_path',
     ];
 
     public function submission()

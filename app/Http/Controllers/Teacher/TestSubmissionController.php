@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Test;
 use App\Models\TestSubmission;
 use App\Models\TestQuestionResponse;
+use App\Services\GcsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class TestSubmissionController extends Controller
 {
+    public function __construct(private GcsService $gcs) {}
+
     /**
      * List all submitted submissions for a test the teacher owns.
      */
@@ -104,7 +107,12 @@ class TestSubmissionController extends Controller
     /**
      * Grade individual question responses within a test submission.
      *
-     * Accepts an array of { response_id, grade, observation } objects.
+     * Accepts multipart/form-data:
+     *   - responses: JSON string of [{ response_id, grade, observation }]
+     *   - files[{response_id}]: optional correction file per response
+     *
+     * Correction files are stored at:
+     *   teachers/{username}/private/corrections/{submissionId}_{responseId}.{ext}
      */
     public function gradeResponses(Request $request, $testId, $submissionId)
     {
@@ -124,12 +132,23 @@ class TestSubmissionController extends Controller
             return response()->json(['message' => 'Cannot grade a submission that has not been submitted'], 422);
         }
 
-        $validator = Validator::make($request->all(), [
-            'responses'                  => 'required|array|min:1',
-            'responses.*.response_id'    => 'required|integer',
-            'responses.*.grade'          => 'nullable|string|max:50',
-            'responses.*.observation'    => 'nullable|string',
-        ]);
+        // responses can be sent as a JSON string (multipart) or as an array (JSON body)
+        $responsesInput = $request->input('responses');
+        if (is_string($responsesInput)) {
+            $responsesInput = json_decode($responsesInput, true);
+        }
+
+        $validator = Validator::make(
+            array_merge($request->all(), ['responses' => $responsesInput]),
+            [
+                'responses'               => 'required|array|min:1',
+                'responses.*.response_id' => 'required|integer',
+                'responses.*.grade'       => 'nullable|string|max:50',
+                'responses.*.observation' => 'nullable|string',
+                'files'                   => 'sometimes|array',
+                'files.*'                 => 'file|max:51200',
+            ]
+        );
 
         if ($validator->fails()) {
             return response()->json([
@@ -138,21 +157,46 @@ class TestSubmissionController extends Controller
             ], 422);
         }
 
-        foreach ($validator->validated()['responses'] as $item) {
+        $teacher           = Auth::user();
+        $correctionsFolder = "teachers/{$teacher->username}/private/corrections";
+
+        foreach ($responsesInput as $item) {
+            $responseId = (int) $item['response_id'];
+
             $response = TestQuestionResponse::where('submission_id', $submissionId)
-                ->where('response_id', $item['response_id'])
+                ->where('response_id', $responseId)
                 ->first();
 
             if (!$response) {
                 return response()->json([
-                    'message' => "Response {$item['response_id']} not found in this submission",
+                    'message' => "Response {$responseId} not found in this submission",
                 ], 404);
             }
 
-            $response->update([
-                'grade'       => $item['grade'] ?? $response->grade,
-                'observation' => $item['observation'] ?? $response->observation,
-            ]);
+            $updates = [
+                'grade'       => array_key_exists('grade', $item) ? $item['grade'] : $response->grade,
+                'observation' => array_key_exists('observation', $item) ? $item['observation'] : $response->observation,
+            ];
+
+            // Handle optional correction file for this response
+            if ($request->hasFile("files.{$responseId}")) {
+                $file = $request->file("files.{$responseId}");
+                $ext  = $file->getClientOriginalExtension();
+                $path = "{$correctionsFolder}/{$submissionId}_{$responseId}.{$ext}";
+
+                // Delete old correction file if present
+                if ($response->correction_file_path) {
+                    try {
+                        $this->gcs->delete($response->correction_file_path);
+                    } catch (\Throwable) {}
+                }
+
+                $this->gcs->createFolder($correctionsFolder);
+                $this->gcs->upload($file, $path);
+                $updates['correction_file_path'] = $path;
+            }
+
+            $response->update($updates);
         }
 
         return response()->json([

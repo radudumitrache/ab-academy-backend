@@ -29,6 +29,7 @@ class QuestionResponse extends Model
         'file_path',
         'grade',
         'observation',
+        'correction_file_path',
     ];
     
     public function submission()

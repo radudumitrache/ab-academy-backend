@@ -98,7 +98,23 @@ class TestController extends Controller
         $testData['grade']             = $sub ? $sub->grade : null;
         $testData['observation']       = $sub ? $sub->observation : null;
         $testData['responses'] = $sub
-            ? $sub->responses->map(fn($r) => ['question_id' => $r->related_question, 'answer' => $r->answer])->values()
+            ? $sub->responses->map(function ($r) {
+                $response = [
+                    'question_id'         => $r->related_question,
+                    'answer'              => $r->answer,
+                    'grade'               => $r->grade,
+                    'observation'         => $r->observation,
+                    'correction_file_url' => null,
+                ];
+                if ($r->correction_file_path) {
+                    try {
+                        $response['correction_file_url'] = $this->gcs->signedUrl($r->correction_file_path, 60);
+                    } catch (\Throwable) {
+                        $response['correction_file_url'] = null;
+                    }
+                }
+                return $response;
+            })->values()
             : [];
 
         return response()->json([

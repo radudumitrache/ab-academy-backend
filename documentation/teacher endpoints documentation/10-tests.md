@@ -377,24 +377,25 @@ Saves a grade and/or observation on a submitted test. Can be called multiple tim
 
 `PATCH /api/teacher/tests/{testId}/submissions/{submissionId}/grade-responses`
 
-Sets a grade and/or observation on one or more individual question responses within a submission. Can be called multiple times — each call updates only the responses listed.
+Sets a grade, observation, and/or an attached correction file on one or more individual question responses. Can be called multiple times — only the listed responses are updated.
 
-**Request Body**:
-```json
-{
-  "responses": [
-    { "response_id": 33, "grade": "3/3", "observation": "Excellent." },
-    { "response_id": 34, "grade": "1/3", "observation": "Wrong option selected — see correct answer." }
-  ]
-}
-```
+Accepts **`multipart/form-data`** so that correction files can be sent alongside the grading data.
+
+**Request** (multipart/form-data):
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
-| `responses` | array | Yes | At least one entry |
-| `responses.*.response_id` | integer | Yes | `response_id` from the submission's `responses` array |
-| `responses.*.grade` | string | No | Per-question grade — max 50 characters |
-| `responses.*.observation` | string | No | Per-question teacher comment |
+| `responses` | JSON string | Yes | Array of `{ response_id, grade, observation }` — send as a JSON-encoded string in the form body |
+| `responses[*].response_id` | integer | Yes | `response_id` from the submission's `responses` array |
+| `responses[*].grade` | string | No | Per-question grade — max 50 characters |
+| `responses[*].observation` | string | No | Per-question teacher comment |
+| `files[{response_id}]` | file | No | Correction file for the given response ID. Max 50 MB. Stored at `teachers/{username}/private/corrections/{submissionId}_{responseId}.{ext}` |
+
+**Example form fields:**
+```
+responses = [{"response_id":33,"grade":"3/3","observation":"Excellent."},{"response_id":34,"grade":"1/3","observation":"See attached."}]
+files[34]  = <uploaded correction file>
+```
 
 **Response** `200`:
 ```json

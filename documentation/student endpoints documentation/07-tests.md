@@ -70,7 +70,15 @@ Returns the test with all sections and questions eagerly loaded. Material IDs re
         "question_id": 7,
         "answer": "went",
         "grade": "1/1",
-        "observation": "Correct."
+        "observation": "Correct.",
+        "correction_file_url": null
+      },
+      {
+        "question_id": 8,
+        "answer": "My essay answer.",
+        "grade": "2/3",
+        "observation": "See attached correction for improvements.",
+        "correction_file_url": "https://storage.googleapis.com/...?X-Goog-Signature=..."
       }
     ],
     "sections": [
