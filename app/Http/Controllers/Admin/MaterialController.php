@@ -50,7 +50,8 @@ class MaterialController extends Controller
 
         $uploaderId = $request->input('uploader_id') ?? Auth::id();
         $uploader   = User::findOrFail($uploaderId);
-        $file       = $request->file('file');
+        $files      = $request->allFiles();
+        $file       = is_array($files['file']) ? $files['file'][0] : $files['file'];
         $folder     = $request->input('folder');
 
         if ($folder === 'common') {
