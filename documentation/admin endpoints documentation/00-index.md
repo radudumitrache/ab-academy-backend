@@ -92,11 +92,11 @@ Authorization: Bearer {access_token}
 | PUT | `/api/admin/invoices/{id}` | Yes | Update an invoice |
 | DELETE | `/api/admin/invoices/{id}` | Yes | Delete an invoice |
 | GET | `/api/admin/materials` | Yes | List all materials |
-| POST | `/api/admin/materials/upload` | Yes | Upload a file (`private`, `common`, or `admin` folder) |
+| POST | `/api/admin/materials/upload` | Yes | Upload a file to any bucket path via `folder_path` field |
 | GET | `/api/admin/materials/{id}` | Yes | Get material + signed download URL |
 | PUT | `/api/admin/materials/{id}/access` | Yes | Update allowed_users on a material |
 | DELETE | `/api/admin/materials/{id}` | Yes | Delete a material |
-| GET | `/api/admin/storage/list` | Yes | List all objects under a bucket prefix |
+| GET | `/api/admin/storage/list` | Yes | List immediate subfolders + direct files at a bucket prefix |
 | GET | `/api/admin/storage/folders` | Yes | List immediate subfolders under a bucket prefix |
 | POST | `/api/admin/storage/folders` | Yes | Create a folder at any bucket path |
 | DELETE | `/api/admin/storage/folders` | Yes | Delete a folder and all its contents at any path |

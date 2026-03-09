@@ -35,8 +35,8 @@ class MaterialController extends Controller
         $validator = Validator::make($request->all(), [
             'file'            => 'required|file|max:102400',
             'material_name'   => 'nullable|string|max:255',
-            // folder accepts: 'private', 'admin', 'common', or 'common/subfolder-name'
-            'folder'          => ['required', 'string', 'regex:/^(private|admin|common(\/[a-zA-Z0-9_\-]+)*)$/'],
+            // folder_path: any valid bucket path, e.g. 'common', 'common/sub', 'admin/files/sub', 'teachers/user/private/sub'
+            'folder_path'     => ['required', 'string', 'regex:/^[a-zA-Z0-9_\-]+(\/[a-zA-Z0-9_\-]+)*$/'],
             'uploader_id'     => 'nullable|integer|exists:users,id',
             'allowed_users'   => 'nullable|array',
             'allowed_users.*' => 'integer|exists:users,id',
@@ -53,17 +53,10 @@ class MaterialController extends Controller
         $uploader   = User::findOrFail($uploaderId);
         $files      = $request->allFiles();
         $file       = is_array($files['file']) ? $files['file'][0] : $files['file'];
-        $folder     = $request->input('folder');
+        $folder     = $request->input('folder_path');
 
-        if (str_starts_with($folder, 'common')) {
-            // 'common' → common/  or  'common/subfolder' → common/subfolder/
-            $gcsPath = $folder . '/' . $file->getClientOriginalName();
-        } elseif ($folder === 'admin') {
-            $this->gcs->createAdminFolders();
-            $gcsPath = 'admin/files/' . $file->getClientOriginalName();
-        } else {
-            $gcsPath = "teachers/{$uploader->username}/private/" . $file->getClientOriginalName();
-        }
+        // Upload directly to the specified path
+        $gcsPath = rtrim($folder, '/') . '/' . $file->getClientOriginalName();
 
         $gcsPath = $this->uniquePath($gcsPath);
 

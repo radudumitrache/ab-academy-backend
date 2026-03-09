@@ -4,10 +4,7 @@ This section covers the admin API endpoints for full management of course materi
 
 > **Note**: Admins have unrestricted access to all materials regardless of folder or uploader.
 
-> **Note**: Files are stored in three locations:
-> - `private` — under `teachers/{username}/private/` in the bucket (attributed to a specific teacher via `uploader_id`)
-> - `common` — under `common/` in the bucket, visible to all teachers
-> - `admin` — under `admin/files/` in the bucket, for admin-owned files (GCS folder auto-created on first upload)
+> **Note**: Admins can upload to **any bucket path** using the `folder_path` field (e.g. `common`, `common/week-1`, `admin/files`, `teachers/john/private/notes`). The file is placed directly at `{folder_path}/{filename}`.
 
 > **Note**: Downloads are served as **signed URLs** valid for 60 minutes.
 
@@ -63,9 +60,9 @@ This section covers the admin API endpoints for full management of course materi
   | Field | Type | Required | Notes |
   |-------|------|----------|-------|
   | `file` | file | Yes | Max 100 MB |
-  | `folder` | string | Yes | `private`, `admin`, `common`, or `common/subfolder-name` |
+  | `folder_path` | string | Yes | Any bucket path, e.g. `common`, `common/week-1`, `admin/files`, `teachers/john/private/notes`. File is uploaded to `{folder_path}/{filename}` |
   | `material_name` | string | No | Defaults to original filename |
-  | `uploader_id` | integer | No | User ID to attribute upload to; defaults to the admin's own ID. Ignored when `folder = "admin"` |
+  | `uploader_id` | integer | No | User ID to attribute upload to; defaults to the admin's own ID |
   | `allowed_users` | array of integers | No | User IDs that can access this file |
 
 - **Success Response** (`201`):
