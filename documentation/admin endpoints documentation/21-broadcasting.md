@@ -2,6 +2,8 @@
 
 The chat system broadcasts messages in real-time using Laravel Echo and Pusher. Both admin and student clients must authenticate with the private channel before receiving events.
 
+> **Note**: The `MessageSent` event implements `ShouldBroadcastNow`, meaning it is pushed to Pusher **synchronously** within the same HTTP request — no queue worker is required.
+
 ---
 
 ## How It Works

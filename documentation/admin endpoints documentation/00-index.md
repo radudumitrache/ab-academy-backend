@@ -69,6 +69,16 @@ Authorization: Bearer {access_token}
 | GET | `/api/admin/users/{id}` | Yes | Get a single user |
 | PUT | `/api/admin/users/{id}` | Yes | Update a user |
 | DELETE | `/api/admin/users/{id}` | Yes | Delete a user |
+| POST | `/api/admin/teachers` | Yes | Create a teacher |
+| GET | `/api/admin/teachers` | Yes | List all teachers |
+| GET | `/api/admin/teachers/{id}` | Yes | Get a teacher |
+| PUT | `/api/admin/teachers/{id}` | Yes | Update a teacher |
+| DELETE | `/api/admin/teachers/{id}` | Yes | Delete a teacher |
+| POST | `/api/admin/students` | Yes | Create a student |
+| GET | `/api/admin/students` | Yes | List all students |
+| GET | `/api/admin/students/{id}` | Yes | Get a student |
+| PUT | `/api/admin/students/{id}` | Yes | Update a student |
+| DELETE | `/api/admin/students/{id}` | Yes | Delete a student |
 | GET | `/api/admin/courses` | Yes | List all courses |
 | POST | `/api/admin/courses` | Yes | Create a course |
 | GET | `/api/admin/courses/{id}` | Yes | Get a course |
@@ -84,6 +94,13 @@ Authorization: Bearer {access_token}
 | GET | `/api/admin/archive` | Yes | List archived courses/groups |
 | POST | `/api/admin/archive/{id}/restore` | Yes | Restore an archived item |
 | GET | `/api/admin/students/{id}/details` | Yes | Get student groups, exams, payments |
+| GET | `/api/admin/students/{id}/groups` | Yes | List groups for a student |
+| GET | `/api/admin/students/{id}/exams` | Yes | List exams for a student |
+| GET | `/api/admin/students/{id}/payments` | Yes | List payments for a student |
+| GET | `/api/admin/users/{id}/notes` | Yes | Get admin notes for a user |
+| POST | `/api/admin/users/{id}/notes` | Yes | Save/update admin notes for a user |
+| GET | `/api/admin/logs` | Yes | List database logs |
+| GET | `/api/admin/logs/{id}` | Yes | Get a single log entry |
 | GET | `/api/admin/notifications` | Yes | List all notifications |
 | POST | `/api/admin/notifications` | Yes | Create a notification |
 | DELETE | `/api/admin/notifications/{id}` | Yes | Delete a notification |

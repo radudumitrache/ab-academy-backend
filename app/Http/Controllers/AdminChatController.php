@@ -113,8 +113,7 @@ class AdminChatController extends Controller
 
         $chat->update(['last_message_at' => now()]);
 
-        // Pass both $chat and $message — MessageSent requires both arguments
-        broadcast(new MessageSent($chat, $message))->toOthers();
+        broadcast(new MessageSent($chat, $message));
 
         $message->load('sender');
         $message->sender_role = match (true) {
