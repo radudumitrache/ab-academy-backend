@@ -158,7 +158,7 @@ Returns the test with all sections eagerly loaded. Each section includes questio
 }
 ```
 
-Teachers can only assign students/groups they own.
+Teachers can assign **any** student or group — no ownership restriction.
 
 ---
 

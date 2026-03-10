@@ -150,7 +150,7 @@ Returns the homework with all sections eagerly loaded. Each section includes its
 | `homework_description` | string | No | |
 | `due_date` | string | Yes | `YYYY-MM-DD` |
 | `people_assigned` | array of integers | No | Individual student user IDs to assign at creation |
-| `groups_assigned` | array of integers | No | Group IDs to assign at creation — must be groups owned by the teacher |
+| `groups_assigned` | array of integers | No | Group IDs to assign at creation |
 
 Assignment fields are optional at creation. You can also assign later via `POST /homework/{id}/assign`.
 
@@ -181,7 +181,7 @@ Assignment fields are optional at creation. You can also assign later via `POST 
 }
 ```
 
-Teachers can only assign students/groups they own. The HomeworkObserver fires a notification to all assigned students.
+Teachers can assign **any** student or group — no ownership restriction. The HomeworkObserver fires a notification to all assigned students.
 
 ---
 

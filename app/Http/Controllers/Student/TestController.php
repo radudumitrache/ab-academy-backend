@@ -28,14 +28,16 @@ class TestController extends Controller
         $studentId = Auth::id();
         $groupIds  = $this->studentGroupIds($studentId);
 
-        $tests = Test::where(function ($q) use ($studentId, $groupIds) {
-            $q->whereJsonContains('people_assigned', $studentId);
+        // Filter in PHP to avoid MySQL JSON type-coercion issues and to include past tests.
+        $tests = Test::orderByDesc('due_date')->get()->filter(function ($test) use ($studentId, $groupIds) {
+            $people = array_map('intval', (array) $test->people_assigned);
+            $groups = array_map('intval', (array) $test->groups_assigned);
+            if (in_array($studentId, $people, true)) return true;
             foreach ($groupIds as $gid) {
-                $q->orWhereJsonContains('groups_assigned', $gid);
+                if (in_array($gid, $groups, true)) return true;
             }
-        })
-        ->orderByDesc('due_date')
-        ->get();
+            return false;
+        });
 
         $submissionMap = TestSubmission::where('student_id', $studentId)
             ->whereIn('test_id', $tests->pluck('id'))
@@ -220,6 +222,7 @@ class TestController extends Controller
     {
         return Group::whereHas('students', fn($s) => $s->where('student_id', $studentId))
             ->pluck('group_id')
+            ->map(fn($id) => (int) $id)
             ->toArray();
     }
 

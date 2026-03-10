@@ -3,13 +3,11 @@
 namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
-use App\Models\Group;
 use App\Models\Homework;
 use App\Models\Material;
 use App\Services\GcsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class HomeworkController extends Controller
 {
@@ -126,21 +124,6 @@ class HomeworkController extends Controller
             'groups_assigned.*'    => 'integer|exists:groups,group_id',
         ]);
 
-        // Validate group ownership
-        if (!empty($validated['groups_assigned'])) {
-            $ownedGroupIds = Group::where('group_teacher', Auth::id())
-                ->pluck('group_id')
-                ->toArray();
-
-            $unauthorized = array_diff($validated['groups_assigned'], $ownedGroupIds);
-            if (!empty($unauthorized)) {
-                return response()->json([
-                    'message'            => 'You do not own all of the specified groups',
-                    'unauthorized_groups' => array_values($unauthorized),
-                ], 422);
-            }
-        }
-
         $validated['homework_teacher'] = Auth::id();
         $validated['date_created']     = now();
 
@@ -173,20 +156,6 @@ class HomeworkController extends Controller
             'groups_assigned.*'    => 'integer|exists:groups,group_id',
         ]);
 
-        if (!empty($validated['groups_assigned'])) {
-            $ownedGroupIds = Group::where('group_teacher', Auth::id())
-                ->pluck('group_id')
-                ->toArray();
-
-            $unauthorized = array_diff($validated['groups_assigned'], $ownedGroupIds);
-            if (!empty($unauthorized)) {
-                return response()->json([
-                    'message'             => 'You do not own all of the specified groups',
-                    'unauthorized_groups' => array_values($unauthorized),
-                ], 422);
-            }
-        }
-
         $homework->update($validated);
 
         return response()->json([
@@ -214,7 +183,6 @@ class HomeworkController extends Controller
 
     /**
      * Assign (or replace) the student/group list on a homework.
-     * Teachers may only assign students that belong to their own groups.
      */
     public function assignStudents(Request $request, $id)
     {
@@ -230,39 +198,6 @@ class HomeworkController extends Controller
             'groups_assigned'   => 'nullable|array',
             'groups_assigned.*' => 'integer|exists:groups,group_id',
         ]);
-
-        // Verify group ownership
-        if (!empty($validated['groups_assigned'])) {
-            $ownedGroupIds = Group::where('group_teacher', Auth::id())
-                ->pluck('group_id')
-                ->toArray();
-
-            $unauthorized = array_diff($validated['groups_assigned'], $ownedGroupIds);
-            if (!empty($unauthorized)) {
-                return response()->json([
-                    'message'             => 'You do not own all of the specified groups',
-                    'unauthorized_groups' => array_values($unauthorized),
-                ], 422);
-            }
-        }
-
-        // Verify students belong to the teacher's groups
-        if (!empty($validated['people_assigned'])) {
-            $teacherGroupIds  = Group::where('group_teacher', Auth::id())->pluck('group_id')->toArray();
-            $teacherStudentIds = empty($teacherGroupIds) ? [] : DB::table('group_student')
-                ->whereIn('group_id', $teacherGroupIds)
-                ->pluck('student_id')
-                ->unique()
-                ->toArray();
-
-            $unauthorized = array_diff($validated['people_assigned'], $teacherStudentIds);
-            if (!empty($unauthorized)) {
-                return response()->json([
-                    'message'              => 'Some students do not belong to your groups',
-                    'unauthorized_students' => array_values($unauthorized),
-                ], 422);
-            }
-        }
 
         $homework->update([
             'people_assigned' => $validated['people_assigned'] ?? [],

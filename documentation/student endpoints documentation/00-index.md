@@ -11,7 +11,7 @@ This documentation covers all student-facing API endpoints for the AB Academy pl
 5. [Events](05-events.md) — meetings and events the student is invited to
 6. [Homework](06-homework.md) — view assigned homework, save answers, submit
 7. [Tests](07-tests.md) — view assigned tests, save answers, submit
-8. [Exams](08-exams.md) — view enrolled exams, create personal exams, record grades
+8. [Exams](08-exams.md) — browse available exams, register/unregister, record personal scores
 9. [Materials](09-materials.md) — browse and download files shared with the student
 10. [Chat](10-chat.md) — messaging with teachers and admin
 11. [Notifications](11-notifications.md) — view, mark as seen, delete notifications
@@ -62,11 +62,12 @@ Authorization: Bearer {access_token}
 | GET | `/api/student/tests/{id}` | Yes | Get test with questions |
 | POST | `/api/student/tests/{id}/answers` | Yes | Save answers (draft) |
 | POST | `/api/student/tests/{id}/submit` | Yes | Submit test |
-| GET | `/api/student/exams` | Yes | List enrolled exams |
-| POST | `/api/student/exams` | Yes | Create a personal exam |
-| GET | `/api/student/exams/{id}` | Yes | Get exam details and result |
+| GET | `/api/student/exams` | Yes | List all enrolled exams |
+| GET | `/api/student/exams/available` | Yes | List upcoming exams available to register for |
+| GET | `/api/student/exams/{id}` | Yes | Get a single enrolled exam |
+| POST | `/api/student/exams/{id}/register` | Yes | Register for an exam (no body needed) |
 | PATCH | `/api/student/exams/{id}/score` | Yes | Record own score/notes |
-| DELETE | `/api/student/exams/{id}` | Yes | Delete a self-created exam |
+| DELETE | `/api/student/exams/{id}/unregister` | Yes | Unregister from an exam |
 | GET | `/api/student/materials` | Yes | List materials shared with the student |
 | GET | `/api/student/materials/{id}` | Yes | Get material details + signed download URL |
 | GET | `/api/student/chats` | Yes | List chats |

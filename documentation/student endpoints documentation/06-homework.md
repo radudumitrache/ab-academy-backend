@@ -19,7 +19,7 @@ POST /api/student/homework/{id}/submit       → finalize submission
 
 `GET /api/student/homework`
 
-Returns all homework assigned to this student (directly or via group), ordered by due date descending.
+Returns all homework assigned to this student (directly or via group), ordered by due date descending. **Includes past homework** — no date filter is applied.
 
 **Response** `200`:
 ```json
@@ -204,4 +204,3 @@ No request body required.
 **Errors**:
 - `404` — homework not found or not assigned
 - `409` — already submitted
-- `422` — no answers saved yet

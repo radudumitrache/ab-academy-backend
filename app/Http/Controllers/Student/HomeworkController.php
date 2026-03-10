@@ -29,16 +29,19 @@ class HomeworkController extends Controller
 
         $groupIds = \App\Models\Group::whereHas('students', fn($s) => $s->where('student_id', $studentId))
             ->pluck('group_id')
+            ->map(fn($id) => (int) $id)
             ->toArray();
 
-        $homework = Homework::where(function ($q) use ($studentId, $groupIds) {
-            $q->whereJsonContains('people_assigned', (int) $studentId);
+        // Filter in PHP to avoid MySQL JSON type-coercion issues and to include past homework.
+        $homework = Homework::orderByDesc('due_date')->get()->filter(function ($hw) use ($studentId, $groupIds) {
+            $people = array_map('intval', (array) $hw->people_assigned);
+            $groups = array_map('intval', (array) $hw->groups_assigned);
+            if (in_array($studentId, $people, true)) return true;
             foreach ($groupIds as $gid) {
-                $q->orWhereJsonContains('groups_assigned', (int) $gid);
+                if (in_array($gid, $groups, true)) return true;
             }
-        })
-        ->orderByDesc('due_date')
-        ->get();
+            return false;
+        });
 
         $submissionMap = HomeworkSubmission::where('student_id', $studentId)
             ->whereIn('homework_id', $homework->pluck('id'))
@@ -276,13 +279,10 @@ class HomeworkController extends Controller
             return response()->json(['message' => 'Homework not found'], 404);
         }
 
-        $submission = HomeworkSubmission::where('homework_id', $id)
-            ->where('student_id', $studentId)
-            ->first();
-
-        if (!$submission) {
-            return response()->json(['message' => 'No answers saved yet. Save answers before submitting.'], 422);
-        }
+        $submission = HomeworkSubmission::firstOrCreate(
+            ['homework_id' => $id, 'student_id' => $studentId],
+            ['status' => 'in_progress']
+        );
 
         if ($submission->status === 'submitted') {
             return response()->json(['message' => 'Homework already submitted'], 409);
