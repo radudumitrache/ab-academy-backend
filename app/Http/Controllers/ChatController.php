@@ -117,6 +117,15 @@ class ChatController extends Controller
             ->where('sender_id', '!=', $user->id)
             ->update(['read_at' => now()]);
 
+        $chat->messages->each(function ($msg) {
+            $msg->sender_role = match (true) {
+                $msg->sender instanceof \App\Models\Admin   => 'admin',
+                $msg->sender instanceof \App\Models\Student => 'student',
+                $msg->sender instanceof \App\Models\Teacher => 'teacher',
+                default                                     => 'unknown',
+            };
+        });
+
         return response()->json([
             'message' => 'Chat retrieved successfully',
             'chat'    => $chat,

@@ -88,6 +88,8 @@ Returns all active chats belonging to this admin, ordered by most recent message
 
 Returns the full message thread. All unread messages from the student are automatically marked as read.
 
+Each message includes a `sender_role` field (`"admin"`, `"student"`, or `"teacher"`) and the full `sender` object so the client always knows who sent it.
+
 **Response** `200`:
 ```json
 {
@@ -103,7 +105,9 @@ Returns the full message thread. All unread messages from the student are automa
         "sender_id": 12,
         "sender_type": "App\\Models\\Student",
         "read_at": "2026-03-07T15:31:00.000000Z",
-        "created_at": "2026-03-07T15:30:00.000000Z"
+        "created_at": "2026-03-07T15:30:00.000000Z",
+        "sender_role": "student",
+        "sender": { "id": 12, "username": "john_doe" }
       },
       {
         "id": 6,
@@ -111,7 +115,9 @@ Returns the full message thread. All unread messages from the student are automa
         "sender_id": 1,
         "sender_type": "App\\Models\\Admin",
         "read_at": null,
-        "created_at": "2026-03-07T15:35:00.000000Z"
+        "created_at": "2026-03-07T15:35:00.000000Z",
+        "sender_role": "admin",
+        "sender": { "id": 1, "username": "admin_user" }
       }
     ]
   }
@@ -143,7 +149,9 @@ The admin must own the chat (`admin_id` matches). The message is broadcast in re
     "sender_id": 1,
     "sender_type": "App\\Models\\Admin",
     "read_at": null,
-    "created_at": "2026-03-07T15:35:00.000000Z"
+    "created_at": "2026-03-07T15:35:00.000000Z",
+    "sender_role": "admin",
+    "sender": { "id": 1, "username": "admin_user" }
   }
 }
 ```

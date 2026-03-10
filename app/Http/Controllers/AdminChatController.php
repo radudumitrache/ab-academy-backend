@@ -116,9 +116,17 @@ class AdminChatController extends Controller
         // Pass both $chat and $message — MessageSent requires both arguments
         broadcast(new MessageSent($chat, $message))->toOthers();
 
+        $message->load('sender');
+        $message->sender_role = match (true) {
+            $message->sender instanceof \App\Models\Admin   => 'admin',
+            $message->sender instanceof \App\Models\Student => 'student',
+            $message->sender instanceof \App\Models\Teacher => 'teacher',
+            default                                         => 'unknown',
+        };
+
         return response()->json([
             'message'      => 'Message sent successfully',
-            'chat_message' => $message->load('sender')
+            'chat_message' => $message,
         ]);
     }
 }
