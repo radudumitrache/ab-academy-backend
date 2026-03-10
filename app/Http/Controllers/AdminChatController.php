@@ -113,7 +113,7 @@ class AdminChatController extends Controller
 
         $chat->update(['last_message_at' => now()]);
 
-        broadcast(new MessageSent($chat, $message));
+        event(new MessageSent($chat, $message));
 
         $message->load('sender');
         $message->sender_role = match (true) {
