@@ -75,7 +75,7 @@ class MaterialController extends Controller
         }
 
         $user   = Auth::user();
-        $file   = $request->file('file');
+        $file   = $request->allFiles()['file'];
         $folder = $request->input('folder');
 
         if ($folder === 'common') {
@@ -278,7 +278,7 @@ class MaterialController extends Controller
         }
 
         $user = Auth::user();
-        $file = $request->file('file');
+        $file = $request->allFiles()['file'];
         $ext  = $file->getClientOriginalExtension();
         $path = "teachers/{$user->username}/profile/profile_picture.{$ext}";
 

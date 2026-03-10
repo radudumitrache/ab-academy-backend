@@ -64,10 +64,16 @@ class MaterialController extends Controller
     }
 
     /**
-     * Check whether a student has access to a material via direct user or group grant.
+     * Check whether a student has access to a material.
+     * Students have read access to all materials in the `common` folder,
+     * plus any material explicitly granted via allowed_users or allowed_groups.
      */
     private function hasAccess(Material $material, int $studentId, array $groupIds): bool
     {
+        if (str_starts_with($material->folder ?? '', 'common')) {
+            return true;
+        }
+
         if (in_array($studentId, $material->allowed_users ?? [])) {
             return true;
         }
