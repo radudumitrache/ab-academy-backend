@@ -1,6 +1,6 @@
 # Exams (Student)
 
-Students have a single unified exam list. Exams can be added by the admin (with the student enrolled) or created by the student themselves. In both cases the student can record their own score and notes.
+Students can browse available exams created by the admin and self-register for upcoming ones. They can also record their own score and notes on enrolled exams.
 
 ---
 
@@ -8,19 +8,20 @@ Students have a single unified exam list. Exams can be added by the admin (with 
 
 ```
 GET    /api/student/exams              → list all enrolled exams
-POST   /api/student/exams              → create a new exam and self-enroll
-GET    /api/student/exams/{id}         → get a single exam
+GET    /api/student/exams/available    → list upcoming exams available to register
+POST   /api/student/exams              → register for an existing exam
+GET    /api/student/exams/{id}         → get a single enrolled exam
 PATCH  /api/student/exams/{id}/score   → update own score / notes
-DELETE /api/student/exams/{id}         → delete a self-created exam
+DELETE /api/student/exams/{id}         → unregister from an exam
 ```
 
 ---
 
-## List Exams
+## List Enrolled Exams
 
 `GET /api/student/exams`
 
-Returns all exams the student is enrolled in, ordered by date.
+Returns all exams the student is currently enrolled in, ordered by date.
 
 **Response** `200`:
 ```json
@@ -38,51 +39,59 @@ Returns all exams the student is enrolled in, ordered by date.
       "feedback": null,
       "student_score": null,
       "notes": null
-    },
-    {
-      "id": 3,
-      "name": "IELTS Academic",
-      "exam_type": "IELTS",
-      "date": "2026-05-10",
-      "status": "upcoming",
-      "admin_score": null,
-      "feedback": null,
-      "student_score": "7.5",
-      "notes": "Passed with band 7.5 overall."
     }
   ]
 }
 ```
 
-### Exam Status Values
+---
 
-| Status | Meaning |
-|--------|---------|
-| `upcoming` | Scheduled, not yet taken |
-| `to_be_corrected` | Taken, awaiting correction |
-| `passed` | Corrected and passed |
-| `failed` | Corrected and failed |
+## List Available Exams
+
+`GET /api/student/exams/available`
+
+Returns all upcoming exams the student is **not yet** enrolled in. Use this to show a registration list.
+
+**Response** `200`:
+```json
+{
+  "message": "Available exams retrieved successfully",
+  "count": 3,
+  "exams": [
+    {
+      "id": 4,
+      "name": "IELTS Academic",
+      "exam_type": "IELTS",
+      "date": "2026-05-10",
+      "status": "upcoming"
+    }
+  ]
+}
+```
 
 ---
 
-## Create an Exam
+## Register for an Exam
 
 `POST /api/student/exams`
 
-Students register an exam they have signed up for. The student is automatically enrolled.
+Enrolls the student in an existing exam created by the admin.
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
-| `name` | string | Yes | Max 255 characters |
-| `exam_type` | string | No | e.g. `IELTS`, `Cambridge B2`, `TOEFL` |
-| `date` | date | No | `YYYY-MM-DD` |
+| `exam_id` | integer | Yes | ID of an existing exam |
+
+**Request**:
+```json
+{ "exam_id": 4 }
+```
 
 **Response** `201`:
 ```json
 {
-  "message": "Exam created successfully",
+  "message": "Successfully registered for exam",
   "exam": {
-    "id": 3,
+    "id": 4,
     "name": "IELTS Academic",
     "exam_type": "IELTS",
     "date": "2026-05-10",
@@ -94,6 +103,10 @@ Students register an exam they have signed up for. The student is automatically 
   }
 }
 ```
+
+**Errors**:
+- `404` / `422` if the exam does not exist or is not upcoming
+- `409` if already registered
 
 ---
 
@@ -126,17 +139,7 @@ Students record their own grade after taking the exam. Does not affect the admin
 ```json
 {
   "message": "Score updated successfully",
-  "exam": {
-    "id": 3,
-    "name": "IELTS Academic",
-    "exam_type": "IELTS",
-    "date": "2026-05-10",
-    "status": "upcoming",
-    "admin_score": null,
-    "feedback": null,
-    "student_score": "7.5",
-    "notes": "Passed with band 7.5 overall."
-  }
+  "exam": { ... }
 }
 ```
 
@@ -144,18 +147,29 @@ Students record their own grade after taking the exam. Does not affect the admin
 
 ---
 
-## Delete an Exam
+## Unregister from an Exam
 
 `DELETE /api/student/exams/{id}`
 
-Students can only delete exams they created themselves. Blocked if an admin has already set a score or feedback.
+Removes the student from the exam. Blocked if an admin has already set a score or feedback.
 
 **Response** `200`:
 ```json
-{ "message": "Exam deleted successfully" }
+{ "message": "Successfully unregistered from exam" }
 ```
 
-**Errors**: `403` if the exam has been graded by an admin, `404` if not enrolled.
+**Errors**: `403` if the exam has been graded, `404` if not enrolled.
+
+---
+
+## Exam Status Values
+
+| Status | Meaning |
+|--------|---------|
+| `upcoming` | Scheduled, not yet taken |
+| `to_be_corrected` | Taken, awaiting correction |
+| `passed` | Corrected and passed |
+| `failed` | Corrected and failed |
 
 ---
 

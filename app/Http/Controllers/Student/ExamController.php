@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
-use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -15,9 +14,7 @@ class ExamController extends Controller
      */
     public function index()
     {
-        $student = Student::find(Auth::id());
-
-        $exams = $student->enrolledExams()
+        $exams = $this->enrolledExams()
             ->orderBy('date')
             ->get()
             ->map(fn($exam) => $this->format($exam));
@@ -30,15 +27,40 @@ class ExamController extends Controller
     }
 
     /**
+     * List all exams the student is NOT yet enrolled in (available to register).
+     */
+    public function available()
+    {
+        $enrolledIds = $this->enrolledExams()->pluck('exams.id');
+
+        $exams = Exam::whereNotIn('id', $enrolledIds)
+            ->where('status', Exam::STATUS_UPCOMING)
+            ->orderBy('date')
+            ->get()
+            ->map(fn($exam) => [
+                'id'        => $exam->id,
+                'name'      => $exam->name,
+                'exam_type' => $exam->exam_type,
+                'date'      => $exam->date,
+                'status'    => $exam->status,
+            ]);
+
+        return response()->json([
+            'message' => 'Available exams retrieved successfully',
+            'count'   => $exams->count(),
+            'exams'   => $exams,
+        ]);
+    }
+
+    /**
      * Show a single exam the student is enrolled in.
      */
     public function show($id)
     {
-        $student = Student::find(Auth::id());
-        $exam    = $student->enrolledExams()->find($id);
+        $exam = $this->enrolledExams()->find($id);
 
         if (!$exam) {
-            return response()->json(['message' => 'Exam not found'], 404);
+            return response()->json(['message' => 'Exam not found or not enrolled'], 404);
         }
 
         return response()->json([
@@ -48,32 +70,58 @@ class ExamController extends Controller
     }
 
     /**
-     * Create a new exam and self-enroll the student in it.
+     * Register (self-enroll) the student in an existing exam.
+     * Body: { "exam_id": 5 }
      */
     public function store(Request $request)
     {
         $request->validate([
-            'name'      => 'required|string|max:255',
-            'exam_type' => 'nullable|string|max:100',
-            'date'      => 'nullable|date',
+            'exam_id' => 'required|integer|exists:exams,id',
         ]);
 
-        $exam = Exam::create([
-            'name'      => $request->name,
-            'exam_type' => $request->exam_type,
-            'date'      => $request->date,
-            'status'    => Exam::STATUS_UPCOMING,
-        ]);
+        $exam = Exam::find($request->exam_id);
 
-        $exam->students()->attach(Auth::id());
+        if ($exam->status !== Exam::STATUS_UPCOMING) {
+            return response()->json(['message' => 'Cannot register for an exam that is not upcoming'], 422);
+        }
 
-        $student = Student::find(Auth::id());
-        $created = $student->enrolledExams()->find($exam->id);
+        // Check if already enrolled
+        $alreadyEnrolled = $this->enrolledExams()->where('exams.id', $exam->id)->exists();
+        if ($alreadyEnrolled) {
+            return response()->json(['message' => 'Already registered for this exam'], 409);
+        }
+
+        $this->enrolledExams()->attach($exam->id);
+
+        $enrolled = $this->enrolledExams()->find($exam->id);
 
         return response()->json([
-            'message' => 'Exam created successfully',
-            'exam'    => $this->format($created),
+            'message' => 'Successfully registered for exam',
+            'exam'    => $this->format($enrolled),
         ], 201);
+    }
+
+    /**
+     * Unregister (self-unenroll) from an exam.
+     * Blocked if the admin has already set a score or feedback.
+     */
+    public function destroy($id)
+    {
+        $exam = $this->enrolledExams()->find($id);
+
+        if (!$exam) {
+            return response()->json(['message' => 'Exam not found or not enrolled'], 404);
+        }
+
+        if ($exam->pivot->score !== null || $exam->pivot->feedback !== null) {
+            return response()->json([
+                'message' => 'Cannot unregister from an exam that has been graded.',
+            ], 403);
+        }
+
+        $this->enrolledExams()->detach($id);
+
+        return response()->json(['message' => 'Successfully unregistered from exam']);
     }
 
     /**
@@ -81,11 +129,10 @@ class ExamController extends Controller
      */
     public function updateScore(Request $request, $id)
     {
-        $student = Student::find(Auth::id());
-        $exam    = $student->enrolledExams()->find($id);
+        $exam = $this->enrolledExams()->find($id);
 
         if (!$exam) {
-            return response()->json(['message' => 'Exam not found'], 404);
+            return response()->json(['message' => 'Exam not found or not enrolled'], 404);
         }
 
         $request->validate([
@@ -98,7 +145,7 @@ class ExamController extends Controller
             'notes'         => $request->notes,
         ]);
 
-        $fresh = $student->enrolledExams()->find($id);
+        $fresh = $this->enrolledExams()->find($id);
 
         return response()->json([
             'message' => 'Score updated successfully',
@@ -106,29 +153,18 @@ class ExamController extends Controller
         ]);
     }
 
+    // -------------------------------------------------------------------------
+
     /**
-     * Delete an exam the student created themselves.
-     * Blocked if the admin has already set a score or feedback.
+     * Return the enrolledExams BelongsToMany relation for the authenticated user.
+     * Works regardless of whether Auth::user() is a Student, User, or any subclass.
      */
-    public function destroy($id)
+    private function enrolledExams()
     {
-        $student = Student::find(Auth::id());
-        $exam    = $student->enrolledExams()->find($id);
-
-        if (!$exam) {
-            return response()->json(['message' => 'Exam not found'], 404);
-        }
-
-        if ($exam->pivot->score !== null || $exam->pivot->feedback !== null) {
-            return response()->json([
-                'message' => 'Cannot delete an exam that has been graded by an admin.',
-            ], 403);
-        }
-
-        $exam->students()->detach(Auth::id());
-        $exam->delete();
-
-        return response()->json(['message' => 'Exam deleted successfully']);
+        return Auth::user()
+            ->belongsToMany(Exam::class, 'student_exam', 'student_id', 'exam_id')
+            ->withPivot('score', 'feedback', 'student_score', 'notes')
+            ->withTimestamps();
     }
 
     private function format(Exam $exam): array
