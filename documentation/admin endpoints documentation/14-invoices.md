@@ -2,6 +2,25 @@
 
 Invoices are created by the admin and assigned to students. They are paid by students through the EuPlatesc hosted checkout. Each payment attempt is tracked in the `invoice_payments` table.
 
+Invoices are automatically synced to **SmartBill** on creation. When marked as `paid`, the payment is also recorded in SmartBill. If the SmartBill API is unavailable at creation time, the sync can be retried via `POST /api/admin/invoices/{id}/smartbill-sync`.
+
+## SmartBill Fields
+
+| Field | Description |
+|-------|-------------|
+| `smartbill_number` | Invoice number assigned by SmartBill after successful sync (e.g. `"INV-000001"`) |
+| `smartbill_synced` | `true` if the invoice has been successfully pushed to SmartBill |
+
+## Required `.env` Variables
+
+```env
+SMARTBILL_EMAIL=your@email.ro
+SMARTBILL_TOKEN=your_api_token
+SMARTBILL_COMPANY_VAT_CODE=RO12345678
+```
+
+Generate the API token in SmartBill under **Configurari → Integrari → Token API**.
+
 ## Invoice Statuses
 
 | Status | Meaning |
@@ -191,7 +210,9 @@ Soft-deletes the invoice.
 
 Valid values: `draft`, `issued`, `paid`, `overdue`, `cancelled`.
 
-> Note: Status is also set automatically to `paid` when EuPlatesc confirms a successful payment via the IPN webhook.
+> When set to `paid` and the invoice is already synced to SmartBill (`smartbill_synced: true`), the payment is also recorded in SmartBill automatically.
+
+> Status is also set automatically to `paid` when EuPlatesc confirms a successful payment via the IPN webhook.
 
 **Response** `200`:
 ```json
@@ -200,6 +221,26 @@ Valid values: `draft`, `issued`, `paid`, `overdue`, `cancelled`.
   "invoice": { ... }
 }
 ```
+
+---
+
+## Sync Invoice to SmartBill
+
+- **URL**: `POST /api/admin/invoices/{id}/smartbill-sync`
+- **Auth Required**: Yes
+
+Manually pushes an invoice to SmartBill. Use this to retry invoices where the initial sync failed (i.e. `smartbill_synced: false`). If already synced, returns the existing SmartBill number without re-creating.
+
+**Response** `200`:
+```json
+{
+  "message": "Invoice synced to SmartBill successfully",
+  "smartbill_number": "INV-000003",
+  "invoice": { ... }
+}
+```
+
+**Errors**: `502` if the SmartBill API returns an error.
 
 ---
 

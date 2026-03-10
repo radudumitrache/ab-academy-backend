@@ -24,6 +24,8 @@ class Invoice extends Model
         'currency',
         'due_date',
         'status',
+        'smartbill_number',
+        'smartbill_synced',
     ];
 
     /**
@@ -32,8 +34,9 @@ class Invoice extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'value' => 'decimal:2',
-        'due_date' => 'date',
+        'value'            => 'decimal:2',
+        'due_date'         => 'date',
+        'smartbill_synced' => 'boolean',
     ];
 
     /**

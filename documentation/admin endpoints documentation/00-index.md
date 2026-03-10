@@ -24,6 +24,7 @@ This documentation provides comprehensive details about the AB Academy admin API
 18. [Chat](18-chat.md)
 19. [Meeting Accounts](19-meeting-accounts.md)
 20. [Profile](20-profile.md)
+21. [Real-time Broadcasting](21-broadcasting.md)
 
 ## Base URL
 
@@ -87,10 +88,12 @@ Authorization: Bearer {access_token}
 | POST | `/api/admin/notifications` | Yes | Create a notification |
 | DELETE | `/api/admin/notifications/{id}` | Yes | Delete a notification |
 | GET | `/api/admin/invoices` | Yes | List all invoices |
-| POST | `/api/admin/invoices` | Yes | Create an invoice |
+| POST | `/api/admin/invoices` | Yes | Create an invoice (auto-synced to SmartBill) |
 | GET | `/api/admin/invoices/{id}` | Yes | Get an invoice |
 | PUT | `/api/admin/invoices/{id}` | Yes | Update an invoice |
 | DELETE | `/api/admin/invoices/{id}` | Yes | Delete an invoice |
+| PUT | `/api/admin/invoices/{id}/status` | Yes | Update status (marks paid in SmartBill if synced) |
+| POST | `/api/admin/invoices/{id}/smartbill-sync` | Yes | Manually retry SmartBill sync |
 | GET | `/api/admin/materials` | Yes | List all materials |
 | POST | `/api/admin/materials/upload` | Yes | Upload a file to any bucket path via `folder_path` field |
 | GET | `/api/admin/materials/{id}` | Yes | Get material + signed download URL |
@@ -140,12 +143,19 @@ Authorization: Bearer {access_token}
 | PUT | `/api/admin/meeting-accounts/{id}` | Yes | Update a meeting account |
 | DELETE | `/api/admin/meeting-accounts/{id}` | Yes | Delete a meeting account |
 | POST | `/api/admin/meeting-accounts/{id}/test` | Yes | Test Zoom credentials |
+| GET | `/api/admin/chats` | Yes | List all admin chats |
+| GET | `/api/admin/chats/{id}` | Yes | Get full message history (marks messages read, includes `sender_role`) |
+| POST | `/api/admin/chats/{id}/messages` | Yes | Send a message |
+| GET | `/api/admin/chats/unread/count` | Yes | Total unread message count |
+| POST | `/api/admin/chats/student` | Yes | Open or resume a chat with a student |
+| PUT | `/api/admin/chats/{id}/archive` | Yes | Archive a chat |
 | POST | `/api/admin/profile/setup` | Yes | Create GCS folder structure for admin |
 | GET | `/api/admin/profile` | Yes | Get own profile |
 | PUT | `/api/admin/profile` | Yes | Update own profile details |
 | POST | `/api/admin/profile/change-password` | Yes | Change own password |
 | POST | `/api/admin/profile/picture` | Yes | Upload or replace profile picture |
 | GET | `/api/admin/profile/picture` | Yes | Get a signed URL for profile picture |
+| POST | `/broadcasting/auth` | Yes | Pusher channel authorization (called by Laravel Echo) |
 
 ## Error Format
 

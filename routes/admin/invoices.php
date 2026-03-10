@@ -22,5 +22,8 @@ Route::delete('/invoices/{id}', [InvoiceController::class, 'destroy'])->middlewa
 // Invoice status update
 Route::put('/invoices/{id}/status', [InvoiceController::class, 'updateStatus'])->middleware('auth:api');
 
+// SmartBill manual sync (retry failed invoices)
+Route::post('/invoices/{id}/smartbill-sync', [InvoiceController::class, 'syncToSmartBill'])->middleware('auth:api');
+
 // Student invoices
 Route::get('/students/{id}/invoices', [InvoiceController::class, 'getStudentInvoices'])->middleware('auth:api');

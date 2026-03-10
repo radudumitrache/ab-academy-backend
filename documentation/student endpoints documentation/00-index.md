@@ -83,6 +83,7 @@ Authorization: Bearer {access_token}
 | POST | `/api/student/invoices/{id}/pay` | Yes | Initiate EuPlatesc checkout (returns HTML) |
 | GET | `/api/student/dashboard` | Yes | Full dashboard overview |
 | GET | `/api/student/achievements` | Yes | Streak + achievement list |
+| POST | `/broadcasting/auth` | Yes | Pusher channel authorization (called by Laravel Echo) |
 
 ## Error Format
 
