@@ -10,10 +10,10 @@ use Illuminate\Support\Facades\Route;
  */
 
 Route::middleware('auth:api')->group(function () {
-    Route::get('/exams',              [ExamController::class, 'index']);
-    Route::get('/exams/available',    [ExamController::class, 'available']);
-    Route::post('/exams',             [ExamController::class, 'store']);
-    Route::get('/exams/{id}',         [ExamController::class, 'show']);
-    Route::patch('/exams/{id}/score', [ExamController::class, 'updateScore']);
-    Route::delete('/exams/{id}',      [ExamController::class, 'destroy']);
+    Route::get('/exams',                    [ExamController::class, 'index']);
+    Route::get('/exams/available',          [ExamController::class, 'available']);
+    Route::get('/exams/{id}',               [ExamController::class, 'show']);
+    Route::post('/exams/{id}/register',     [ExamController::class, 'register']);
+    Route::patch('/exams/{id}/score',       [ExamController::class, 'updateScore']);
+    Route::delete('/exams/{id}/unregister', [ExamController::class, 'destroy']);
 });

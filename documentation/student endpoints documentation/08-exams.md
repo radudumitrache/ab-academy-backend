@@ -7,12 +7,12 @@ Students can browse available exams created by the admin and self-register for u
 ## Endpoints
 
 ```
-GET    /api/student/exams              → list all enrolled exams
-GET    /api/student/exams/available    → list upcoming exams available to register
-POST   /api/student/exams              → register for an existing exam
-GET    /api/student/exams/{id}         → get a single enrolled exam
-PATCH  /api/student/exams/{id}/score   → update own score / notes
-DELETE /api/student/exams/{id}         → unregister from an exam
+GET    /api/student/exams                    → list all enrolled exams
+GET    /api/student/exams/available          → list upcoming exams available to register
+GET    /api/student/exams/{id}               → get a single enrolled exam
+POST   /api/student/exams/{id}/register      → register for an exam (no body needed)
+PATCH  /api/student/exams/{id}/score         → update own score / notes
+DELETE /api/student/exams/{id}/unregister    → unregister from an exam
 ```
 
 ---
@@ -73,18 +73,9 @@ Returns all upcoming exams the student is **not yet** enrolled in. Use this to s
 
 ## Register for an Exam
 
-`POST /api/student/exams`
+`POST /api/student/exams/{id}/register`
 
-Enrolls the student in an existing exam created by the admin.
-
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| `exam_id` | integer | Yes | ID of an existing exam |
-
-**Request**:
-```json
-{ "exam_id": 4 }
-```
+Enrolls the student in an existing exam. No request body needed — the exam ID is in the URL.
 
 **Response** `201`:
 ```json
@@ -105,7 +96,8 @@ Enrolls the student in an existing exam created by the admin.
 ```
 
 **Errors**:
-- `404` / `422` if the exam does not exist or is not upcoming
+- `404` if exam does not exist
+- `422` if exam is not upcoming
 - `409` if already registered
 
 ---
@@ -149,7 +141,7 @@ Students record their own grade after taking the exam. Does not affect the admin
 
 ## Unregister from an Exam
 
-`DELETE /api/student/exams/{id}`
+`DELETE /api/student/exams/{id}/unregister`
 
 Removes the student from the exam. Blocked if an admin has already set a score or feedback.
 

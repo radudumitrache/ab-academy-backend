@@ -71,21 +71,20 @@ class ExamController extends Controller
 
     /**
      * Register (self-enroll) the student in an existing exam.
-     * Body: { "exam_id": 5 }
+     * POST /api/student/exams/{id}/register
      */
-    public function store(Request $request)
+    public function register($id)
     {
-        $request->validate([
-            'exam_id' => 'required|integer|exists:exams,id',
-        ]);
+        $exam = Exam::find($id);
 
-        $exam = Exam::find($request->exam_id);
+        if (!$exam) {
+            return response()->json(['message' => 'Exam not found'], 404);
+        }
 
         if ($exam->status !== Exam::STATUS_UPCOMING) {
             return response()->json(['message' => 'Cannot register for an exam that is not upcoming'], 422);
         }
 
-        // Check if already enrolled
         $alreadyEnrolled = $this->enrolledExams()->where('exams.id', $exam->id)->exists();
         if ($alreadyEnrolled) {
             return response()->json(['message' => 'Already registered for this exam'], 409);
