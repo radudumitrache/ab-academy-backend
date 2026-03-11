@@ -26,10 +26,11 @@ class HomeworkSubmissionController extends Controller
             return response()->json(['message' => 'Homework not found'], 404);
         }
 
-        $submissions = HomeworkSubmission::with(['student:id,username,email', 'responses.question'])
+        $submissions = HomeworkSubmission::with(['student:id,username,email', 'responses.question.multipleChoiceDetails'])
             ->where('homework_id', $homeworkId)
             ->where('status', 'submitted')
-            ->get();
+            ->get()
+            ->map(fn($s) => $this->formatSubmission($s));
 
         return response()->json([
             'message'     => 'Submissions retrieved successfully',
@@ -49,7 +50,7 @@ class HomeworkSubmissionController extends Controller
             return response()->json(['message' => 'Homework not found'], 404);
         }
 
-        $submission = HomeworkSubmission::with(['student:id,username,email', 'responses.question'])
+        $submission = HomeworkSubmission::with(['student:id,username,email', 'responses.question.multipleChoiceDetails'])
             ->where('homework_id', $homeworkId)
             ->find($submissionId);
 
@@ -59,7 +60,7 @@ class HomeworkSubmissionController extends Controller
 
         return response()->json([
             'message'    => 'Submission retrieved successfully',
-            'submission' => $submission,
+            'submission' => $this->formatSubmission($submission),
         ]);
     }
 
@@ -98,9 +99,11 @@ class HomeworkSubmissionController extends Controller
 
         $submission->update($validator->validated());
 
+        $fresh = $submission->fresh(['student:id,username,email', 'responses.question.multipleChoiceDetails']);
+
         return response()->json([
             'message'    => 'Submission graded successfully',
-            'submission' => $submission->fresh(['student:id,username,email', 'responses.question']),
+            'submission' => $this->formatSubmission($fresh),
         ]);
     }
 
@@ -199,9 +202,41 @@ class HomeworkSubmissionController extends Controller
             $response->update($updates);
         }
 
+        $fresh = $submission->fresh(['student:id,username,email', 'responses.question.multipleChoiceDetails']);
+
         return response()->json([
             'message'    => 'Responses graded successfully',
-            'submission' => $submission->fresh(['student:id,username,email', 'responses.question']),
+            'submission' => $this->formatSubmission($fresh),
         ]);
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    /**
+     * Format a submission, resolving multiple_choice answer index to variant text.
+     */
+    private function formatSubmission(HomeworkSubmission $submission): array
+    {
+        $data = $submission->toArray();
+
+        $data['responses'] = collect($submission->responses)->map(function ($response) {
+            $row = $response->toArray();
+
+            if (
+                $response->question &&
+                $response->question->question_type === 'multiple_choice' &&
+                $response->answer !== null
+            ) {
+                $variants = $response->question->multipleChoiceDetails?->variants ?? [];
+                $index    = (int) $response->answer;
+                $row['answer_text'] = $variants[$index] ?? $response->answer;
+            } else {
+                $row['answer_text'] = null;
+            }
+
+            return $row;
+        })->values()->toArray();
+
+        return $data;
     }
 }
