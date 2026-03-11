@@ -162,11 +162,36 @@ class TestSubmissionController extends Controller
         // responses can be sent as:
         // - a plain array (JSON body: {"responses": [...]})
         // - a JSON-encoded string (multipart form: responses="[...]")
-        $responsesInput = $request->input('responses');
-        if (is_string($responsesInput)) {
-            $responsesInput = json_decode($responsesInput, true) ?? [];
+        // Laravel (Symfony) does not parse multipart/form-data for PATCH requests.
+        // Parse the raw body manually to extract form fields and files.
+        $parsedBody   = [];
+        $contentType  = $request->header('Content-Type', '');
+
+        if (str_contains($contentType, 'multipart/form-data')) {
+            preg_match('/boundary=(.+)$/', $contentType, $matches);
+            $boundary = $matches[1] ?? null;
+            if ($boundary) {
+                $raw  = $request->getContent();
+                $parts = array_slice(explode('--' . $boundary, $raw), 1, -1);
+                foreach ($parts as $part) {
+                    if (trim($part) === '--') continue;
+                    [$headers, $body] = explode("\r\n\r\n", $part, 2);
+                    $body = rtrim($body, "\r\n");
+                    if (preg_match('/name="([^"]+)"/', $headers, $nm)) {
+                        $parsedBody[$nm[1]] = $body;
+                    }
+                }
+            }
         }
-        if (empty($responsesInput)) {
+
+        $rawResponses = $request->input('responses')
+            ?? ($parsedBody['responses'] ?? null);
+
+        if (is_string($rawResponses)) {
+            $responsesInput = json_decode($rawResponses, true) ?? null;
+        } elseif (is_array($rawResponses)) {
+            $responsesInput = $rawResponses;
+        } else {
             $responsesInput = $request->json('responses');
         }
 
