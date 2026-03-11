@@ -7,10 +7,11 @@ Tests work identically to homework from the student's perspective — view quest
 ## Submission Flow
 
 ```
-GET  /api/student/tests           → list all assigned tests
-GET  /api/student/tests/{id}      → view test with questions
-POST /api/student/tests/{id}/answers  → save answers (can repeat)
-POST /api/student/tests/{id}/submit   → finalize submission
+GET  /api/student/tests                   → list all assigned tests
+GET  /api/student/tests/{id}              → view test with questions
+GET  /api/student/tests/{id}/results      → view submission results and teacher feedback
+POST /api/student/tests/{id}/answers      → save answers (can repeat)
+POST /api/student/tests/{id}/submit       → finalize submission
 ```
 
 ---
@@ -108,6 +109,59 @@ Returns the test with all sections and questions eagerly loaded. Material IDs re
 ```
 
 **Errors**: `404` if not assigned to this student.
+
+---
+
+## Get Submission Results and Feedback
+
+`GET /api/student/tests/{id}/results`
+
+Returns the student's submitted answers alongside the teacher's grade and feedback for each response. Only available after the test has been submitted.
+
+**Response** `200`:
+```json
+{
+  "message": "Results retrieved successfully",
+  "results": {
+    "submission_id": 4,
+    "submitted_at": "2026-03-30T14:00:00.000000Z",
+    "grade": "9/10",
+    "observation": "Excellent work. Minor errors in the writing section.",
+    "responses": [
+      {
+        "response_id": 11,
+        "question_id": 7,
+        "question_type": "multiple_choice",
+        "question_text": "Choose the correct form of the verb.",
+        "answer": "1",
+        "answer_text": "went",
+        "correct_answer": "went",
+        "grade": "1/1",
+        "observation": "Correct.",
+        "correction_file_url": null
+      },
+      {
+        "response_id": 12,
+        "question_id": 8,
+        "question_type": "writing",
+        "question_text": "Write a short essay about technology.",
+        "answer": "My essay answer.",
+        "answer_text": null,
+        "correct_answer": null,
+        "grade": "2/3",
+        "observation": "Good structure, needs more examples.",
+        "correction_file_url": "https://storage.googleapis.com/...?X-Goog-Signature=..."
+      }
+    ]
+  }
+}
+```
+
+Response field descriptions are identical to the homework results endpoint — see [06-homework.md](06-homework.md#get-submission-results-and-feedback) for the full field table.
+
+**Errors**:
+- `404` — test not found, not assigned, or not yet submitted
+- `422` — submission exists but has not been submitted yet
 
 ---
 

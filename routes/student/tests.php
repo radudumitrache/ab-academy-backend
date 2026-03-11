@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:api')->group(function () {
     Route::get('/tests',                    [TestController::class, 'index']);
     Route::get('/tests/{id}',               [TestController::class, 'show']);
+    Route::get('/tests/{id}/results',       [TestController::class, 'results']);
     Route::post('/tests/{id}/answers',      [TestController::class, 'saveAnswers']);
     Route::post('/tests/{id}/submit',       [TestController::class, 'submit']);
 });

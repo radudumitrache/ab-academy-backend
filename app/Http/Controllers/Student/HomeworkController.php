@@ -309,6 +309,127 @@ class HomeworkController extends Controller
         ]);
     }
 
+    /**
+     * Return the student's submission results and teacher feedback for a homework.
+     *
+     * Only available once the homework has been submitted.
+     */
+    public function results($id)
+    {
+        $studentId = Auth::id();
+        $homework  = $this->findAssignedHomework($studentId, $id);
+
+        if (!$homework) {
+            return response()->json(['message' => 'Homework not found'], 404);
+        }
+
+        $sub = HomeworkSubmission::where('homework_id', $id)
+            ->where('student_id', $studentId)
+            ->with(['responses.question.multipleChoiceDetails',
+                    'responses.question.gapFillDetails',
+                    'responses.question.textCompletionDetails',
+                    'responses.question.correlationDetails',
+                    'responses.question.correctDetails',
+                    'responses.question.wordFormationDetails',
+                    'responses.question.rephraseDetails',
+                    'responses.question.replaceDetails',
+                    'responses.question.wordDerivationDetails'])
+            ->first();
+
+        if (!$sub) {
+            return response()->json(['message' => 'No submission found'], 404);
+        }
+
+        if ($sub->status !== 'submitted') {
+            return response()->json(['message' => 'Homework has not been submitted yet'], 422);
+        }
+
+        $responses = $sub->responses->map(function ($r) {
+            $q = $r->question;
+
+            $answerText    = null;
+            $correctAnswer = null;
+
+            if ($q) {
+                switch ($q->question_type) {
+                    case 'multiple_choice':
+                        $variants = $q->multipleChoiceDetails?->variants ?? [];
+                        $correct  = $q->multipleChoiceDetails?->correct_variant;
+                        if ($r->answer !== null) {
+                            $answerText = $variants[(int) $r->answer] ?? $r->answer;
+                        }
+                        if ($correct !== null) {
+                            $correctAnswer = $variants[(int) $correct] ?? null;
+                        }
+                        break;
+                    case 'gap_fill':
+                        $correctAnswer = $q->gapFillDetails?->correct_answers;
+                        break;
+                    case 'text_completion':
+                        $correctAnswer = $q->textCompletionDetails?->correct_answers;
+                        break;
+                    case 'correlation':
+                        $correctAnswer = $q->correlationDetails?->correct_pairs;
+                        break;
+                    case 'correct':
+                        $correctAnswer = $q->correctDetails?->sample_answer;
+                        break;
+                    case 'word_formation':
+                        $correctAnswer = $q->wordFormationDetails?->sample_answer;
+                        break;
+                    case 'rephrase':
+                        $correctAnswer = $q->rephraseDetails?->sample_answer;
+                        break;
+                    case 'replace':
+                        $correctAnswer = $q->replaceDetails?->sample_answer;
+                        break;
+                    case 'word_derivation':
+                        $correctAnswer = $q->wordDerivationDetails?->sample_answer;
+                        break;
+                }
+            }
+
+            $correctionFileUrl = null;
+            if ($r->correction_file_path) {
+                try {
+                    $correctionFileUrl = $this->gcs->signedUrl($r->correction_file_path, 60);
+                } catch (\Throwable) {}
+            }
+
+            $fileUrl = null;
+            if ($r->file_path) {
+                try {
+                    $fileUrl = $this->gcs->signedUrl($r->file_path, 60);
+                } catch (\Throwable) {}
+            }
+
+            return [
+                'response_id'         => $r->response_id,
+                'question_id'         => $r->related_question,
+                'question_type'       => $q?->question_type,
+                'question_text'       => $q?->question_text,
+                'answer'              => $r->answer,
+                'answer_text'         => $answerText,
+                'file_url'            => $fileUrl,
+                'correct_answer'      => $correctAnswer,
+                'grade'               => $r->grade,
+                'observation'         => $r->observation,
+                'correction_file_url' => $correctionFileUrl,
+            ];
+        })->values();
+
+        return response()->json([
+            'message' => 'Results retrieved successfully',
+            'results' => [
+                'submission_id' => $sub->id,
+                'submitted_at'  => $sub->submitted_at,
+                'grade'         => $sub->grade,
+                'observation'   => $sub->observation,
+                'responses'     => $responses,
+            ],
+        ]);
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     private function findAssignedHomework(int $studentId, $homeworkId): ?Homework

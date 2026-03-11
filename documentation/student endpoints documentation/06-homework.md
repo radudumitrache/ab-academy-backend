@@ -9,6 +9,7 @@ Students can view homework assigned to them (directly or via a group), save answ
 ```
 GET  /api/student/homework                   → list all assigned homework
 GET  /api/student/homework/{id}              → view homework with questions + existing responses
+GET  /api/student/homework/{id}/results      → view submission results and teacher feedback
 POST /api/student/homework/{id}/answers      → save answers (text and/or files, repeatable)
 POST /api/student/homework/{id}/submit       → finalize submission
 ```
@@ -107,6 +108,99 @@ Returns the full homework with all sections, questions, and the student's existi
 ```
 
 **Errors**: `404` if not assigned to this student.
+
+---
+
+## Get Submission Results and Feedback
+
+`GET /api/student/homework/{id}/results`
+
+Returns the student's submitted answers alongside the teacher's grade and feedback for each response. Only available after the homework has been submitted.
+
+**Response** `200`:
+```json
+{
+  "message": "Results retrieved successfully",
+  "results": {
+    "submission_id": 3,
+    "submitted_at": "2026-03-14T18:30:00.000000Z",
+    "grade": "8/10",
+    "observation": "Good effort, but check your grammar in section 2.",
+    "responses": [
+      {
+        "response_id": 7,
+        "question_id": 5,
+        "question_type": "multiple_choice",
+        "question_text": "Which invention started the Industrial Revolution?",
+        "answer": "1",
+        "answer_text": "Steam engine",
+        "correct_answer": "Steam engine",
+        "grade": "2/2",
+        "observation": "Correct.",
+        "correction_file_url": null
+      },
+      {
+        "response_id": 8,
+        "question_id": 6,
+        "question_type": "gap_fill",
+        "question_text": "Fill in the blanks.",
+        "answer": "{\"0\":\"steam\",\"1\":\"coal\"}",
+        "answer_text": null,
+        "correct_answer": {"0": "steam", "1": "coal"},
+        "grade": "1/2",
+        "observation": "Second blank is incorrect.",
+        "correction_file_url": "https://storage.googleapis.com/...?X-Goog-Signature=..."
+      },
+      {
+        "response_id": 9,
+        "question_id": 7,
+        "question_type": "writing",
+        "question_text": "Write a short essay.",
+        "answer": null,
+        "answer_text": null,
+        "correct_answer": null,
+        "grade": "5/6",
+        "observation": "See attached correction.",
+        "correction_file_url": "https://storage.googleapis.com/...?X-Goog-Signature=..."
+      }
+    ]
+  }
+}
+```
+
+**Response fields per item in `responses`:**
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `response_id` | integer | |
+| `question_id` | integer | |
+| `question_type` | string | e.g. `multiple_choice`, `gap_fill`, `writing` |
+| `question_text` | string | The question prompt |
+| `answer` | string\|null | The raw stored answer (index for multiple choice, JSON for structured types, text otherwise) |
+| `answer_text` | string\|null | For `multiple_choice` only: the variant text resolved from the stored index |
+| `correct_answer` | mixed\|null | Correct answer from question definition (see table below). `null` for open-ended types |
+| `grade` | string\|null | Teacher-assigned grade per response (e.g. `"2/2"`). `null` until graded |
+| `observation` | string\|null | Teacher observation for this response. `null` until graded |
+| `correction_file_url` | string\|null | 60-min signed GCS URL for a correction file the teacher uploaded, if any |
+
+**`correct_answer` by question type:**
+
+| Question type | `correct_answer` value |
+|---------------|------------------------|
+| `multiple_choice` | Variant text string |
+| `gap_fill` | Object/array of correct answers |
+| `text_completion` | Object/array of correct answers |
+| `correlation` | Object/array of correct pairs |
+| `correct` | Sample answer string |
+| `word_formation` | Sample answer string |
+| `rephrase` | Sample answer string |
+| `replace` | Sample answer string |
+| `word_derivation` | Sample answer string |
+| `reading`, `writing`, `speaking` | `null` |
+
+**Errors**:
+- `404` — homework not found, not assigned, or not yet submitted
+- `422` — submission exists but has not been submitted yet
 
 ---
 
