@@ -26,7 +26,15 @@ class TestSubmissionController extends Controller
             return response()->json(['message' => 'Test not found'], 404);
         }
 
-        $submissions = TestSubmission::with(['student:id,username,email', 'responses.question.multipleChoiceDetails'])
+        $submissions = TestSubmission::with(['student:id,username,email', 'responses.question.multipleChoiceDetails',
+                'responses.question.gapFillDetails',
+                'responses.question.textCompletionDetails',
+                'responses.question.correlationDetails',
+                'responses.question.correctDetails',
+                'responses.question.wordFormationDetails',
+                'responses.question.rephraseDetails',
+                'responses.question.replaceDetails',
+                'responses.question.wordDerivationDetails'])
             ->where('test_id', $testId)
             ->where('status', 'submitted')
             ->get()
@@ -50,7 +58,15 @@ class TestSubmissionController extends Controller
             return response()->json(['message' => 'Test not found'], 404);
         }
 
-        $submission = TestSubmission::with(['student:id,username,email', 'responses.question.multipleChoiceDetails'])
+        $submission = TestSubmission::with(['student:id,username,email', 'responses.question.multipleChoiceDetails',
+                'responses.question.gapFillDetails',
+                'responses.question.textCompletionDetails',
+                'responses.question.correlationDetails',
+                'responses.question.correctDetails',
+                'responses.question.wordFormationDetails',
+                'responses.question.rephraseDetails',
+                'responses.question.replaceDetails',
+                'responses.question.wordDerivationDetails'])
             ->where('test_id', $testId)
             ->find($submissionId);
 
@@ -99,7 +115,15 @@ class TestSubmissionController extends Controller
 
         $submission->update($validator->validated());
 
-        $fresh = $submission->fresh(['student:id,username,email', 'responses.question.multipleChoiceDetails']);
+        $fresh = $submission->fresh(['student:id,username,email', 'responses.question.multipleChoiceDetails',
+                'responses.question.gapFillDetails',
+                'responses.question.textCompletionDetails',
+                'responses.question.correlationDetails',
+                'responses.question.correctDetails',
+                'responses.question.wordFormationDetails',
+                'responses.question.rephraseDetails',
+                'responses.question.replaceDetails',
+                'responses.question.wordDerivationDetails']);
 
         return response()->json([
             'message'    => 'Submission graded successfully',
@@ -202,7 +226,15 @@ class TestSubmissionController extends Controller
             $response->update($updates);
         }
 
-        $fresh = $submission->fresh(['student:id,username,email', 'responses.question.multipleChoiceDetails']);
+        $fresh = $submission->fresh(['student:id,username,email', 'responses.question.multipleChoiceDetails',
+                'responses.question.gapFillDetails',
+                'responses.question.textCompletionDetails',
+                'responses.question.correlationDetails',
+                'responses.question.correctDetails',
+                'responses.question.wordFormationDetails',
+                'responses.question.rephraseDetails',
+                'responses.question.replaceDetails',
+                'responses.question.wordDerivationDetails']);
 
         return response()->json([
             'message'    => 'Responses graded successfully',
@@ -221,17 +253,56 @@ class TestSubmissionController extends Controller
 
         $data['responses'] = collect($submission->responses)->map(function ($response) {
             $row = $response->toArray();
+            $q   = $response->question;
 
-            if (
-                $response->question &&
-                $response->question->question_type === 'multiple_choice' &&
-                $response->answer !== null
-            ) {
-                $variants = $response->question->multipleChoiceDetails?->variants ?? [];
-                $index    = (int) $response->answer;
-                $row['answer_text'] = $variants[$index] ?? $response->answer;
-            } else {
-                $row['answer_text'] = null;
+            $row['answer_text']    = null;
+            $row['correct_answer'] = null;
+
+            if (!$q) return $row;
+
+            switch ($q->question_type) {
+                case 'multiple_choice':
+                    $variants = $q->multipleChoiceDetails?->variants ?? [];
+                    $correct  = $q->multipleChoiceDetails?->correct_variant;
+                    if ($response->answer !== null) {
+                        $row['answer_text'] = $variants[(int) $response->answer] ?? $response->answer;
+                    }
+                    if ($correct !== null) {
+                        $row['correct_answer'] = $variants[(int) $correct] ?? null;
+                    }
+                    break;
+
+                case 'gap_fill':
+                    $row['correct_answer'] = $q->gapFillDetails?->correct_answers;
+                    break;
+
+                case 'text_completion':
+                    $row['correct_answer'] = $q->textCompletionDetails?->correct_answers;
+                    break;
+
+                case 'correlation':
+                    $row['correct_answer'] = $q->correlationDetails?->correct_pairs;
+                    break;
+
+                case 'correct':
+                    $row['correct_answer'] = $q->correctDetails?->sample_answer;
+                    break;
+
+                case 'word_formation':
+                    $row['correct_answer'] = $q->wordFormationDetails?->sample_answer;
+                    break;
+
+                case 'rephrase':
+                    $row['correct_answer'] = $q->rephraseDetails?->sample_answer;
+                    break;
+
+                case 'replace':
+                    $row['correct_answer'] = $q->replaceDetails?->sample_answer;
+                    break;
+
+                case 'word_derivation':
+                    $row['correct_answer'] = $q->wordDerivationDetails?->sample_answer;
+                    break;
             }
 
             return $row;
