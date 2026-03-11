@@ -324,16 +324,49 @@ Returns a single submission with all student responses and question details.
     "student": { "id": 12, "username": "student1", "email": "s1@example.com" },
     "responses": [
       {
-        "id": 33,
+        "response_id": 33,
         "submission_id": 7,
-        "question_id": 3,
-        "answer_text": "Steam power",
-        "question": { "test_question_id": 3, "question_type": "reading_multiple_choice", ... }
+        "related_question": 3,
+        "answer": "1",
+        "answer_text": "went",
+        "correct_answer": "went",
+        "grade": null,
+        "observation": null,
+        "correction_file_path": null,
+        "question": { "test_question_id": 3, "question_type": "multiple_choice", "..." : "..." }
+      },
+      {
+        "response_id": 34,
+        "submission_id": 7,
+        "related_question": 4,
+        "answer": "house",
+        "answer_text": null,
+        "correct_answer": ["house", "House"],
+        "grade": null,
+        "observation": null,
+        "correction_file_path": null,
+        "question": { "test_question_id": 4, "question_type": "gap_fill", "..." : "..." }
       }
     ]
   }
 }
 ```
+
+Each response object includes two resolved fields:
+
+| Field | Description |
+|-------|-------------|
+| `answer_text` | For `multiple_choice` only — the variant string the student selected. `null` for all other types. |
+| `correct_answer` | The expected answer for question types that define one. `null` for open-ended types (`writing_question`, `speaking_question`, `reading_question`). |
+
+`correct_answer` by question type:
+
+| Question type | Value |
+|---|---|
+| `multiple_choice` | String — the correct variant text |
+| `gap_fill` / `text_completion` | Array of accepted strings |
+| `correlation` | Array of correct pairs |
+| `correct` / `word_formation` / `rephrase` / `replace` / `word_derivation` | String — sample answer |
 
 **Errors**:
 - `404` — test not found, not owned by teacher, or submission not found

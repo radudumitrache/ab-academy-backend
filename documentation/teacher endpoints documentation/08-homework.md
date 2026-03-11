@@ -347,16 +347,51 @@ Returns a single submission with all student responses and question details.
     "student": { "id": 12, "username": "student1", "email": "s1@example.com" },
     "responses": [
       {
-        "id": 55,
+        "response_id": 55,
         "submission_id": 14,
-        "question_id": 5,
+        "related_question": 5,
+        "answer": "1",
         "answer_text": "ran",
-        "question": { "question_id": 5, "question_type": "multiple_choice", ... }
+        "correct_answer": "ran",
+        "file_path": null,
+        "grade": null,
+        "observation": null,
+        "correction_file_path": null,
+        "question": { "question_id": 5, "question_type": "multiple_choice", "question_text": "She ___ to school.", "..." : "..." }
+      },
+      {
+        "response_id": 56,
+        "submission_id": 14,
+        "related_question": 6,
+        "answer": "red",
+        "answer_text": null,
+        "correct_answer": ["red", "Red"],
+        "file_path": null,
+        "grade": null,
+        "observation": null,
+        "correction_file_path": null,
+        "question": { "question_id": 6, "question_type": "gap_fill", "question_text": "An apple is ____.", "..." : "..." }
       }
     ]
   }
 }
 ```
+
+Each response object includes two resolved fields:
+
+| Field | Description |
+|-------|-------------|
+| `answer_text` | For `multiple_choice` only — the variant string the student selected. `null` for all other types. |
+| `correct_answer` | The expected answer for question types that define one. `null` for open-ended types (`writing_question`, `speaking_question`, `reading_question`). |
+
+`correct_answer` by question type:
+
+| Question type | Value |
+|---|---|
+| `multiple_choice` | String — the correct variant text |
+| `gap_fill` / `text_completion` | Array of accepted strings |
+| `correlation` | Array of correct pairs |
+| `correct` / `word_formation` / `rephrase` / `replace` / `word_derivation` | String — sample answer |
 
 **Errors**:
 - `404` — homework not found, not owned by teacher, or submission not found

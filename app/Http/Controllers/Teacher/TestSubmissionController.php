@@ -159,10 +159,15 @@ class TestSubmissionController extends Controller
             return response()->json(['message' => 'Cannot grade a submission that has not been submitted'], 422);
         }
 
-        // responses can be sent as a JSON string (multipart) or as an array (JSON body)
+        // responses can be sent as:
+        // - a plain array (JSON body: {"responses": [...]})
+        // - a JSON-encoded string (multipart form: responses="[...]")
         $responsesInput = $request->input('responses');
         if (is_string($responsesInput)) {
-            $responsesInput = json_decode($responsesInput, true);
+            $responsesInput = json_decode($responsesInput, true) ?? [];
+        }
+        if (empty($responsesInput)) {
+            $responsesInput = $request->json('responses');
         }
 
         $validator = Validator::make(
