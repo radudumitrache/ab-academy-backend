@@ -37,19 +37,40 @@ class DashboardController extends Controller
         $groupIds = $groups->pluck('group_id')->toArray();
 
         // ── Upcoming events (next 7 days) ──────────────────────────────────────
-        $upcomingEvents = Event::whereJsonContains('guests', $studentId)
+        $teacherIds = Group::whereHas('students', fn($q) => $q->where('student_id', $studentId))
+            ->pluck('group_teacher')
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray();
+
+        $upcomingEvents = Event::where(function ($q) use ($studentId, $teacherIds) {
+                $q->whereJsonContains('guests', $studentId);
+                foreach ($teacherIds as $tid) {
+                    $q->orWhere('event_organizer', $tid);
+                }
+            })
             ->where('event_date', '>=', $now->toDateString())
             ->where('event_date', '<=', $now->copy()->addDays(7)->toDateString())
+            ->with('organizer:id,username')
             ->orderBy('event_date')
             ->orderBy('event_time')
-            ->get(['id', 'title', 'event_date', 'event_time', 'event_duration'])
+            ->get()
+            ->unique('id')
             ->map(fn($e) => [
-                'id'             => $e->id,
-                'title'          => $e->title,
-                'event_date'     => $e->event_date?->toDateString(),
-                'event_time'     => $e->event_time,
-                'event_duration' => $e->event_duration,
-            ]);
+                'id'              => $e->id,
+                'title'           => $e->title,
+                'type'            => $e->type,
+                'event_date'      => $e->event_date?->toDateString(),
+                'event_time'      => $e->event_time,
+                'event_duration'  => $e->event_duration,
+                'event_meet_link' => $e->event_meet_link,
+                'organizer'       => $e->organizer ? [
+                    'id'       => $e->organizer->id,
+                    'username' => $e->organizer->username,
+                ] : null,
+            ])
+            ->values();
 
         // ── Pending homework ───────────────────────────────────────────────────
         $allHomework = Homework::where(function ($q) use ($studentId, $groupIds) {

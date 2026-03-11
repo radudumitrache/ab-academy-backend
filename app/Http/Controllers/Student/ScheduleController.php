@@ -36,13 +36,23 @@ class ScheduleController extends Controller
             ];
         });
 
-        $events = Event::whereJsonContains('guests', $studentId)
+        // Collect teacher IDs from the student's groups
+        $teacherIds = $groups->pluck('teacher.id')->filter()->unique()->values()->toArray();
+
+        $events = Event::where(function ($q) use ($studentId, $teacherIds) {
+                $q->whereJsonContains('guests', $studentId);
+                foreach ($teacherIds as $tid) {
+                    $q->orWhere('event_organizer', $tid);
+                }
+            })
             ->where('event_date', '>=', now()->toDateString())
             ->with('organizer:id,username')
             ->orderBy('event_date')
             ->orderBy('event_time')
             ->get()
-            ->map(fn($e) => $this->formatEvent($e));
+            ->unique('id')
+            ->map(fn($e) => $this->formatEvent($e))
+            ->values();
 
         return response()->json([
             'message'  => 'Schedule retrieved successfully',

@@ -22,8 +22,15 @@ Returns a full overview for the student's home screen: groups, upcoming events, 
       {
         "id": 7,
         "title": "Speaking Practice",
-        "start_time": "2026-03-10T15:00:00.000000Z",
-        "end_time": "2026-03-10T16:00:00.000000Z"
+        "type": "class",
+        "event_date": "2026-03-15",
+        "event_time": "15:00:00",
+        "event_duration": 60,
+        "event_meet_link": "https://zoom.us/j/abc123",
+        "organizer": {
+          "id": 4,
+          "username": "teacher_ana"
+        }
       }
     ],
     "pending_homework": [
