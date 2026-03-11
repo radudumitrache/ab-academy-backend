@@ -3,16 +3,15 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Models\Event;
 use App\Models\Group;
 use Illuminate\Support\Facades\Auth;
 
 class ScheduleController extends Controller
 {
     /**
-     * Return the schedule overview for all groups the student belongs to.
-     *
-     * Each group's schedule_days array contains entries like:
-     *   { "day": "Monday", "time": "09:00", "duration": 90 }
+     * Return the schedule overview for all groups the student belongs to,
+     * plus upcoming events the student is invited to.
      */
     public function index()
     {
@@ -24,22 +23,49 @@ class ScheduleController extends Controller
 
         $schedule = $groups->map(function ($group) {
             return [
-                'group_id'          => $group->group_id,
-                'group_name'        => $group->group_name,
-                'description'       => $group->description,
-                'teacher'           => $group->teacher ? [
+                'group_id'             => $group->group_id,
+                'group_name'           => $group->group_name,
+                'description'          => $group->description,
+                'teacher'              => $group->teacher ? [
                     'id'       => $group->teacher->id,
                     'username' => $group->teacher->username,
                 ] : null,
-                'schedule_days'     => $group->schedule_days ?? [],
-                'formatted_schedule' => $group->formatted_schedule,
+                'schedule_days'        => $group->schedule_days ?? [],
+                'formatted_schedule'   => $group->formatted_schedule,
                 'total_weekly_minutes' => $group->total_weekly_minutes,
             ];
         });
 
+        $events = Event::whereJsonContains('guests', $studentId)
+            ->where('event_date', '>=', now()->toDateString())
+            ->with('organizer:id,username')
+            ->orderBy('event_date')
+            ->orderBy('event_time')
+            ->get()
+            ->map(fn($e) => $this->formatEvent($e));
+
         return response()->json([
             'message'  => 'Schedule retrieved successfully',
             'schedule' => $schedule,
+            'events'   => $events,
         ]);
+    }
+
+    private function formatEvent(Event $event): array
+    {
+        return [
+            'id'               => $event->id,
+            'title'            => $event->title,
+            'type'             => $event->type,
+            'event_date'       => $event->event_date,
+            'event_time'       => $event->event_time,
+            'event_duration'   => $event->event_duration,
+            'event_meet_link'  => $event->event_meet_link,
+            'event_notes'      => $event->event_notes,
+            'organizer'        => $event->organizer ? [
+                'id'       => $event->organizer->id,
+                'username' => $event->organizer->username,
+            ] : null,
+        ];
     }
 }

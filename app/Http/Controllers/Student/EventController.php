@@ -16,9 +16,11 @@ class EventController extends Controller
         $studentId = Auth::id();
 
         $events = Event::whereJsonContains('guests', $studentId)
+            ->with('organizer:id,username')
             ->orderBy('event_date')
             ->orderBy('event_time')
-            ->get();
+            ->get()
+            ->map(fn($e) => $this->format($e));
 
         return response()->json([
             'message' => 'Events retrieved successfully',
@@ -34,7 +36,9 @@ class EventController extends Controller
     {
         $studentId = Auth::id();
 
-        $event = Event::whereJsonContains('guests', $studentId)->find($id);
+        $event = Event::whereJsonContains('guests', $studentId)
+            ->with('organizer:id,username')
+            ->find($id);
 
         if (!$event) {
             return response()->json(['message' => 'Event not found'], 404);
@@ -42,7 +46,25 @@ class EventController extends Controller
 
         return response()->json([
             'message' => 'Event retrieved successfully',
-            'event'   => $event,
+            'event'   => $this->format($event),
         ]);
+    }
+
+    private function format(Event $event): array
+    {
+        return [
+            'id'              => $event->id,
+            'title'           => $event->title,
+            'type'            => $event->type,
+            'event_date'      => $event->event_date,
+            'event_time'      => $event->event_time,
+            'event_duration'  => $event->event_duration,
+            'event_meet_link' => $event->event_meet_link,
+            'event_notes'     => $event->event_notes,
+            'organizer'       => $event->organizer ? [
+                'id'       => $event->organizer->id,
+                'username' => $event->organizer->username,
+            ] : null,
+        ];
     }
 }

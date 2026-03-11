@@ -8,7 +8,7 @@ Events are meetings, lessons, or other sessions the teacher/admin has created an
 
 `GET /api/student/events`
 
-Returns all events where the authenticated student appears in the `guests` list, ordered by date and time.
+Returns all events where the authenticated student appears in the `guests` list, ordered by date and time. Includes past events.
 
 **Response** `200`:
 ```json
@@ -19,17 +19,16 @@ Returns all events where the authenticated student appears in the `guests` list,
     {
       "id": 5,
       "title": "Grammar Review Session",
-      "type": "lesson",
-      "event_date": "2026-03-10",
+      "type": "meeting",
+      "event_date": "2026-03-15",
       "event_time": "09:00:00",
       "event_duration": 90,
-      "event_organizer": 4,
-      "guests": [12, 15, 18],
-      "present_guests": [],
-      "event_meet_link": "https://meet.google.com/abc-def-ghi",
+      "event_meet_link": "https://zoom.us/j/abc123",
       "event_notes": "Bring your textbook.",
-      "created_at": "2026-03-07T10:00:00.000000Z",
-      "updated_at": "2026-03-07T10:00:00.000000Z"
+      "organizer": {
+        "id": 4,
+        "username": "teacher_ana"
+      }
     }
   ]
 }
@@ -47,7 +46,20 @@ Returns details of a single event. The student must be listed in `guests`.
 ```json
 {
   "message": "Event retrieved successfully",
-  "event": { ... }
+  "event": {
+    "id": 5,
+    "title": "Grammar Review Session",
+    "type": "meeting",
+    "event_date": "2026-03-15",
+    "event_time": "09:00:00",
+    "event_duration": 90,
+    "event_meet_link": "https://zoom.us/j/abc123",
+    "event_notes": "Bring your textbook.",
+    "organizer": {
+      "id": 4,
+      "username": "teacher_ana"
+    }
+  }
 }
 ```
 
