@@ -46,7 +46,7 @@ Returns the recurring weekly schedule for all groups the student is enrolled in,
 }
 ```
 
-`events` contains upcoming events (today or later) where the student is directly invited **or** where the organizer is the teacher of one of the student's groups. Ordered by date and time. Returns an empty array if none.
+`events` contains upcoming events (today or later) where the student is directly invited (`guests`) **or** where any of the student's **current** groups appears in `guest_groups`. Group removal is respected immediately — if the student leaves a group, they lose access to that group's events. Ordered by date and time. Returns an empty array if none.
 
 Each `schedule_days` entry:
 
