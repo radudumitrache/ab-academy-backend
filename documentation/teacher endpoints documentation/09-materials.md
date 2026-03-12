@@ -3,8 +3,10 @@
 This section covers the API endpoints for managing course materials stored in Google Cloud Storage.
 
 > **Note**: Files can be stored in two locations:
-> - `private` — stored under `teachers/{teacher_id}/` in the bucket. Only the uploading teacher can manage it.
-> - `common` — stored under `common/` in the bucket. Visible to all teachers.
+> - `private` — stored under `teachers/{username}/private/` in the bucket. Only the uploading teacher can manage it.
+> - `common` — stored under `common/` in the bucket. All teachers can view, download, and delete files in the common folder.
+
+> **Note**: Stale DB records (file deleted from GCS) are automatically removed when materials are listed or accessed.
 
 > **Note**: Downloads are served as **signed URLs** valid for 60 minutes. The file is never proxied through the server.
 
@@ -129,7 +131,7 @@ This section covers the API endpoints for managing course materials stored in Go
   ```
   Authorization: Bearer {token}
   ```
-- **Notes**: Teacher must own the file or it must be in the `common` folder.
+- **Notes**: Teacher must own the file or it must be in the `common` folder. Returns `404` and removes the DB record if the file no longer exists in GCS.
 - **Success Response**:
   ```json
   {
@@ -188,7 +190,7 @@ This section covers the API endpoints for managing course materials stored in Go
   ```
   Authorization: Bearer {token}
   ```
-- **Notes**: Teacher must own the material. Removes the file from GCS and the database record.
+- **Notes**: Teacher must own the material **or** the material must be in the `common` folder. Any teacher can delete common-folder files. Removes the file from GCS and the database record.
 - **Success Response**:
   ```json
   { "message": "Material deleted successfully" }

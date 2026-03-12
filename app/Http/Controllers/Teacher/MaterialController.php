@@ -38,6 +38,7 @@ class MaterialController extends Controller
 
     /**
      * List materials uploaded by this teacher plus all common-folder materials.
+     * Stale DB records (file deleted from GCS) are auto-removed.
      */
     public function index()
     {
@@ -48,9 +49,17 @@ class MaterialController extends Controller
               ->orWhere('folder', 'common');
         })->latest()->get();
 
+        $live = $materials->filter(function ($material) {
+            if (!$this->gcs->objectExists($material->gcs_path)) {
+                $material->delete();
+                return false;
+            }
+            return true;
+        })->values();
+
         return response()->json([
             'message'   => 'Materials retrieved successfully',
-            'materials' => $materials,
+            'materials' => $live,
         ]);
     }
 
@@ -119,6 +128,11 @@ class MaterialController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
+        if (!$this->gcs->objectExists($material->gcs_path)) {
+            $material->delete();
+            return response()->json(['message' => 'Material not found'], 404);
+        }
+
         $url = $this->gcs->signedUrl($material->gcs_path, 60);
 
         return response()->json([
@@ -170,14 +184,15 @@ class MaterialController extends Controller
     }
 
     /**
-     * Delete a material the teacher owns (removes from GCS and DB).
+     * Delete a material the teacher owns or any material in the common folder.
+     * Removes from both GCS and DB.
      */
     public function destroy($id)
     {
         $teacherId = Auth::id();
         $material  = Material::findOrFail($id);
 
-        if ($material->uploader_id !== $teacherId) {
+        if ($material->uploader_id !== $teacherId && $material->folder !== 'common') {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

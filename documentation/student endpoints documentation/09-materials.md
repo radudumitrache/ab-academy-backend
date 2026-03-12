@@ -2,12 +2,15 @@
 
 Students can browse and download course materials. Files are served as **60-minute signed GCS URLs** — never proxied through the server.
 
-> A student can see a material if **any** of the following is true:
-> - The material's `folder` starts with `common` (publicly accessible to all students — read-only)
-> - Their user ID appears in `allowed_users`
+> A student can see a material only if **explicitly granted access**:
+> - Their user ID appears in `allowed_users`, **or**
 > - They belong to a group listed in `allowed_groups`
 >
+> Students do **not** have automatic access to the `common` folder. Access to common-folder files must be granted individually or via a group, same as private files.
+>
 > Students have **no edit or delete** endpoints — all access is read-only.
+>
+> Stale materials (file deleted from GCS but DB record still present) are automatically cleaned up when listed or accessed.
 
 ---
 
@@ -15,7 +18,7 @@ Students can browse and download course materials. Files are served as **60-minu
 
 `GET /api/student/materials`
 
-Returns all materials the student has access to: materials in the `common` folder (visible to all students), materials granted directly via `allowed_users`, or via group membership (`allowed_groups`).
+Returns all materials the student has been explicitly granted access to via `allowed_users` or `allowed_groups`. Stale DB records (file no longer in GCS) are removed automatically.
 
 **Response** `200`:
 ```json
@@ -43,7 +46,7 @@ Returns all materials the student has access to: materials in the `common` folde
 
 `GET /api/student/materials/{id}`
 
-Returns material details and a time-limited signed download URL. Student must have access (material is in `common` folder, or via `allowed_users` / `allowed_groups`).
+Returns material details and a time-limited signed download URL. Student must have been explicitly granted access via `allowed_users` or `allowed_groups`.
 
 **Response** `200`:
 ```json
@@ -63,4 +66,4 @@ Returns material details and a time-limited signed download URL. Student must ha
 }
 ```
 
-**Errors**: `403` if the material is not in the `common` folder, the student is not in `allowed_users`, and does not belong to any group in `allowed_groups`.
+**Errors**: `403` if the student is not in `allowed_users` and does not belong to any group in `allowed_groups`. `404` if the file no longer exists in GCS (record is also removed).

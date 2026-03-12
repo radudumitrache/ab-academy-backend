@@ -12,7 +12,8 @@ class MaterialController extends Controller
     public function __construct(private GcsService $gcs) {}
 
     /**
-     * List all materials the student has access to (via allowed_users or allowed_groups).
+     * List all materials the student has been explicitly granted access to.
+     * Stale DB records (file deleted from GCS) are auto-removed.
      */
     public function index()
     {
@@ -20,7 +21,14 @@ class MaterialController extends Controller
         $groupIds  = $this->studentGroupIds($studentId);
 
         $materials = Material::all()->filter(function ($material) use ($studentId, $groupIds) {
-            return $this->hasAccess($material, $studentId, $groupIds);
+            if (!$this->hasAccess($material, $studentId, $groupIds)) {
+                return false;
+            }
+            if (!$this->gcs->objectExists($material->gcs_path)) {
+                $material->delete();
+                return false;
+            }
+            return true;
         })->values();
 
         return response()->json([
@@ -30,7 +38,7 @@ class MaterialController extends Controller
     }
 
     /**
-     * Get a signed download URL for a material the student has access to.
+     * Get a signed download URL for a material the student has been explicitly granted access to.
      */
     public function show($id)
     {
@@ -40,6 +48,11 @@ class MaterialController extends Controller
 
         if (!$this->hasAccess($material, $studentId, $groupIds)) {
             return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        if (!$this->gcs->objectExists($material->gcs_path)) {
+            $material->delete();
+            return response()->json(['message' => 'Material not found'], 404);
         }
 
         $url = $this->gcs->signedUrl($material->gcs_path, 60);
@@ -65,15 +78,10 @@ class MaterialController extends Controller
 
     /**
      * Check whether a student has access to a material.
-     * Students have read access to all materials in the `common` folder,
-     * plus any material explicitly granted via allowed_users or allowed_groups.
+     * Access is granted only via explicit allowed_users or allowed_groups grants.
      */
     private function hasAccess(Material $material, int $studentId, array $groupIds): bool
     {
-        if (str_starts_with($material->folder ?? '', 'common')) {
-            return true;
-        }
-
         if (in_array($studentId, $material->allowed_users ?? [])) {
             return true;
         }

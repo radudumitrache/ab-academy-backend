@@ -70,6 +70,14 @@ class GcsService
     }
 
     /**
+     * Check whether an object exists in GCS.
+     */
+    public function objectExists(string $path): bool
+    {
+        return $this->client->bucket($this->bucketName)->object($path)->exists();
+    }
+
+    /**
      * Delete an object from GCS.
      */
     public function delete(string $path): void
