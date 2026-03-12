@@ -17,6 +17,7 @@ class Event extends Model
         'event_duration',
         'event_organizer',
         'guests',
+        'guest_groups',
         'present_guests',
         'event_meet_link',
         'event_start_link',
@@ -25,8 +26,9 @@ class Event extends Model
     ];
 
     protected $casts = [
-        'event_date' => 'date',
-        'guests' => 'array',
+        'event_date'   => 'date',
+        'guests'       => 'array',
+        'guest_groups' => 'array',
         'present_guests' => 'array',
     ];
 

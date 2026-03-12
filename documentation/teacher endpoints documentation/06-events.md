@@ -16,6 +16,7 @@ Teachers can view events they are involved in (as organizer or guest), create ne
   "event_duration": 60,
   "event_organizer": 4,
   "guests": [12, 15, 19],
+  "guest_groups": [2, 5],
   "present_guests": null,
   "event_meet_link": "https://us05web.zoom.us/j/12345678?pwd=...",
   "event_start_link": "https://us05web.zoom.us/s/12345678?zak=...",
@@ -40,7 +41,8 @@ Teachers can view events they are involved in (as organizer or guest), create ne
 | `event_time` | Start time (`HH:MM:SS`) |
 | `event_duration` | Duration in minutes |
 | `event_organizer` | User ID of the organizer |
-| `guests` | Array of user IDs invited to the event |
+| `guests` | Array of individual user IDs invited directly |
+| `guest_groups` | Array of group IDs — all members of these groups can see the event |
 | `present_guests` | Array of guest IDs who attended (managed separately) |
 | `event_meet_link` | Guest join URL (populated after Zoom meeting creation) |
 | `event_start_link` | Host start URL for the organizer — opens meeting as the owner (populated after Zoom meeting creation). Contains an embedded token that expires ~2 hours after creation. |
@@ -136,6 +138,7 @@ Creates a new event. The authenticated teacher is automatically set as the organ
     "event_time": "14:00",
     "event_duration": 60,
     "guests": [12, 15, 19],
+    "guest_groups": [2, 5],
     "event_meet_link": "https://meet.google.com/abc-defg-hij",
     "event_notes": "Bring attendance records."
   }
@@ -149,7 +152,8 @@ Creates a new event. The authenticated teacher is automatically set as the organ
   | `event_date` | string | Yes | Any valid date (e.g. `2026-03-10`) |
   | `event_time` | string | Yes | `HH:MM` format |
   | `event_duration` | integer | Yes | Duration in minutes, minimum 1 |
-  | `guests` | array | No | Array of user IDs to invite |
+  | `guests` | array | No | Individual user IDs to invite directly |
+  | `guest_groups` | array | No | Group IDs — all members of each group can see and join the event |
   | `event_meet_link` | string | No | Valid URL, max 2048 characters |
   | `event_notes` | string | No | Free-text notes |
 
@@ -196,7 +200,8 @@ All fields are optional — only provided fields are changed.
   {
     "title": "Updated Meeting Title",
     "event_date": "2026-03-12",
-    "guests": [12, 15, 20]
+    "guests": [12, 15, 20],
+    "guest_groups": [2, 5]
   }
   ```
 

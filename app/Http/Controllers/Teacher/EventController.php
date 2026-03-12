@@ -84,6 +84,8 @@ class EventController extends Controller
             'event_duration'  => 'required|integer|min:1',
             'guests'          => 'nullable|array',
             'guests.*'        => 'integer|exists:users,id',
+            'guest_groups'    => 'nullable|array',
+            'guest_groups.*'  => 'integer|exists:groups,group_id',
             'event_meet_link' => 'nullable|url|max:2048',
             'event_notes'     => 'nullable|string',
         ]);
@@ -121,6 +123,8 @@ class EventController extends Controller
             'event_duration'  => 'sometimes|integer|min:1',
             'guests'          => 'nullable|array',
             'guests.*'        => 'integer|exists:users,id',
+            'guest_groups'    => 'nullable|array',
+            'guest_groups.*'  => 'integer|exists:groups,group_id',
             'event_meet_link' => 'nullable|url|max:2048',
             'event_notes'     => 'nullable|string',
         ]);

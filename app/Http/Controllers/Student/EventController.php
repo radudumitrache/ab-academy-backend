@@ -4,18 +4,27 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use App\Models\Group;
 use Illuminate\Support\Facades\Auth;
 
 class EventController extends Controller
 {
     /**
-     * List all events the authenticated student is invited to (appears in guests array).
+     * List all events the authenticated student is invited to:
+     * - directly (their ID appears in `guests`), or
+     * - via group membership (any of their groups appears in `guest_groups`).
      */
     public function index()
     {
         $studentId = Auth::id();
+        $groupIds  = $this->studentGroupIds($studentId);
 
-        $events = Event::whereJsonContains('guests', $studentId)
+        $events = Event::where(function ($q) use ($studentId, $groupIds) {
+                $q->whereJsonContains('guests', $studentId);
+                foreach ($groupIds as $gid) {
+                    $q->orWhereJsonContains('guest_groups', $gid);
+                }
+            })
             ->with('organizer:id,username')
             ->orderBy('event_date')
             ->orderBy('event_time')
@@ -30,17 +39,16 @@ class EventController extends Controller
     }
 
     /**
-     * Show a single event. The student must be a guest.
+     * Show a single event. The student must be directly invited or a member of an invited group.
      */
     public function show($id)
     {
         $studentId = Auth::id();
+        $groupIds  = $this->studentGroupIds($studentId);
 
-        $event = Event::whereJsonContains('guests', $studentId)
-            ->with('organizer:id,username')
-            ->find($id);
+        $event = Event::with('organizer:id,username')->find($id);
 
-        if (!$event) {
+        if (!$event || !$this->studentHasAccess($event, $studentId, $groupIds)) {
             return response()->json(['message' => 'Event not found'], 404);
         }
 
@@ -48,6 +56,26 @@ class EventController extends Controller
             'message' => 'Event retrieved successfully',
             'event'   => $this->format($event),
         ]);
+    }
+
+    private function studentGroupIds(int $studentId): array
+    {
+        return Group::whereHas('students', fn($q) => $q->where('student_id', $studentId))
+            ->pluck('group_id')
+            ->toArray();
+    }
+
+    private function studentHasAccess(Event $event, int $studentId, array $groupIds): bool
+    {
+        if (in_array($studentId, $event->guests ?? [])) {
+            return true;
+        }
+        foreach ($groupIds as $gid) {
+            if (in_array($gid, $event->guest_groups ?? [])) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function format(Event $event): array

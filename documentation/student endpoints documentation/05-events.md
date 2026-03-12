@@ -8,7 +8,7 @@ Events are meetings, lessons, or other sessions the teacher/admin has created an
 
 `GET /api/student/events`
 
-Returns all events where the authenticated student appears in the `guests` list, ordered by date and time. Includes past events.
+Returns all events the student is invited to — either directly (their ID appears in `guests`) or via group membership (any of their groups appears in `guest_groups`). Ordered by date and time. Includes past events.
 
 **Response** `200`:
 ```json
@@ -40,7 +40,7 @@ Returns all events where the authenticated student appears in the `guests` list,
 
 `GET /api/student/events/{id}`
 
-Returns details of a single event. The student must be listed in `guests`.
+Returns details of a single event. The student must be directly invited (`guests`) or a member of an invited group (`guest_groups`).
 
 **Response** `200`:
 ```json
@@ -63,4 +63,4 @@ Returns details of a single event. The student must be listed in `guests`.
 }
 ```
 
-**Errors**: `404` if not found or student is not a guest.
+**Errors**: `404` if not found or the student has no access (not in `guests` and not in any invited group).
