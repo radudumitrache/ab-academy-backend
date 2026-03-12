@@ -17,8 +17,10 @@ Teachers can view events they are involved in (as organizer or guest), create ne
   "event_organizer": 4,
   "guests": [12, 15, 19],
   "present_guests": null,
-  "event_meet_link": "https://meet.google.com/abc-defg-hij",
+  "event_meet_link": "https://us05web.zoom.us/j/12345678?pwd=...",
+  "event_start_link": "https://us05web.zoom.us/s/12345678?zak=...",
   "event_notes": "Bring attendance records.",
+  "meeting_account_id": 1,
   "organizer": {
     "id": 4,
     "username": "teacher1",
@@ -40,8 +42,10 @@ Teachers can view events they are involved in (as organizer or guest), create ne
 | `event_organizer` | User ID of the organizer |
 | `guests` | Array of user IDs invited to the event |
 | `present_guests` | Array of guest IDs who attended (managed separately) |
-| `event_meet_link` | Optional meeting URL |
+| `event_meet_link` | Guest join URL (populated after Zoom meeting creation) |
+| `event_start_link` | Host start URL for the organizer — opens meeting as the owner (populated after Zoom meeting creation). Contains an embedded token that expires ~2 hours after creation. |
 | `event_notes` | Optional free-text notes |
+| `meeting_account_id` | ID of the `MeetingAccount` used to create the Zoom meeting |
 | `organizer` | Full organizer object (eager-loaded) |
 
 ---
@@ -353,7 +357,7 @@ Only the event organizer may call this endpoint.
 
 ## Create Zoom Meeting
 
-Automatically selects an available (non-conflicting) meeting account and creates a Zoom meeting for the event. Only the event organizer may call this. Stores the resulting join URL in `event_meet_link` and associates the chosen account via `meeting_account_id`.
+Automatically selects an available (non-conflicting) meeting account and creates a Zoom meeting for the event. Only the event organizer may call this. Stores the guest join URL in `event_meet_link`, the host start URL in `event_start_link`, and associates the chosen account via `meeting_account_id`.
 
 - **URL**: `POST /api/teacher/events/{id}/create-zoom-meeting`
 - **Auth Required**: Yes
@@ -366,10 +370,12 @@ Automatically selects an available (non-conflicting) meeting account and creates
       "id": 1,
       "title": "Math Class",
       "event_meet_link": "https://us05web.zoom.us/j/12345678?pwd=...",
+      "event_start_link": "https://us05web.zoom.us/s/12345678?zak=...",
       "meeting_account_id": 1,
       ...
     },
-    "meeting_link": "https://us05web.zoom.us/j/12345678?pwd=..."
+    "meeting_link": "https://us05web.zoom.us/j/12345678?pwd=...",
+    "start_link": "https://us05web.zoom.us/s/12345678?zak=..."
   }
   ```
 - **Error Responses**:
@@ -379,6 +385,10 @@ Automatically selects an available (non-conflicting) meeting account and creates
   - `502` — Zoom API call failed (error message included)
 
 **How account selection works**: All active meeting accounts already assigned to another event with an overlapping time window on the same date are excluded. The first remaining active account is used.
+
+**Host vs guest URLs**:
+- `meeting_link` / `event_meet_link` — the guest join URL. Share this with students and other attendees.
+- `start_link` / `event_start_link` — the host start URL. Show this **only to the event organizer**. Opening it launches the meeting with the organizer as the Zoom host (owner). Contains an embedded token that expires approximately 2 hours after creation — for events scheduled further in advance, re-fetch via the Zoom API if needed.
 
 ---
 

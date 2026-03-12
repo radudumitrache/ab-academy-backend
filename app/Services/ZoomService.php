@@ -31,9 +31,9 @@ class ZoomService
 
     /**
      * Create a scheduled Zoom meeting for the given event.
-     * Returns the join_url.
+     * Returns ['join_url' => ..., 'start_url' => ...].
      */
-    public function createMeeting(MeetingAccount $account, Event $event): string
+    public function createMeeting(MeetingAccount $account, Event $event): array
     {
         $token = $this->getAccessToken($account);
 
@@ -57,6 +57,9 @@ class ZoomService
             );
         }
 
-        return $response->json('join_url');
+        return [
+            'join_url'  => $response->json('join_url'),
+            'start_url' => $response->json('start_url'),
+        ];
     }
 }

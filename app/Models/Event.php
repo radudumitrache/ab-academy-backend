@@ -19,6 +19,7 @@ class Event extends Model
         'guests',
         'present_guests',
         'event_meet_link',
+        'event_start_link',
         'event_notes',
         'meeting_account_id',
     ];
