@@ -154,20 +154,22 @@ class EventController extends Controller
         }
 
         try {
-            $joinUrl = $zoom->createMeeting($account, $event);
+            $urls = $zoom->createMeeting($account, $event);
         } catch (\Throwable $e) {
             return response()->json(['message' => 'Zoom meeting creation failed: ' . $e->getMessage()], 502);
         }
 
         $event->update([
             'meeting_account_id' => $account->id,
-            'event_meet_link'    => $joinUrl,
+            'event_meet_link'    => $urls['join_url'],
+            'event_start_link'   => $urls['start_url'],
         ]);
 
         return response()->json([
             'message'      => 'Zoom meeting created successfully',
             'event'        => $event->fresh('organizer'),
-            'meeting_link' => $joinUrl,
+            'meeting_link' => $urls['join_url'],
+            'start_link'   => $urls['start_url'],
         ]);
     }
 }

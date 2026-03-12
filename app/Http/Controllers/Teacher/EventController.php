@@ -27,7 +27,12 @@ class EventController extends Controller
             })
             ->orderBy('event_date')
             ->orderBy('event_time')
-            ->get();
+            ->get()
+            ->map(function ($event) use ($teacherId) {
+                return (int) $event->event_organizer !== $teacherId
+                    ? $event->makeHidden('event_start_link')
+                    : $event;
+            });
 
         return response()->json([
             'message' => 'Events retrieved successfully',
@@ -54,6 +59,10 @@ class EventController extends Controller
         $guestUsers = User::whereIn('id', $guestIds)
             ->select('id', 'username', 'email', 'role')
             ->get();
+
+        if ((int) $event->event_organizer !== Auth::id()) {
+            $event->makeHidden('event_start_link');
+        }
 
         return response()->json([
             'message'     => 'Event retrieved successfully',

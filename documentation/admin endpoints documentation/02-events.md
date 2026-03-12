@@ -177,7 +177,7 @@ This section covers the API endpoints for managing events in the AB Academy plat
 
 ## Create Zoom Meeting
 
-Automatically selects an available (non-conflicting) meeting account and creates a Zoom meeting for the event. Stores the resulting join URL in `event_meet_link` and associates the chosen account via `meeting_account_id`.
+Automatically selects an available (non-conflicting) meeting account and creates a Zoom meeting for the event. Stores the guest join URL in `event_meet_link`, the host start URL in `event_start_link`, and associates the chosen account via `meeting_account_id`.
 
 - **URL**: `/api/admin/events/{id}/create-zoom-meeting`
 - **Method**: `POST`
@@ -191,10 +191,12 @@ Automatically selects an available (non-conflicting) meeting account and creates
       "id": 1,
       "title": "Math Class",
       "event_meet_link": "https://us05web.zoom.us/j/12345678?pwd=...",
+      "event_start_link": "https://us05web.zoom.us/s/12345678?zak=...",
       "meeting_account_id": 1,
       ...
     },
-    "meeting_link": "https://us05web.zoom.us/j/12345678?pwd=..."
+    "meeting_link": "https://us05web.zoom.us/j/12345678?pwd=...",
+    "start_link": "https://us05web.zoom.us/s/12345678?zak=..."
   }
   ```
 - **Error Responses**:
