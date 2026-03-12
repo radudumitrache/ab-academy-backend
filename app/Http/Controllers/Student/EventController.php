@@ -3,33 +3,42 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Student\Concerns\ResolveStudentGroups;
 use App\Models\Event;
-use App\Models\Group;
 use Illuminate\Support\Facades\Auth;
 
 class EventController extends Controller
 {
+    use ResolveStudentGroups;
+
     /**
-     * List all events the authenticated student is invited to:
+     * List all events the authenticated student has access to:
      * - directly (their ID appears in `guests`), or
-     * - via group membership (any of their groups appears in `guest_groups`).
+     * - via group invite (any of their groups appears in `guest_groups`), or
+     * - via group teacher (event organizer is the teacher of one of their groups).
+     *   This ensures students who join a group after events are scheduled still see them.
      */
     public function index()
     {
         $studentId = Auth::id();
-        $groupIds  = $this->studentGroupIds($studentId);
+        [$groupIds, $teacherIds] = $this->studentGroupContext($studentId);
 
-        $events = Event::where(function ($q) use ($studentId, $groupIds) {
+        $events = Event::where(function ($q) use ($studentId, $groupIds, $teacherIds) {
                 $q->whereJsonContains('guests', $studentId);
                 foreach ($groupIds as $gid) {
                     $q->orWhereJsonContains('guest_groups', $gid);
+                }
+                if (!empty($teacherIds)) {
+                    $q->orWhereIn('event_organizer', $teacherIds);
                 }
             })
             ->with('organizer:id,username')
             ->orderBy('event_date')
             ->orderBy('event_time')
             ->get()
-            ->map(fn($e) => $this->format($e));
+            ->unique('id')
+            ->map(fn($e) => $this->format($e))
+            ->values();
 
         return response()->json([
             'message' => 'Events retrieved successfully',
@@ -39,16 +48,16 @@ class EventController extends Controller
     }
 
     /**
-     * Show a single event. The student must be directly invited or a member of an invited group.
+     * Show a single event. Access is granted via direct invite, group invite, or group teacher.
      */
     public function show($id)
     {
         $studentId = Auth::id();
-        $groupIds  = $this->studentGroupIds($studentId);
+        [$groupIds, $teacherIds] = $this->studentGroupContext($studentId);
 
         $event = Event::with('organizer:id,username')->find($id);
 
-        if (!$event || !$this->studentHasAccess($event, $studentId, $groupIds)) {
+        if (!$event || !$this->studentHasAccess($event, $studentId, $groupIds, $teacherIds)) {
             return response()->json(['message' => 'Event not found'], 404);
         }
 
@@ -58,14 +67,7 @@ class EventController extends Controller
         ]);
     }
 
-    private function studentGroupIds(int $studentId): array
-    {
-        return Group::whereHas('students', fn($q) => $q->where('student_id', $studentId))
-            ->pluck('group_id')
-            ->toArray();
-    }
-
-    private function studentHasAccess(Event $event, int $studentId, array $groupIds): bool
+    private function studentHasAccess(Event $event, int $studentId, array $groupIds, array $teacherIds): bool
     {
         if (in_array($studentId, $event->guests ?? [])) {
             return true;
@@ -74,6 +76,9 @@ class EventController extends Controller
             if (in_array($gid, $event->guest_groups ?? [])) {
                 return true;
             }
+        }
+        if (in_array((int) $event->event_organizer, $teacherIds)) {
+            return true;
         }
         return false;
     }

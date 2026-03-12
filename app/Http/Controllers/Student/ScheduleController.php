@@ -3,15 +3,24 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Student\Concerns\ResolveStudentGroups;
 use App\Models\Event;
 use App\Models\Group;
 use Illuminate\Support\Facades\Auth;
 
 class ScheduleController extends Controller
 {
+    use ResolveStudentGroups;
+
     /**
      * Return the schedule overview for all groups the student belongs to,
-     * plus upcoming events the student is invited to.
+     * plus upcoming events the student has access to.
+     *
+     * Event access is granted if:
+     *  - the student is directly in `guests`, or
+     *  - any of their groups is in `guest_groups`, or
+     *  - the event organizer is the teacher of one of their groups
+     *    (covers events scheduled before the student joined the group).
      */
     public function index()
     {
@@ -36,12 +45,16 @@ class ScheduleController extends Controller
             ];
         });
 
-        $groupIds = $groups->pluck('group_id')->toArray();
+        $groupIds   = $groups->pluck('group_id')->toArray();
+        $teacherIds = $groups->pluck('teacher.id')->filter()->unique()->values()->toArray();
 
-        $events = Event::where(function ($q) use ($studentId, $groupIds) {
+        $events = Event::where(function ($q) use ($studentId, $groupIds, $teacherIds) {
                 $q->whereJsonContains('guests', $studentId);
                 foreach ($groupIds as $gid) {
                     $q->orWhereJsonContains('guest_groups', $gid);
+                }
+                if (!empty($teacherIds)) {
+                    $q->orWhereIn('event_organizer', $teacherIds);
                 }
             })
             ->where('event_date', '>=', now()->toDateString())
