@@ -9,21 +9,21 @@ use App\Http\Controllers\Admin\GroupController;
  * Middleware: auth:api
  */
 
-// Group CRUD operations
-Route::get('/groups', [GroupController::class, 'index'])->middleware('auth:api');
-Route::post('/groups', [GroupController::class, 'store'])->middleware('auth:api');
+Route::middleware('auth:api')->group(function () {
+    Route::get('/groups', [GroupController::class, 'index']);
+    Route::post('/groups', [GroupController::class, 'store']);
 
-// Group schedule options - must be before the {id} route to avoid conflicts
-Route::get('/groups/schedule/options', [GroupController::class, 'getScheduleOptions'])->middleware('auth:api');
+    // Must be before /{id} to avoid route conflicts
+    Route::get('/groups/schedule/options', [GroupController::class, 'getScheduleOptions']);
 
-// Group detail routes
-Route::get('/groups/{id}', [GroupController::class, 'show'])->middleware('auth:api');
-Route::put('/groups/{id}', [GroupController::class, 'update'])->middleware('auth:api');
-Route::delete('/groups/{id}', [GroupController::class, 'destroy'])->middleware('auth:api');
+    Route::get('/groups/{id}', [GroupController::class, 'show']);
+    Route::put('/groups/{id}', [GroupController::class, 'update']);
+    Route::delete('/groups/{id}', [GroupController::class, 'destroy']);
 
-// Add/Remove students from groups
-Route::post('/groups/{id}/students', [GroupController::class, 'addStudent'])->middleware('auth:api');
-Route::delete('/groups/{groupId}/students/{studentId}', [GroupController::class, 'removeStudent'])->middleware('auth:api');
+    Route::post('/groups/{id}/students', [GroupController::class, 'addStudent']);
+    Route::post('/groups/{id}/students/by-username', [GroupController::class, 'addStudentByUsername']);
+    Route::delete('/groups/{groupId}/students/{studentId}', [GroupController::class, 'removeStudent']);
 
-// Update group members
-Route::put('/groups/{id}/members', [GroupController::class, 'updateGroupMembers'])->middleware('auth:api');
+    Route::put('/groups/{id}/members', [GroupController::class, 'updateGroupMembers']);
+    Route::post('/groups/{id}/generate-code', [GroupController::class, 'generateCode']);
+});

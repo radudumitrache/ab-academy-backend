@@ -47,11 +47,12 @@ class GroupController extends Controller
             'group_name'              => 'required|string|max:255',
             'group_teacher'           => 'required|exists:users,id',
             'description'             => 'nullable|string',
-            'schedule_days'           => 'required|array|min:1',
-            'schedule_days.*.day'     => 'required|string|in:' . implode(',', Group::getAvailableDays()),
-            'schedule_days.*.time'    => 'required|date_format:H:i',
-            'group_members'           => 'nullable|array',
-            'group_members.*'         => 'exists:users,id',
+            'schedule_days'              => 'required|array|min:1',
+            'schedule_days.*.day'        => 'required|string|in:' . implode(',', Group::getAvailableDays()),
+            'schedule_days.*.time'       => 'required|date_format:H:i',
+            'schedule_days.*.duration'   => 'required|integer|min:1',
+            'group_members'              => 'nullable|array',
+            'group_members.*'            => 'exists:users,id',
         ]);
 
         if ($validator->fails()) {
@@ -122,11 +123,12 @@ class GroupController extends Controller
             'group_name'              => 'sometimes|string|max:255',
             'group_teacher'           => 'sometimes|exists:users,id',
             'description'             => 'nullable|string',
-            'schedule_days'           => 'sometimes|array|min:1',
-            'schedule_days.*.day'     => 'required_with:schedule_days|string|in:' . implode(',', Group::getAvailableDays()),
-            'schedule_days.*.time'    => 'required_with:schedule_days|date_format:H:i',
-            'group_members'           => 'sometimes|array',
-            'group_members.*'         => 'exists:users,id',
+            'schedule_days'              => 'sometimes|array|min:1',
+            'schedule_days.*.day'        => 'required_with:schedule_days|string|in:' . implode(',', Group::getAvailableDays()),
+            'schedule_days.*.time'       => 'required_with:schedule_days|date_format:H:i',
+            'schedule_days.*.duration'   => 'required_with:schedule_days|integer|min:1',
+            'group_members'              => 'sometimes|array',
+            'group_members.*'            => 'exists:users,id',
         ]);
 
         if ($validator->fails()) {
@@ -227,7 +229,10 @@ class GroupController extends Controller
             'Admin added student to group', ['student_id' => $request->student_id]
         );
 
-        return response()->json(['message' => 'Student added to group successfully'], 200);
+        return response()->json([
+            'message' => 'Student added to group successfully',
+            'group'   => $group->load(['teacher', 'students']),
+        ], 200);
     }
 
     /**
@@ -256,6 +261,77 @@ class GroupController extends Controller
         return response()->json([
             'message' => 'Student removed from group successfully',
             'group'   => $group->load(['teacher', 'students']),
+        ], 200);
+    }
+
+    /**
+     * Add a student to a group by their username.
+     */
+    public function addStudentByUsername(Request $request, $id)
+    {
+        $group = Group::find($id);
+
+        if (!$group) {
+            return response()->json(['message' => 'Group not found'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'username' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $student = Student::where('username', $request->username)->first();
+
+        if (!$student) {
+            return response()->json([
+                'message' => 'Student not found or user is not a student',
+            ], 404);
+        }
+
+        if ($group->students()->where('student_id', $student->id)->exists()) {
+            return response()->json(['message' => 'Student is already in this group'], 409);
+        }
+
+        $group->students()->attach($student->id);
+
+        DatabaseLog::logAction(
+            'updated', 'Group', $group->group_id,
+            'Admin added student to group by username', ['username' => $request->username, 'student_id' => $student->id]
+        );
+
+        return response()->json([
+            'message' => 'Student added to group successfully',
+            'group'   => $group->load(['teacher', 'students']),
+        ], 200);
+    }
+
+    /**
+     * Generate (or regenerate) a unique 8-character class code for the group.
+     */
+    public function generateCode($id)
+    {
+        $group = Group::find($id);
+
+        if (!$group) {
+            return response()->json(['message' => 'Group not found'], 404);
+        }
+
+        $group->update(['class_code' => Group::generateClassCode()]);
+
+        DatabaseLog::logAction(
+            'updated', 'Group', $group->group_id,
+            'Admin generated class code', ['class_code' => $group->class_code]
+        );
+
+        return response()->json([
+            'message'    => 'Class code generated successfully',
+            'class_code' => $group->class_code,
         ], 200);
     }
 

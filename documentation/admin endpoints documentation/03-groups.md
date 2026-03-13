@@ -1,284 +1,318 @@
-# Groups
+# Group Management
 
-This section covers the API endpoints for managing student groups in the AB Academy platform.
+Admins have full access to **all groups** — no ownership filter applies. They can create, edit, delete, and manage members of any group, regardless of which teacher owns it.
 
-> **Note**: `schedule_days` is an array of `{ day, time, duration }` objects — a group can have multiple session slots per week. Times use 24-hour `HH:MM` format. `duration` is in minutes.
+---
 
-> **Note**: The `class_code` field is a unique 8-character alphanumeric code that students use to join a group. It is `null` until the owning teacher generates one via `POST /api/teacher/groups/{id}/generate-code`. Admins have read-only visibility of this field.
+## Group Object
 
-## List All Groups
+```json
+{
+  "group_id": 3,
+  "group_name": "English A1",
+  "group_teacher": 4,
+  "description": "Beginner English group.",
+  "class_code": "AB12CD34",
+  "schedule_days": [
+    { "day": "Monday",    "time": "18:00", "duration": 90 },
+    { "day": "Wednesday", "time": "18:00", "duration": 90 }
+  ],
+  "formatted_schedule": "Monday at 18:00 (90min), Wednesday at 18:00 (90min)",
+  "total_weekly_minutes": 180,
+  "group_members": [12, 15, 19],
+  "teacher": {
+    "id": 4,
+    "username": "teacher_ana",
+    "role": "teacher"
+  },
+  "students": [
+    { "id": 12, "username": "student1", "role": "student" },
+    { "id": 15, "username": "student2", "role": "student" }
+  ],
+  "created_at": "2026-01-10T09:00:00.000000Z",
+  "updated_at": "2026-02-01T14:30:00.000000Z",
+  "deleted_at": null
+}
+```
 
-- **URL**: `/api/admin/groups`
-- **Method**: `GET`
-- **Auth Required**: Yes
-- **Headers**:
-  ```
-  Authorization: Bearer {token}
-  ```
-- **Success Response**:
-  ```json
-  {
-    "message": "Groups retrieved successfully",
-    "groups": [
-      {
-        "group_id": 1,
-        "group_name": "Math Group",
-        "group_teacher": 2,
-        "description": "Advanced mathematics study group",
-        "class_code": "AB12CD34",
-        "schedule_days": [
-          { "day": "Monday",    "time": "14:30", "duration": 90 },
-          { "day": "Wednesday", "time": "14:30", "duration": 90 }
-        ],
-        "formatted_schedule": "Monday at 14:30 (90min), Wednesday at 14:30 (90min)",
-        "total_weekly_minutes": 180,
-        "group_members": [3, 4, 5],
-        "teacher": {
-          "id": 2,
-          "username": "teacher1",
-          "role": "teacher"
-        },
-        "students": [
-          { "id": 3, "username": "student1", "role": "student" },
-          { "id": 4, "username": "student2", "role": "student" },
-          { "id": 5, "username": "student3", "role": "student" }
-        ]
-      }
-    ]
-  }
-  ```
+| Field | Description |
+|---|---|
+| `group_id` | Unique group identifier |
+| `group_name` | Display name of the group |
+| `group_teacher` | User ID of the owning teacher |
+| `description` | Optional free-text description |
+| `class_code` | 8-character alphanumeric code (`null` until generated) |
+| `schedule_days` | Array of `{ day, time, duration }` objects — one per session slot |
+| `schedule_days[].day` | Day of the week (e.g. `Monday`) |
+| `schedule_days[].time` | Start time in `HH:MM` 24-hour format |
+| `schedule_days[].duration` | Session length in minutes |
+| `formatted_schedule` | Human-readable schedule string |
+| `total_weekly_minutes` | Sum of all session durations per week |
+| `group_members` | Array of student user IDs currently in the group |
+| `teacher` | Resolved teacher object |
+| `students` | Full student objects (eager-loaded) |
+
+---
 
 ## Get Schedule Options
 
-- **URL**: `/api/admin/groups/schedule/options`
-- **Method**: `GET`
-- **Auth Required**: Yes
-- **Headers**:
-  ```
-  Authorization: Bearer {token}
-  ```
-- **Success Response**:
-  ```json
-  {
-    "message": "Schedule options retrieved successfully",
-    "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-    "times": ["08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30", "20:00", "20:30"]
-  }
-  ```
+`GET /api/admin/groups/schedule/options`
+
+Returns allowed values for `schedule_days[].day` and `schedule_days[].time`.
+
+**Response** `200`:
+```json
+{
+  "message": "Schedule options retrieved successfully",
+  "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+  "times": ["08:00", "08:30", "09:00", "09:30", "...", "20:00", "20:30"]
+}
+```
+
+---
+
+## List All Groups
+
+`GET /api/admin/groups`
+
+Returns all groups (all teachers) with teacher and students eager-loaded.
+
+**Response** `200`:
+```json
+{
+  "message": "Groups retrieved successfully",
+  "groups": [ { ...group object... } ]
+}
+```
+
+---
+
+## Get Single Group
+
+`GET /api/admin/groups/{id}`
+
+**Response** `200`:
+```json
+{
+  "message": "Group retrieved successfully",
+  "group": { ...group object... }
+}
+```
+
+**Errors**: `404` if not found.
+
+---
 
 ## Create Group
 
-- **URL**: `/api/admin/groups`
-- **Method**: `POST`
-- **Auth Required**: Yes
-- **Headers**:
-  ```
-  Authorization: Bearer {token}
-  Content-Type: application/json
-  ```
-- **Request Body**:
-  ```json
-  {
-    "group_name": "Science Group",
-    "group_teacher": 2,
-    "description": "Physics and chemistry study group",
-    "schedule_days": [
-      { "day": "Tuesday",  "time": "15:30", "duration": 90 },
-      { "day": "Thursday", "time": "15:30", "duration": 90 }
-    ],
-    "group_members": [3, 4, 5]
-  }
-  ```
-- **Field Notes**:
+`POST /api/admin/groups`
 
-  | Field | Type | Required | Notes |
-  |-------|------|----------|-------|
-  | `group_name` | string | Yes | Max 255 characters |
-  | `group_teacher` | integer | Yes | Must be a valid teacher user ID |
-  | `description` | string | No | Free-text |
-  | `schedule_days` | array | Yes | At least one entry required |
-  | `schedule_days[].day` | string | Yes | Must be a valid day (see Schedule Options) |
-  | `schedule_days[].time` | string | Yes | `HH:MM` 24-hour format |
-  | `schedule_days[].duration` | integer | Yes | Session length in minutes (e.g. `90`) |
-  | `group_members` | array | No | Array of valid student user IDs |
+Unlike teachers (who are auto-assigned as organizer), admins must explicitly provide `group_teacher`.
 
-- **Success Response**:
-  ```json
-  {
-    "message": "Group created successfully",
-    "group": {
-      "group_id": 2,
-      "group_name": "Science Group",
-      "group_teacher": 2,
-      "description": "Physics and chemistry study group",
-      "class_code": null,
-      "schedule_days": [
-        { "day": "Tuesday",  "time": "15:30", "duration": 90 },
-        { "day": "Thursday", "time": "15:30", "duration": 90 }
-      ],
-      "formatted_schedule": "Tuesday at 15:30 (90min), Thursday at 15:30 (90min)",
-      "total_weekly_minutes": 180,
-      "group_members": [3, 4, 5]
-    }
-  }
-  ```
+**Request body**:
 
-## Get Group Details
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `group_name` | string | yes | max 255 chars |
+| `group_teacher` | integer | yes | must be a valid user ID |
+| `description` | string | no | |
+| `schedule_days` | array | yes | at least one entry |
+| `schedule_days[].day` | string | yes | must be a valid day (see Schedule Options) |
+| `schedule_days[].time` | string | yes | `HH:MM` 24-hour format |
+| `schedule_days[].duration` | integer | yes | session length in minutes, min 1 |
+| `group_members` | array of int | no | student user IDs |
 
-- **URL**: `/api/admin/groups/{id}`
-- **Method**: `GET`
-- **Auth Required**: Yes
-- **Headers**:
-  ```
-  Authorization: Bearer {token}
-  ```
-- **Success Response**:
-  ```json
-  {
-    "message": "Group retrieved successfully",
-    "group": {
-      "group_id": 2,
-      "group_name": "Science Group",
-      "group_teacher": 2,
-      "description": "Physics and chemistry study group",
-      "class_code": "AB12CD34",
-      "schedule_days": [
-        { "day": "Tuesday",  "time": "15:30", "duration": 90 },
-        { "day": "Thursday", "time": "15:30", "duration": 90 }
-      ],
-      "formatted_schedule": "Tuesday at 15:30 (90min), Thursday at 15:30 (90min)",
-      "total_weekly_minutes": 180,
-      "group_members": [3, 4, 5],
-      "teacher": {
-        "id": 2,
-        "username": "teacher1",
-        "role": "teacher"
-      },
-      "students": [
-        { "id": 3, "username": "student1", "role": "student" },
-        { "id": 4, "username": "student2", "role": "student" },
-        { "id": 5, "username": "student3", "role": "student" }
-      ]
-    }
-  }
-  ```
+```json
+{
+  "group_name": "English A1",
+  "group_teacher": 4,
+  "description": "Beginner English group.",
+  "schedule_days": [
+    { "day": "Monday",    "time": "18:00", "duration": 90 },
+    { "day": "Wednesday", "time": "18:00", "duration": 90 }
+  ],
+  "group_members": [12, 15, 19]
+}
+```
+
+**Response** `201`:
+```json
+{
+  "message": "Group created successfully",
+  "group": { ...group object... }
+}
+```
+
+**Errors**:
+- `422` — validation failed (missing fields, invalid day/time, invalid duration)
+- `422` — one or more `group_members` IDs are not valid students: `{ "message": "All group_members must be valid students" }`
+
+---
 
 ## Update Group
 
-- **URL**: `/api/admin/groups/{id}`
-- **Method**: `PUT`
-- **Auth Required**: Yes
-- **Headers**:
-  ```
-  Authorization: Bearer {token}
-  Content-Type: application/json
-  ```
-- **Request Body** (all fields optional):
-  ```json
-  {
-    "group_name": "Updated Science Group",
-    "description": "Updated description",
-    "schedule_days": [
-      { "day": "Wednesday", "time": "16:00", "duration": 60 }
-    ]
-  }
-  ```
-- **Success Response**:
-  ```json
-  {
-    "message": "Group updated successfully",
-    "group": {
-      "group_id": 2,
-      "group_name": "Updated Science Group",
-      "group_teacher": 2,
-      "description": "Updated description",
-      "class_code": "AB12CD34",
-      "schedule_days": [
-        { "day": "Wednesday", "time": "16:00", "duration": 60 }
-      ],
-      "formatted_schedule": "Wednesday at 16:00 (60min)",
-      "total_weekly_minutes": 60,
-      "group_members": [3, 4, 5]
-    }
-  }
-  ```
+`PUT /api/admin/groups/{id}`
+
+All fields are optional. Providing `schedule_days` replaces the entire schedule. Providing `group_members` syncs (replaces) the full student list. Admins can reassign a group to a different teacher via `group_teacher`.
+
+**Request body** (all fields optional):
+```json
+{
+  "group_name": "English A1 — Advanced",
+  "group_teacher": 5,
+  "schedule_days": [
+    { "day": "Tuesday", "time": "19:00", "duration": 60 }
+  ],
+  "group_members": [12, 15]
+}
+```
+
+**Response** `200`:
+```json
+{
+  "message": "Group updated successfully",
+  "group": { ...group object... }
+}
+```
+
+**Errors**: `404` if not found, `422` if validation fails or members are invalid.
+
+---
 
 ## Delete Group
 
-- **URL**: `/api/admin/groups/{id}`
-- **Method**: `DELETE`
-- **Auth Required**: Yes
-- **Headers**:
-  ```
-  Authorization: Bearer {token}
-  ```
-- **Success Response**:
-  ```json
-  {
-    "message": "Group deleted successfully"
-  }
-  ```
+`DELETE /api/admin/groups/{id}`
+
+Soft-deletes the group. Data is retained and can be restored via the archive endpoints.
+
+**Response** `200`:
+```json
+{ "message": "Group deleted successfully" }
+```
+
+**Errors**: `404` if not found.
+
+---
 
 ## Add Student to Group
 
-- **URL**: `/api/admin/groups/{id}/students`
-- **Method**: `POST`
-- **Auth Required**: Yes
-- **Headers**:
-  ```
-  Authorization: Bearer {token}
-  Content-Type: application/json
-  ```
-- **Request Body**:
-  ```json
-  {
-    "student_id": 6
-  }
-  ```
-- **Success Response**:
-  ```json
-  {
-    "message": "Student added to group successfully"
-  }
-  ```
+`POST /api/admin/groups/{id}/students`
+
+**Request body**:
+```json
+{ "student_id": 12 }
+```
+
+**Response** `200`:
+```json
+{
+  "message": "Student added to group successfully",
+  "group": { ...group object... }
+}
+```
+
+**Errors**:
+- `404` — group not found
+- `404` — student_id exists but is not a student: `{ "message": "Student not found or user is not a student" }`
+- `409` — student already in group: `{ "message": "Student is already in this group" }`
+- `422` — validation failed
+
+---
+
+## Add Student to Group by Username
+
+`POST /api/admin/groups/{id}/students/by-username`
+
+Same behaviour as above but looks up the student by `username`.
+
+**Request body**:
+```json
+{ "username": "student1" }
+```
+
+**Response** `200`:
+```json
+{
+  "message": "Student added to group successfully",
+  "group": { ...group object... }
+}
+```
+
+**Errors**:
+- `404` — group not found
+- `404` — username not found or belongs to a non-student: `{ "message": "Student not found or user is not a student" }`
+- `409` — student already in group
+- `422` — validation failed
+
+---
 
 ## Remove Student from Group
 
-- **URL**: `/api/admin/groups/{groupId}/students/{studentId}`
-- **Method**: `DELETE`
-- **Auth Required**: Yes
-- **Headers**:
-  ```
-  Authorization: Bearer {token}
-  ```
-- **Success Response**:
-  ```json
-  {
-    "message": "Student removed from group successfully",
-    "group": { ... }
-  }
-  ```
+`DELETE /api/admin/groups/{groupId}/students/{studentId}`
 
-## Update Group Members
+**Response** `200`:
+```json
+{
+  "message": "Student removed from group successfully",
+  "group": { ...group object... }
+}
+```
 
-- **URL**: `/api/admin/groups/{id}/members`
-- **Method**: `PUT`
-- **Auth Required**: Yes
-- **Headers**:
-  ```
-  Authorization: Bearer {token}
-  Content-Type: application/json
-  ```
-- **Request Body**:
-  ```json
-  {
-    "group_members": [3, 5, 7, 8]
-  }
-  ```
-- **Success Response**:
-  ```json
-  {
-    "message": "Group members updated successfully",
-    "group": { ... }
-  }
-  ```
+**Errors**:
+- `404` — group not found
+- `404` — student is not in this group: `{ "message": "Student is not in this group" }`
+
+---
+
+## Update Group Members (Bulk Replace)
+
+`PUT /api/admin/groups/{id}/members`
+
+Replaces the entire student list with the provided IDs (sync). Pass an empty array to remove all students.
+
+**Request body**:
+```json
+{ "group_members": [3, 5, 7, 8] }
+```
+
+**Response** `200`:
+```json
+{
+  "message": "Group members updated successfully",
+  "group": { ...group object... }
+}
+```
+
+**Errors**:
+- `404` — group not found
+- `422` — one or more IDs are not valid students
+
+---
+
+## Generate Class Code
+
+`POST /api/admin/groups/{id}/generate-code`
+
+Generates (or regenerates) a unique 8-character alphanumeric class code for the group. Students use this code to self-enroll. Calling this again replaces the existing code.
+
+**Body**: none
+
+**Response** `200`:
+```json
+{
+  "message": "Class code generated successfully",
+  "class_code": "AB12CD34"
+}
+```
+
+**Errors**: `404` if group not found.
+
+---
+
+## Schedule Reference
+
+### Available Days
+`Monday`, `Tuesday`, `Wednesday`, `Thursday`, `Friday`, `Saturday`, `Sunday`
+
+### Available Times
+`08:00` to `20:30` in 30-minute increments. Use `GET /api/admin/groups/schedule/options` to retrieve the full list programmatically.

@@ -16,7 +16,6 @@ class MessageSent implements ShouldBroadcastNow
     public function __construct(private Chat $chat, private Message $message)
     {
         $this->message->load('sender');
-        $this->socket = null;
     }
 
     public function broadcastOn(): array
