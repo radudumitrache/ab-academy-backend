@@ -104,11 +104,18 @@ class AdminChatController extends Controller
             ], 403);
         }
 
+        $senderType = match ($user->role) {
+            'admin'   => \App\Models\Admin::class,
+            'student' => \App\Models\Student::class,
+            'teacher' => \App\Models\Teacher::class,
+            default   => \App\Models\User::class,
+        };
+
         $message = Message::create([
             'chat_id'     => $chat->id,
             'content'     => $request->content,
             'sender_id'   => $user->id,
-            'sender_type' => get_class($user),
+            'sender_type' => $senderType,
         ]);
 
         $chat->update(['last_message_at' => now()]);
@@ -120,12 +127,10 @@ class AdminChatController extends Controller
         }
 
         $message->load('sender');
-        $message->sender_role = match (true) {
-            $message->sender instanceof \App\Models\Admin   => 'admin',
-            $message->sender instanceof \App\Models\Student => 'student',
-            $message->sender instanceof \App\Models\Teacher => 'teacher',
-            default                                         => 'unknown',
-        };
+        $message->sender_role = $user->role;
+        if ($message->sender) {
+            $message->setRelation('sender', $message->sender->only(['id', 'username']));
+        }
 
         return response()->json([
             'message'      => 'Message sent successfully',

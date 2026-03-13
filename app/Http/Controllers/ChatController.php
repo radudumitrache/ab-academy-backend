@@ -118,12 +118,10 @@ class ChatController extends Controller
             ->update(['read_at' => now()]);
 
         $chat->messages->each(function ($msg) {
-            $msg->sender_role = match (true) {
-                $msg->sender instanceof \App\Models\Admin   => 'admin',
-                $msg->sender instanceof \App\Models\Student => 'student',
-                $msg->sender instanceof \App\Models\Teacher => 'teacher',
-                default                                     => 'unknown',
-            };
+            $msg->sender_role = $msg->sender?->role ?? 'unknown';
+            if ($msg->sender) {
+                $msg->setRelation('sender', $msg->sender->only(['id', 'username']));
+            }
         });
 
         return response()->json([

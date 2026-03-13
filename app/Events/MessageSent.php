@@ -42,12 +42,7 @@ class MessageSent implements ShouldBroadcastNow
                 'sender_id'   => $this->message->sender_id,
                 'sender_type' => $this->message->sender_type,
                 'created_at'  => $this->message->created_at?->toISOString(),
-                'sender_role' => match (true) {
-                    $sender instanceof \App\Models\Admin   => 'admin',
-                    $sender instanceof \App\Models\Student => 'student',
-                    $sender instanceof \App\Models\Teacher => 'teacher',
-                    default                                => 'unknown',
-                },
+                'sender_role' => $sender?->role ?? 'unknown',
                 'sender' => $sender ? [
                     'id'       => $sender->id,
                     'username' => $sender->username,
