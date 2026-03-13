@@ -136,7 +136,7 @@ Each message includes a `sender_role` field (`"admin"`, `"student"`, or `"teache
 { "content": "Of course! Your score was 87/100." }
 ```
 
-The admin must own the chat (`admin_id` matches). The message is broadcast in real-time to the student.
+The admin must own the chat (`admin_id` matches). The message is broadcast in real-time to both the student and the admin via the private Pusher channel `chat.{id}`.
 
 **Response** `200`:
 ```json
