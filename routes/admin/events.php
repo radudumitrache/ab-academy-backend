@@ -8,9 +8,12 @@ use Illuminate\Support\Facades\Route;
  * Prefix: /api/admin
  */
 
-Route::get('/events', [EventController::class, 'index'])->middleware('auth:api');
-Route::post('/events', [EventController::class, 'store'])->middleware('auth:api');
-Route::get('/events/{id}', [EventController::class, 'show'])->middleware('auth:api');
-Route::put('/events/{id}', [EventController::class, 'update'])->middleware('auth:api');
-Route::delete('/events/{id}', [EventController::class, 'destroy'])->middleware('auth:api');
-Route::post('/events/{id}/create-zoom-meeting', [EventController::class, 'createZoomMeeting'])->middleware('auth:api');
+Route::middleware('auth:api')->group(function () {
+    Route::get('/events', [EventController::class, 'index']);
+    Route::post('/events', [EventController::class, 'store']);
+    Route::get('/events/{id}', [EventController::class, 'show']);
+    Route::put('/events/{id}', [EventController::class, 'update']);
+    Route::delete('/events/{id}', [EventController::class, 'destroy']);
+    Route::post('/events/{id}/create-zoom-meeting', [EventController::class, 'createZoomMeeting']);
+    Route::post('/events/{id}/recur-monthly', [EventController::class, 'recurMonthly']);
+});
