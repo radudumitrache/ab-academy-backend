@@ -8,7 +8,7 @@ Events are meetings, lessons, or other sessions the teacher/admin has created an
 
 `GET /api/student/events`
 
-Returns all events the student has access to — directly invited (`guests`), via group invite (`guest_groups`), or any event organized by the teacher of one of their current groups. Includes past events. Ordered by date and time.
+Returns all events the student has access to — directly invited (`guests`) or via group invite (`guest_groups`). Includes past events. Ordered by date and time.
 
 **Response** `200`:
 ```json
@@ -40,7 +40,7 @@ Returns all events the student has access to — directly invited (`guests`), vi
 
 `GET /api/student/events/{id}`
 
-Returns details of a single event. Access follows the same three-path rule as the list endpoint: direct invite, group invite, or group teacher.
+Returns details of a single event. Access follows the same rule as the list endpoint: direct invite or group invite.
 
 **Response** `200`:
 ```json

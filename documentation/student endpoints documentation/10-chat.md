@@ -96,7 +96,7 @@ Returns the total number of unread messages sent by admins across all the studen
 
 Returns the full message thread. All unread messages from the admin are automatically marked as read.
 
-Each message includes a `sender_role` field (`"admin"` or `"student"`) and the full `sender` object so the client always knows who sent it.
+Each message includes a `sender_role` field (`"admin"` or `"student"`) and a trimmed `sender` object (`id` and `username` only) so the client always knows who sent it.
 
 **Response** `200`:
 ```json

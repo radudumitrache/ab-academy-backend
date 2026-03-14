@@ -14,22 +14,17 @@ class EventController extends Controller
     /**
      * List all events the authenticated student has access to:
      * - directly (their ID appears in `guests`), or
-     * - via group invite (any of their groups appears in `guest_groups`), or
-     * - via group teacher (event organizer is the teacher of one of their groups).
-     *   This ensures students who join a group after events are scheduled still see them.
+     * - via group invite (any of their groups appears in `guest_groups`).
      */
     public function index()
     {
         $studentId = Auth::id();
-        [$groupIds, $teacherIds] = $this->studentGroupContext($studentId);
+        [$groupIds] = $this->studentGroupContext($studentId);
 
-        $events = Event::where(function ($q) use ($studentId, $groupIds, $teacherIds) {
+        $events = Event::where(function ($q) use ($studentId, $groupIds) {
                 $q->whereJsonContains('guests', $studentId);
                 foreach ($groupIds as $gid) {
                     $q->orWhereJsonContains('guest_groups', $gid);
-                }
-                if (!empty($teacherIds)) {
-                    $q->orWhereIn('event_organizer', $teacherIds);
                 }
             })
             ->with('organizer:id,username')
@@ -48,16 +43,16 @@ class EventController extends Controller
     }
 
     /**
-     * Show a single event. Access is granted via direct invite, group invite, or group teacher.
+     * Show a single event. Access is granted via direct invite or group invite.
      */
     public function show($id)
     {
         $studentId = Auth::id();
-        [$groupIds, $teacherIds] = $this->studentGroupContext($studentId);
+        [$groupIds] = $this->studentGroupContext($studentId);
 
         $event = Event::with('organizer:id,username')->find($id);
 
-        if (!$event || !$this->studentHasAccess($event, $studentId, $groupIds, $teacherIds)) {
+        if (!$event || !$this->studentHasAccess($event, $studentId, $groupIds)) {
             return response()->json(['message' => 'Event not found'], 404);
         }
 
@@ -67,7 +62,7 @@ class EventController extends Controller
         ]);
     }
 
-    private function studentHasAccess(Event $event, int $studentId, array $groupIds, array $teacherIds): bool
+    private function studentHasAccess(Event $event, int $studentId, array $groupIds): bool
     {
         if (in_array($studentId, $event->guests ?? [])) {
             return true;
@@ -76,9 +71,6 @@ class EventController extends Controller
             if (in_array($gid, $event->guest_groups ?? [])) {
                 return true;
             }
-        }
-        if (in_array((int) $event->event_organizer, $teacherIds)) {
-            return true;
         }
         return false;
     }
