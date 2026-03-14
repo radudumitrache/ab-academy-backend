@@ -45,16 +45,12 @@ class ScheduleController extends Controller
             ];
         });
 
-        $groupIds   = $groups->pluck('group_id')->toArray();
-        $teacherIds = $groups->pluck('teacher.id')->filter()->unique()->values()->toArray();
+        $groupIds = $groups->pluck('group_id')->toArray();
 
-        $events = Event::where(function ($q) use ($studentId, $groupIds, $teacherIds) {
+        $events = Event::where(function ($q) use ($studentId, $groupIds) {
                 $q->whereJsonContains('guests', $studentId);
                 foreach ($groupIds as $gid) {
                     $q->orWhereJsonContains('guest_groups', $gid);
-                }
-                if (!empty($teacherIds)) {
-                    $q->orWhereIn('event_organizer', $teacherIds);
                 }
             })
             ->where('event_date', '>=', now()->toDateString())
