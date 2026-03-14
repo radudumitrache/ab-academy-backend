@@ -6,9 +6,18 @@ Events are meetings, lessons, or other sessions the teacher/admin has created an
 
 ## List Events
 
-`GET /api/student/events`
+`GET /api/student/events?month={month}&year={year}`
 
-Returns all events the student has access to — directly invited (`guests`) or via group invite (`guest_groups`). Includes past events. Ordered by date and time.
+Returns events for the given month/year that the student has access to — directly invited (`guests`) or via group invite (`guest_groups`). Ordered by date and time.
+
+**Query Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `month` | integer | No | Month number (1–12). Defaults to the current month. |
+| `year` | integer | No | Full year (e.g. `2026`). Defaults to the current year. |
+
+**Errors**: `422` if `month` is not between 1–12 or `year` is out of the valid range.
 
 **Response** `200`:
 ```json

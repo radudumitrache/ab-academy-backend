@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Student\Concerns\ResolveStudentGroups;
 use App\Models\Event;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class EventController extends Controller
@@ -16,8 +17,18 @@ class EventController extends Controller
      * - directly (their ID appears in `guests`), or
      * - via group invite (any of their groups appears in `guest_groups`).
      */
-    public function index()
+    public function index(Request $request)
     {
+        $month = $request->query('month', now()->month);
+        $year  = $request->query('year',  now()->year);
+
+        if (!is_numeric($month) || $month < 1 || $month > 12) {
+            return response()->json(['message' => 'Invalid month. Must be between 1 and 12.'], 422);
+        }
+        if (!is_numeric($year) || $year < 2000 || $year > 2100) {
+            return response()->json(['message' => 'Invalid year.'], 422);
+        }
+
         $studentId = Auth::id();
         [$groupIds] = $this->studentGroupContext($studentId);
 
@@ -27,6 +38,8 @@ class EventController extends Controller
                     $q->orWhereJsonContains('guest_groups', $gid);
                 }
             })
+            ->whereYear('event_date', (int) $year)
+            ->whereMonth('event_date', (int) $month)
             ->with('organizer:id,username')
             ->orderBy('event_date')
             ->orderBy('event_time')
