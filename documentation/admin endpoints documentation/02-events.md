@@ -6,9 +6,15 @@ Admins have full access to **all events** in the database — no ownership filte
 
 ## List All Events
 
-`GET /api/admin/events`
+`GET /api/admin/events?organizer_id={id}`
 
 Returns every event ordered by date and time, with the organizer relation resolved.
+
+**Query Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `organizer_id` | integer | No | Filter events by organizer (user ID). Omit to return all events. |
 
 **Response** `200`:
 ```json

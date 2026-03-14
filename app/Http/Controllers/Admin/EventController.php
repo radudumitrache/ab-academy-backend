@@ -12,13 +12,17 @@ use Carbon\Carbon;
 
 class EventController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $events = Event::with('organizer')->orderBy('event_date')->orderBy('event_time')->get();
+        $query = Event::with('organizer')->orderBy('event_date')->orderBy('event_time');
+
+        if ($request->filled('organizer_id')) {
+            $query->where('event_organizer', $request->integer('organizer_id'));
+        }
 
         return response()->json([
             'message' => 'Events retrieved successfully',
-            'events' => $events,
+            'events' => $query->get(),
         ]);
     }
 
