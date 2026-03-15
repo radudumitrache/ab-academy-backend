@@ -37,17 +37,10 @@ class DashboardController extends Controller
         $groupIds = $groups->pluck('group_id')->toArray();
 
         // ── Upcoming events (next 7 days) ──────────────────────────────────────
-        $teacherIds = Group::whereHas('students', fn($q) => $q->where('student_id', $studentId))
-            ->pluck('group_teacher')
-            ->filter()
-            ->unique()
-            ->values()
-            ->toArray();
-
-        $upcomingEvents = Event::where(function ($q) use ($studentId, $teacherIds) {
+        $upcomingEvents = Event::where(function ($q) use ($studentId, $groupIds) {
                 $q->whereJsonContains('guests', $studentId);
-                foreach ($teacherIds as $tid) {
-                    $q->orWhere('event_organizer', $tid);
+                foreach ($groupIds as $gid) {
+                    $q->orWhereJsonContains('guest_groups', $gid);
                 }
             })
             ->where('event_date', '>=', $now->toDateString())
