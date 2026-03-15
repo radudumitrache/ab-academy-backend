@@ -17,6 +17,8 @@ This documentation covers all student-facing API endpoints for the AB Academy pl
 11. [Notifications](11-notifications.md) — view, mark as seen, delete notifications
 12. [Invoices & Payments](12-invoices.md) — view invoices, pay via EuPlatesc
 13. [Dashboard & Achievements](13-dashboard.md) — dashboard overview, streak, achievements
+14. [Payment Profiles](13-payment-profiles.md) — manage billing profiles (physical person or company)
+15. [Products & Purchases](14-products.md) — browse products, purchase via EuPlatesc, renew subscriptions
 
 ## Base URL
 
@@ -82,6 +84,17 @@ Authorization: Bearer {access_token}
 | GET | `/api/student/invoices` | Yes | List all invoices |
 | GET | `/api/student/invoices/{id}` | Yes | Get invoice detail + payment history |
 | POST | `/api/student/invoices/{id}/pay` | Yes | Initiate EuPlatesc checkout (returns HTML) |
+| GET | `/api/student/payment-profiles` | Yes | List payment profiles |
+| GET | `/api/student/payment-profiles/{id}` | Yes | Get a single payment profile |
+| POST | `/api/student/payment-profiles` | Yes | Create a payment profile |
+| PUT | `/api/student/payment-profiles/{id}` | Yes | Update a payment profile |
+| DELETE | `/api/student/payment-profiles/{id}` | Yes | Delete a payment profile |
+| GET | `/api/student/products` | Yes | List active products |
+| GET | `/api/student/products/{id}` | Yes | Get a single product |
+| POST | `/api/student/products/{id}/purchase` | Yes | Initiate EuPlatesc checkout for a product (returns HTML) |
+| GET | `/api/student/acquisitions` | Yes | List own product acquisitions |
+| GET | `/api/student/acquisitions/{id}` | Yes | Get a single acquisition |
+| POST | `/api/student/acquisitions/{id}/renew` | Yes | Renew a completed/expired acquisition |
 | GET | `/api/student/dashboard` | Yes | Full dashboard overview |
 | GET | `/api/student/achievements` | Yes | Streak + achievement list |
 | POST | `/broadcasting/auth` | Yes | Pusher channel authorization (called by Laravel Echo) |

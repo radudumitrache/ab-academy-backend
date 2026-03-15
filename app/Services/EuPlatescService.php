@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Invoice;
 use App\Models\InvoicePayment;
+use App\Models\Product;
+use App\Models\ProductAcquisition;
 use App\Models\User;
 use Illuminate\Support\Str;
 
@@ -68,6 +70,86 @@ class EuPlatescService
         $response = $request->send();
 
         // The library returns an HTML auto-submit form
+        return $response->getRedirectForm() ?? $response->getRedirectUrl();
+    }
+
+    /**
+     * Initiate a payment for a product acquisition.
+     *
+     * Stores the order_key on the acquisition record and returns the EuPlatesc checkout form.
+     * Billing details are taken from the payment profile attached to the acquisition.
+     */
+    public function initiateProductPayment(ProductAcquisition $acquisition, User $student, Product $product): string
+    {
+        $gateway = new \Paytic\Omnipay\Euplatesc\Gateway();
+
+        // Generate a unique order key (shared uniqueness pool with invoice_payments)
+        do {
+            $orderKey = strtoupper(Str::random(7));
+        } while (
+            InvoicePayment::where('order_key', $orderKey)->exists() ||
+            ProductAcquisition::where('order_key', $orderKey)->exists()
+        );
+
+        $acquisition->update(['order_key' => $orderKey]);
+
+        $amount   = number_format((float) $acquisition->amount_paid, 2, '.', '');
+        $currency = $acquisition->currency;
+
+        // Prefer billing details from the payment profile
+        $profile = $acquisition->paymentProfile;
+        $billingFirstName = $student->username;
+        $billingLastName  = '';
+        $billingAddress   = trim(($student->street ?? '') . ' ' . ($student->house_number ?? ''));
+        $billingCity      = $student->city ?? '';
+        $billingCountry   = $student->country ?? 'Romania';
+
+        if ($profile) {
+            if ($profile->type === 'physical_person' && $profile->physicalPerson) {
+                $pp = $profile->physicalPerson;
+                $billingFirstName = $pp->first_name;
+                $billingLastName  = $pp->last_name;
+                $billingAddress   = $pp->billing_address;
+                $billingCity      = $pp->billing_city;
+                $billingCountry   = $pp->billing_country ?? 'Romania';
+            } elseif ($profile->type === 'company' && $profile->company) {
+                $c = $profile->company;
+                $billingFirstName = $c->company_name;
+                $billingLastName  = '';
+                $billingAddress   = $c->billing_address;
+                $billingCity      = $c->billing_city;
+                $billingCountry   = $c->billing_country ?? 'Romania';
+            }
+        }
+
+        $data = [
+            'amount'      => $amount,
+            'currency'    => $currency,
+            'fname'       => $billingFirstName,
+            'lname'       => $billingLastName,
+            'orderId'     => $orderKey,
+            'orderName'   => $product->name,
+            'key'         => config('payment.euplatesc_key'),
+            'mid'         => config('payment.euplatesc_mid'),
+            'notifyUrl'   => config('app.url') . '/api/euplatesc/notify',
+            'returnUrl'   => config('app.url') . '/api/euplatesc/return',
+            'testMode'    => config('payment.test_mode', true),
+            'endpointUrl' => config('app.url'),
+            'card'        => [
+                'billingFirstName' => $billingFirstName,
+                'billingLastName'  => $billingLastName,
+                'country'          => $billingCountry,
+                'city'             => $billingCity,
+                'billingAddress1'  => $billingAddress,
+                'billingAddress2'  => null,
+                'email'            => $student->email ?? '',
+                'phone'            => $student->telephone ?? '',
+            ],
+        ];
+
+        $request  = $gateway->purchase($data);
+        $response = $request->send();
+
         return $response->getRedirectForm() ?? $response->getRedirectUrl();
     }
 

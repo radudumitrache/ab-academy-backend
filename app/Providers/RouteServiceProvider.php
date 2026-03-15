@@ -49,6 +49,7 @@ class RouteServiceProvider extends ServiceProvider
                     require base_path('routes/admin/chat.php');
                     require base_path('routes/admin/meeting_accounts.php');
                     require base_path('routes/admin/profile.php');
+                    require base_path('routes/admin/products.php');
                 });
 
             // Teacher routes
@@ -85,6 +86,8 @@ class RouteServiceProvider extends ServiceProvider
                     require base_path('routes/student/chat.php');
                     require base_path('routes/student/notifications.php');
                     require base_path('routes/student/invoices.php');
+                    require base_path('routes/student/payment_profiles.php');
+                    require base_path('routes/student/products.php');
                 });
 
             // EuPlatesc webhook routes (no auth — called directly by EuPlatesc servers)

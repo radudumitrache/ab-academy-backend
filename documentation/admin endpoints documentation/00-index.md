@@ -25,6 +25,10 @@ This documentation provides comprehensive details about the AB Academy admin API
 19. [Meeting Accounts](19-meeting-accounts.md)
 20. [Profile](20-profile.md)
 21. [Real-time Broadcasting](21-broadcasting.md)
+22. [Products & Acquisitions](22-products.md) — manage product catalogue, grant access after payment
+23. [Payment Profiles (Admin)](23-payment-profiles.md) — view all student profiles, set invoice_text, confirm profiles
+24. [Acquisitions & Invoicing Flow](24-acquisitions-invoicing.md) — full admin flow: grant access → create SmartBill invoice → mark paid
+25. [EuPlatesc Transactions](25-euplatesc-transactions.md) — view all EuPlatesc payments, check live status
 
 ## Base URL
 
@@ -172,6 +176,24 @@ Authorization: Bearer {access_token}
 | POST | `/api/admin/profile/change-password` | Yes | Change own password |
 | POST | `/api/admin/profile/picture` | Yes | Upload or replace profile picture |
 | GET | `/api/admin/profile/picture` | Yes | Get a signed URL for profile picture |
+| GET | `/api/admin/products` | Yes | List all products (including inactive) |
+| POST | `/api/admin/products` | Yes | Create a product |
+| GET | `/api/admin/products/{id}` | Yes | Get a single product |
+| PUT | `/api/admin/products/{id}` | Yes | Update a product |
+| DELETE | `/api/admin/products/{id}` | Yes | Soft-delete a product |
+| GET | `/api/admin/acquisitions` | Yes | List all acquisitions (filterable, incl. `needs_groups`) |
+| GET | `/api/admin/acquisitions/{id}` | Yes | Get a single acquisition with full profile details |
+| POST | `/api/admin/acquisitions/{id}/grant-access` | Yes | Grant groups/tests access → marks active |
+| POST | `/api/admin/acquisitions/{id}/create-invoice` | Yes | Create SmartBill invoice (requires profile confirmation if observations exist) |
+| POST | `/api/admin/acquisitions/{id}/mark-invoice-paid` | Yes | Mark SmartBill invoice as paid |
+| PUT | `/api/admin/acquisitions/{id}/status` | Yes | Update acquisition status |
+| GET | `/api/admin/payment-profiles` | Yes | List all student payment profiles (filterable, incl. `needs_confirmation`) |
+| GET | `/api/admin/payment-profiles/{id}` | Yes | Get profile with acquisitions summary |
+| GET | `/api/admin/students/{studentId}/payment-profiles` | Yes | List profiles for a specific student |
+| POST | `/api/admin/payment-profiles/{id}/set-invoice-text` | Yes | Set invoice_text and confirm profile |
+| POST | `/api/admin/payment-profiles/{id}/confirm` | Yes | Confirm profile without changing invoice_text |
+| GET | `/api/admin/euplatesc-transactions` | Yes | List all EuPlatesc payment transactions (filterable) |
+| GET | `/api/admin/euplatesc-transactions/{id}/check-status` | Yes | Check live status of a transaction from EuPlatesc API |
 | POST | `/broadcasting/auth` | Yes | Pusher channel authorization (called by Laravel Echo) |
 
 ## Error Format
