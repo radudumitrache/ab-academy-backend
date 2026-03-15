@@ -218,7 +218,7 @@ class UserManagementController extends Controller
 
     public function getStudent($id)
     {
-        $student = Student::with(['groups.teacher', 'enrolledExams.teacher', 'purchasedProducts'])->findOrFail($id);
+        $student = Student::with(['groups.teacher', 'enrolledExams.teacher', 'acquisitions.product'])->findOrFail($id);
         
         // Get student invoices
         $invoices = Invoice::where('student_id', $student->id)->orderBy('created_at', 'desc')->get();
@@ -274,15 +274,17 @@ class UserManagementController extends Controller
             ];
         });
         
-        // Format purchased products (now using courses)
-        $purchasedProducts = $student->purchasedProducts->map(function ($course) {
+        // Format product acquisitions
+        $acquisitions = $student->acquisitions->map(function ($acquisition) {
             return [
-                'id' => $course->id,
-                'title' => $course->title,
-                'description' => $course->description,
-                'price' => $course->price,
-                'purchased_at' => $course->pivot->purchased_at,
-                'purchase_price' => $course->pivot->purchase_price
+                'id'                 => $acquisition->id,
+                'product_id'         => $acquisition->product_id,
+                'product_name'       => $acquisition->product?->name,
+                'amount_paid'        => $acquisition->amount_paid,
+                'currency'           => $acquisition->currency,
+                'acquisition_status' => $acquisition->acquisition_status,
+                'acquisition_date'   => $acquisition->acquisition_date?->format('Y-m-d'),
+                'paid_at'            => $acquisition->paid_at,
             ];
         });
         
@@ -308,7 +310,7 @@ class UserManagementController extends Controller
             'enrolled_groups' => $enrolledGroups,
             'enrolled_exams' => $enrolledExams,
             'invoices' => $formattedInvoices,
-            'purchased_products' => $purchasedProducts
+            'acquisitions' => $acquisitions
         ]);
     }
     

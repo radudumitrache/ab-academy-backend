@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Student extends User
 {
@@ -37,14 +38,9 @@ class Student extends User
         return $this->belongsToMany(Group::class, 'group_student', 'student_id', 'group_id');
     }
     
-    /**
-     * Get the courses that the student has purchased.
-     */
-    public function purchasedProducts(): BelongsToMany
+    public function acquisitions(): HasMany
     {
-        return $this->belongsToMany(Course::class, 'student_course', 'student_id', 'course_id')
-                    ->withPivot('purchased_at', 'purchase_price')
-                    ->withTimestamps();
+        return $this->hasMany(ProductAcquisition::class, 'student_id');
     }
 
     public function isAdmin(): bool

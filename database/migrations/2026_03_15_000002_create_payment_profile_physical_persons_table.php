@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('payment_profile_id')->constrained('payment_profiles')->cascadeOnDelete();
             $table->string('first_name');
             $table->string('last_name');
-            $table->string('billing_address');
+            $table->string('billing_address')->nullable();
             $table->string('billing_city');
             $table->string('billing_state')->nullable();
             $table->string('billing_zip_code')->nullable();
