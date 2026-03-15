@@ -2,16 +2,19 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
         Schema::dropIfExists('product_acquisitions');
         Schema::dropIfExists('course_products');
         Schema::dropIfExists('single_products');
         Schema::dropIfExists('products');
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         Schema::create('products', function (Blueprint $table) {
             $table->id();
