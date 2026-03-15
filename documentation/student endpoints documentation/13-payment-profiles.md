@@ -38,7 +38,7 @@ Returns all payment profiles belonging to the authenticated student.
       "details": {
         "first_name": "Andrei",
         "last_name": "Popescu",
-        "billing_address": "Str. Florilor 12",
+        "billing_address": null,
         "billing_city": "Cluj-Napoca",
         "billing_state": "Cluj",
         "billing_zip_code": "400000",
@@ -97,7 +97,7 @@ Returns all payment profiles belonging to the authenticated student.
 |-------|------|----------|
 | `first_name` | string | Yes |
 | `last_name` | string | Yes |
-| `billing_address` | string | Yes |
+| `billing_address` | string | No |
 | `billing_city` | string | Yes |
 | `billing_state` | string | No |
 | `billing_zip_code` | string | No |

@@ -53,6 +53,16 @@ Business logic lives in `app/Services/`:
 - **AchievementService** — Student streaks and gamification
 - **GcsService** — Google Cloud Storage file management
 
+### Payment & Product System
+
+Students purchase **Products** (tracked via `ProductAcquisition`) using **PaymentProfiles**:
+- **Product** — Sellable item; subtypes `SingleProduct` (test + optional teacher assistance) and `CourseProduct` (course bundle)
+- **PaymentProfile** — Student billing details; type is `physical_person` or `company`, with a linked `PaymentProfilePhysicalPerson` or `PaymentProfileCompany`
+- **ProductAcquisition** — Purchase record linking a student, product, and payment profile; lifecycle: `pending_payment` → `paid` → `active` → `completed` (or `cancelled`/`expired`). Stores `groups_access` and `tests_access` JSON arrays set by admin after payment
+- **Invoice** / **InvoicePayment** — SmartBill invoice tracking and EuPlatesc payment responses
+
+Admin routes: `routes/admin/products.php` | Student routes: `routes/student/products.php`
+
 ### Assessment System
 
 Complex polymorphic structure:
@@ -85,5 +95,5 @@ Anthropic Claude SDK (`anthropic/anthropic-sdk-php`) is used in `AiAssistantCont
 MySQL with 87 migrations. Notable patterns:
 - Soft deletes on groups
 - JSON columns for array data (guests, group assignments)
-- Pivot tables: `group_student`, `student_exam`, `student_course`
+- Pivot tables: `group_student`, `student_exam`
 - `DatabaseLog` model for system-wide audit logging
