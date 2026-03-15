@@ -28,9 +28,9 @@ use Illuminate\Support\Facades\Log;
 class SmartBillService
 {
     private string $baseUrl = 'https://ws.smartbill.ro/SBORO/api';
-    private string $email;
-    private string $token;
-    private string $companyVatCode;
+    private ?string $email;
+    private ?string $token;
+    private ?string $companyVatCode;
 
     public function __construct()
     {
