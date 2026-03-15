@@ -8,6 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
+        Schema::dropIfExists('product_acquisitions');
         Schema::dropIfExists('course_products');
         Schema::dropIfExists('single_products');
         Schema::dropIfExists('products');
