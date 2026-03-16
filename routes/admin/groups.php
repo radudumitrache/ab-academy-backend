@@ -24,6 +24,7 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/groups/{id}/students/by-username', [GroupController::class, 'addStudentByUsername']);
     Route::delete('/groups/{groupId}/students/{studentId}', [GroupController::class, 'removeStudent']);
 
+    Route::get('/groups/{id}/attendance',  [GroupController::class, 'getAttendance']);
     Route::put('/groups/{id}/members', [GroupController::class, 'updateGroupMembers']);
     Route::post('/groups/{id}/generate-code', [GroupController::class, 'generateCode']);
 });

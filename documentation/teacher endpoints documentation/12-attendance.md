@@ -1,6 +1,6 @@
 # Attendance
 
-Teachers can record attendance for both group sessions and events.
+Teachers record attendance. Admins can read attendance for any group or event. Students can see their own attendance status on each event they are invited to.
 
 ---
 
@@ -105,7 +105,7 @@ All provided `student_id` values must already be on the event's guest list.
   | Field | Type | Required | Notes |
   |-------|------|----------|-------|
   | `attendance` | array | Yes | One entry per guest to record |
-  | `attendance.*.student_id` | integer | Yes | Must be a valid user ID and appear in the event's `guests` array |
+  | `attendance.*.student_id` | integer | Yes | Must be a valid user ID and appear in the event's `guests` array or be a member of an invited `guest_groups` group |
   | `attendance.*.status` | string | Yes | `present`, `absent`, or `motivated_absent` |
 
 - **Success Response** `200`:
@@ -130,10 +130,90 @@ All provided `student_id` values must already be on the event's guest list.
     ```json
     { "message": "Unauthorized — only the event organizer can mark attendance" }
     ```
-  - **422** — one or more student IDs are not on the guest list:
+  - **422** — one or more student IDs are not on the guest list (direct or via group):
     ```json
     {
       "message": "Some users are not on the guest list for this event",
       "not_on_guest_list": [99]
     }
     ```
+
+---
+
+## Admin: View Event Attendance
+
+Returns all guests for an event (direct + from guest groups) with their recorded attendance status. Students not yet marked have `status: null`.
+
+- **URL**: `GET /api/admin/events/{id}/attendance`
+- **Auth Required**: Yes (admin)
+
+- **Success Response** `200`:
+  ```json
+  {
+    "message": "Attendance retrieved successfully",
+    "event_id": 5,
+    "attendance": [
+      { "student_id": 12, "username": "student1", "email": "s1@example.com", "role": "student", "status": "present" },
+      { "student_id": 15, "username": "student2", "email": "s2@example.com", "role": "student", "status": null },
+      { "student_id": 19, "username": "teacher2", "email": "t2@example.com", "role": "teacher", "status": "absent" }
+    ]
+  }
+  ```
+
+- **Error Responses**:
+  - **404** — event not found:
+    ```json
+    { "message": "Event not found" }
+    ```
+
+---
+
+## Admin: View Group Attendance
+
+Returns all attendance records for a group, ordered by session date and time. Can be filtered to a specific session date.
+
+- **URL**: `GET /api/admin/groups/{id}/attendance`
+- **Auth Required**: Yes (admin)
+- **Query Parameters**:
+
+  | Parameter | Type | Required | Notes |
+  |-----------|------|----------|-------|
+  | `session_date` | string | No | Filter to a single session (`YYYY-MM-DD`) |
+
+- **Success Response** `200`:
+  ```json
+  {
+    "message": "Attendance retrieved successfully",
+    "group_id": 3,
+    "group_name": "English B2 Morning",
+    "attendance": [
+      { "student_id": 12, "username": "student1", "email": "s1@example.com", "session_date": "2026-03-20", "session_time": "09:00:00", "status": "present" },
+      { "student_id": 15, "username": "student2", "email": "s2@example.com", "session_date": "2026-03-20", "session_time": "09:00:00", "status": "absent" }
+    ]
+  }
+  ```
+
+- **Error Responses**:
+  - **404** — group not found:
+    ```json
+    { "message": "Group not found" }
+    ```
+
+---
+
+## Student: Attendance Status on Events
+
+Students see their own attendance status directly on each event object returned by the event list and show endpoints. No separate attendance endpoint is needed.
+
+- **Field**: `attendance_status` — present on every event object in `GET /api/student/events` and `GET /api/student/events/{id}`
+- **Values**: `"present"`, `"absent"`, `"motivated_absent"`, or `null` (not yet marked)
+
+```json
+{
+  "id": 5,
+  "title": "English Class",
+  "event_date": "2026-03-20",
+  "attendance_status": "present",
+  ...
+}
+```

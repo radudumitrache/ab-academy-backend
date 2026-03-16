@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Attendance;
 use App\Models\DatabaseLog;
 use App\Models\Group;
 use App\Models\Student;
@@ -380,5 +381,44 @@ class GroupController extends Controller
             'message' => 'Group members updated successfully',
             'group'   => $group->load(['teacher', 'students']),
         ], 200);
+    }
+
+    /**
+     * Return all attendance records for a group, optionally filtered by session_date.
+     * Lists every student in the group and their status per session.
+     */
+    public function getAttendance(Request $request, $id)
+    {
+        $group = Group::with('students:id,username,email')->find($id);
+
+        if (!$group) {
+            return response()->json(['message' => 'Group not found'], 404);
+        }
+
+        $query = Attendance::where('group_id', $group->group_id);
+
+        if ($request->filled('session_date')) {
+            $query->where('session_date', $request->input('session_date'));
+        }
+
+        $records = $query->with('student:id,username,email,role')
+            ->orderBy('session_date')
+            ->orderBy('session_time')
+            ->get()
+            ->map(fn($a) => [
+                'student_id'   => $a->student_id,
+                'username'     => $a->student?->username,
+                'email'        => $a->student?->email,
+                'session_date' => $a->session_date,
+                'session_time' => $a->session_time,
+                'status'       => $a->status,
+            ]);
+
+        return response()->json([
+            'message'    => 'Attendance retrieved successfully',
+            'group_id'   => $group->group_id,
+            'group_name' => $group->group_name,
+            'attendance' => $records,
+        ]);
     }
 }

@@ -316,3 +316,32 @@ Generates (or regenerates) a unique 8-character alphanumeric class code for the 
 
 ### Available Times
 `08:00` to `20:30` in 30-minute increments. Use `GET /api/admin/groups/schedule/options` to retrieve the full list programmatically.
+
+---
+
+## Get Group Attendance
+
+Returns all recorded attendance for a group, ordered by session date and time. Optionally filter to a single session date.
+
+`GET /api/admin/groups/{id}/attendance`
+
+**Query Parameters**:
+
+| Parameter | Type | Required | Notes |
+|-----------|------|----------|-------|
+| `session_date` | string | No | Filter to a single session (`YYYY-MM-DD`) |
+
+**Response** `200`:
+```json
+{
+  "message": "Attendance retrieved successfully",
+  "group_id": 3,
+  "group_name": "English B2 Morning",
+  "attendance": [
+    { "student_id": 12, "username": "student1", "email": "s1@example.com", "session_date": "2026-03-20", "session_time": "09:00:00", "status": "present" },
+    { "student_id": 15, "username": "student2", "email": "s2@example.com", "session_date": "2026-03-20", "session_time": "09:00:00", "status": "absent" }
+  ]
+}
+```
+
+**Errors**: `404` if group not found.

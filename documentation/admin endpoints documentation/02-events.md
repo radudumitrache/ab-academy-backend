@@ -1,6 +1,6 @@
 # Events
 
-Admins have full access to **all events** in the database — no ownership filter applies. They can create, edit, delete, create Zoom meetings, and schedule recurring events for any organizer.
+Admins have full access to **all events** in the database — no ownership filter applies. They can create, edit, delete, create Zoom meetings, schedule recurring events for any organizer, and view attendance for any event.
 
 ---
 
@@ -262,3 +262,27 @@ Creates weekly copies of the event for every remaining occurrence within the **s
 - Each copy inherits `title`, `type`, `event_time`, `event_duration`, `event_organizer`, `guests`, `guest_groups`, and `event_notes` from the source.
 - `recurrence_parent_id` on each copy points to the **original** event (not a copy-of-a-copy chain). If you recur an event that is itself already a copy, all new events will share the same `recurrence_parent_id`.
 - When `create_zoom` is `true` and no meeting account is available for a given date/time, that copy is still created — its `event_meet_link` will be `null` (Zoom failure does not abort the batch).
+
+
+---
+
+## Get Event Attendance
+
+Returns all guests for an event (direct invites + all members of invited groups), each with their recorded attendance status. Guests not yet marked have `status: null`.
+
+`GET /api/admin/events/{id}/attendance`
+
+**Response** `200`:
+```json
+{
+  "message": "Attendance retrieved successfully",
+  "event_id": 5,
+  "attendance": [
+    { "student_id": 12, "username": "student1", "email": "s1@example.com", "role": "student", "status": "present" },
+    { "student_id": 15, "username": "student2", "email": "s2@example.com", "role": "student", "status": null },
+    { "student_id": 19, "username": "teacher2", "email": "t2@example.com", "role": "teacher", "status": "absent" }
+  ]
+}
+```
+
+**Errors**: `404` if event not found.

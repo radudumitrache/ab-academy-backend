@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Attendance;
 use App\Models\Event;
+use App\Models\Group;
 use App\Models\MeetingAccount;
+use App\Models\User;
 use App\Services\ZoomService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -124,6 +127,57 @@ class EventController extends Controller
 
         return response()->json([
             'message' => 'Event deleted successfully',
+        ]);
+    }
+
+    /**
+     * Return all attendance records for an event, including all expected guests
+     * (direct + from guest_groups), with their recorded status (null if not yet marked).
+     */
+    public function getAttendance($id)
+    {
+        $event = Event::find($id);
+
+        if (!$event) {
+            return response()->json(['message' => 'Event not found'], 404);
+        }
+
+        // Resolve direct guest IDs
+        $directGuestIds = collect($event->guests ?? [])->map(fn($g) => (int) $g)->unique();
+
+        // Resolve group member IDs
+        $groupIds = collect($event->guest_groups ?? [])->map(fn($g) => (int) $g)->filter()->toArray();
+        $groupMemberIds = collect();
+        if (!empty($groupIds)) {
+            $groupMemberIds = Group::whereIn('group_id', $groupIds)
+                ->with('students:id')
+                ->get()
+                ->flatMap(fn($group) => $group->students->pluck('id'))
+                ->map(fn($id) => (int) $id);
+        }
+
+        $allGuestIds = $directGuestIds->merge($groupMemberIds)->unique()->toArray();
+
+        // Fetch recorded attendance keyed by student_id
+        $recorded = Attendance::where('event_id', $event->id)
+            ->whereIn('student_id', $allGuestIds)
+            ->pluck('status', 'student_id');
+
+        // Fetch user details for all guests
+        $users = User::whereIn('id', $allGuestIds)->get(['id', 'username', 'email', 'role']);
+
+        $attendance = $users->map(fn($user) => [
+            'student_id' => $user->id,
+            'username'   => $user->username,
+            'email'      => $user->email,
+            'role'       => $user->role,
+            'status'     => $recorded->get($user->id), // null if not yet marked
+        ]);
+
+        return response()->json([
+            'message'    => 'Attendance retrieved successfully',
+            'event_id'   => $event->id,
+            'attendance' => $attendance->values(),
         ]);
     }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Student\Concerns\ResolveStudentGroups;
+use App\Models\Attendance;
 use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -44,9 +45,15 @@ class EventController extends Controller
             ->orderBy('event_date')
             ->orderBy('event_time')
             ->get()
-            ->unique('id')
-            ->map(fn($e) => $this->format($e))
-            ->values();
+            ->unique('id');
+
+        // Load attendance records for this student in one query
+        $eventIds = $events->pluck('id')->toArray();
+        $attendanceMap = Attendance::where('student_id', $studentId)
+            ->whereIn('event_id', $eventIds)
+            ->pluck('status', 'event_id');
+
+        $events = $events->map(fn($e) => $this->format($e, $attendanceMap->get($e->id)))->values();
 
         return response()->json([
             'message' => 'Events retrieved successfully',
@@ -69,9 +76,13 @@ class EventController extends Controller
             return response()->json(['message' => 'Event not found'], 404);
         }
 
+        $attendance = Attendance::where('event_id', $event->id)
+            ->where('student_id', $studentId)
+            ->value('status');
+
         return response()->json([
             'message' => 'Event retrieved successfully',
-            'event'   => $this->format($event),
+            'event'   => $this->format($event, $attendance),
         ]);
     }
 
@@ -88,18 +99,19 @@ class EventController extends Controller
         return false;
     }
 
-    private function format(Event $event): array
+    private function format(Event $event, ?string $attendanceStatus = null): array
     {
         return [
-            'id'              => $event->id,
-            'title'           => $event->title,
-            'type'            => $event->type,
-            'event_date'      => $event->event_date,
-            'event_time'      => $event->event_time,
-            'event_duration'  => $event->event_duration,
-            'event_meet_link' => $event->event_meet_link,
-            'event_notes'     => $event->event_notes,
-            'organizer'       => $event->organizer ? [
+            'id'                 => $event->id,
+            'title'              => $event->title,
+            'type'               => $event->type,
+            'event_date'         => $event->event_date,
+            'event_time'         => $event->event_time,
+            'event_duration'     => $event->event_duration,
+            'event_meet_link'    => $event->event_meet_link,
+            'event_notes'        => $event->event_notes,
+            'attendance_status'  => $attendanceStatus, // null if not yet marked
+            'organizer'          => $event->organizer ? [
                 'id'       => $event->organizer->id,
                 'username' => $event->organizer->username,
             ] : null,
