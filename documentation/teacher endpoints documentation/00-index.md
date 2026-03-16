@@ -15,6 +15,7 @@ This documentation covers all teacher-facing API endpoints for the AB Academy pl
 9. [Materials](09-materials.md)
 10. [Test Management](10-tests.md)
 11. [Profile](11-profile.md)
+12. [Attendance](12-attendance.md)
 
 ## Base URL
 
@@ -62,7 +63,8 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | GET | `/api/teacher/events/{id}` | Yes | Get a single event |
 | PUT | `/api/teacher/events/{id}` | Yes | Update an event (organizer only) |
 | DELETE | `/api/teacher/events/{id}` | Yes | Delete an event (organizer only) |
-| PUT | `/api/teacher/events/{id}/attendance` | Yes | Record guest attendance (organizer only) |
+| PUT | `/api/teacher/events/{id}/attendance` | Yes | Record event guest attendance (organizer only) — see [Attendance](12-attendance.md) |
+| POST | `/api/teacher/groups/{id}/attendance` | Yes | Record group session attendance (group teacher only) — see [Attendance](12-attendance.md) |
 | POST | `/api/teacher/events/{id}/guests/by-username` | Yes | Add guests to an event by username (organizer only) |
 | POST | `/api/teacher/events/{id}/create-zoom-meeting` | Yes | Auto-create a Zoom meeting for an event (organizer only) |
 | GET | `/api/teacher/notifications` | Yes | List own notifications (filterable) |

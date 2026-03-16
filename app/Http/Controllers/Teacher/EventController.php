@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Teacher;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Event;
+use App\Models\Group;
 use App\Models\MeetingAccount;
 use App\Models\User;
 use App\Services\ZoomService;
@@ -161,9 +162,23 @@ class EventController extends Controller
             'attendance.*.status'     => ['required', Rule::in(['present', 'absent', 'motivated_absent'])],
         ]);
 
+        // Collect direct guest IDs
         $guestIds = collect($event->guests ?? [])->map(function ($guest) {
             return is_array($guest) ? ($guest['id'] ?? null) : $guest;
-        })->filter()->map(fn ($g) => (int) $g)->toArray();
+        })->filter()->map(fn ($g) => (int) $g);
+
+        // Also include all students from invited guest_groups
+        $groupIds = collect($event->guest_groups ?? [])->map(fn ($g) => (int) $g)->filter()->toArray();
+        if (!empty($groupIds)) {
+            $groupMemberIds = Group::whereIn('group_id', $groupIds)
+                ->with('students:id')
+                ->get()
+                ->flatMap(fn ($group) => $group->students->pluck('id'))
+                ->map(fn ($id) => (int) $id);
+            $guestIds = $guestIds->merge($groupMemberIds);
+        }
+
+        $guestIds = $guestIds->unique()->toArray();
 
         $notOnGuestList = collect($validated['attendance'])
             ->pluck('student_id')
