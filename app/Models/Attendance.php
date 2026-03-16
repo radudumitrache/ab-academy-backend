@@ -10,6 +10,7 @@ class Attendance extends Model
 
     protected $fillable = [
         'group_id',
+        'event_id',
         'student_id',
         'session_date',
         'session_time',
@@ -23,6 +24,11 @@ class Attendance extends Model
     public function group()
     {
         return $this->belongsTo(Group::class, 'group_id', 'group_id');
+    }
+
+    public function event()
+    {
+        return $this->belongsTo(Event::class);
     }
 
     public function student()

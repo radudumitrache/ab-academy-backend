@@ -18,7 +18,6 @@ class Event extends Model
         'event_organizer',
         'guests',
         'guest_groups',
-        'present_guests',
         'event_meet_link',
         'event_start_link',
         'event_notes',
@@ -30,8 +29,12 @@ class Event extends Model
         'event_date'   => 'date',
         'guests'       => 'array',
         'guest_groups' => 'array',
-        'present_guests' => 'array',
     ];
+
+    public function attendance()
+    {
+        return $this->hasMany(Attendance::class);
+    }
 
     public function organizer()
     {

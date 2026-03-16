@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
+use App\Models\Attendance;
 use App\Models\Event;
 use App\Models\MeetingAccount;
 use App\Models\User;
@@ -138,9 +139,9 @@ class EventController extends Controller
     }
 
     /**
-     * Record which guests were actually present at the event.
+     * Record attendance for each guest at the event.
      * Only the organizer may mark attendance.
-     * Accepts a list of user IDs — they must all be in the event's guest list.
+     * Accepts an array of { student_id, status } entries — student must be on the guest list.
      */
     public function markAttendance(Request $request, $id)
     {
@@ -155,34 +156,46 @@ class EventController extends Controller
         }
 
         $validated = $request->validate([
-            'present_guest_ids'   => 'required|array',
-            'present_guest_ids.*' => 'integer|exists:users,id',
+            'attendance'            => 'required|array',
+            'attendance.*.student_id' => 'required|integer|exists:users,id',
+            'attendance.*.status'     => ['required', Rule::in(['present', 'absent', 'motivated_absent'])],
         ]);
 
         $guestIds = collect($event->guests ?? [])->map(function ($guest) {
             return is_array($guest) ? ($guest['id'] ?? null) : $guest;
         })->filter()->map(fn ($g) => (int) $g)->toArray();
 
-        $presentIds = array_values(array_unique($validated['present_guest_ids']));
-        $unauthorized = array_diff($presentIds, $guestIds);
+        $notOnGuestList = collect($validated['attendance'])
+            ->pluck('student_id')
+            ->filter(fn ($sid) => !in_array((int) $sid, $guestIds))
+            ->values();
 
-        if (!empty($unauthorized)) {
+        if ($notOnGuestList->isNotEmpty()) {
             return response()->json([
-                'message'              => 'Some users are not on the guest list for this event',
-                'not_on_guest_list'    => array_values($unauthorized),
+                'message'           => 'Some users are not on the guest list for this event',
+                'not_on_guest_list' => $notOnGuestList,
             ], 422);
         }
 
-        $event->update(['present_guests' => $presentIds]);
+        foreach ($validated['attendance'] as $entry) {
+            Attendance::updateOrCreate(
+                ['event_id' => $event->id, 'student_id' => $entry['student_id']],
+                ['status'   => $entry['status']]
+            );
+        }
 
-        $presentUsers = User::whereIn('id', $presentIds)
-            ->select('id', 'username', 'email', 'role')
-            ->get();
+        $records = Attendance::where('event_id', $event->id)
+            ->with('student:id,username,email,role')
+            ->get()
+            ->map(fn ($a) => [
+                'student_id' => $a->student_id,
+                'username'   => $a->student?->username,
+                'status'     => $a->status,
+            ]);
 
         return response()->json([
-            'message'        => 'Attendance recorded successfully',
-            'present_guests' => $presentIds,
-            'present_users'  => $presentUsers,
+            'message'    => 'Attendance recorded successfully',
+            'attendance' => $records,
         ]);
     }
 
