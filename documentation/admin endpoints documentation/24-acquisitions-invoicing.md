@@ -275,9 +275,11 @@ Manually update the lifecycle status of an acquisition.
 
 | Status | Meaning | Admin action |
 |--------|---------|--------------|
-| `pending_payment` | EuPlatesc checkout started | Wait for IPN |
+| `pending_payment` | EuPlatesc checkout started (or manually created, awaiting payment) | Wait for IPN or confirm manually |
 | `paid` | Payment confirmed | Grant access + create invoice |
 | `active` | Access granted, student attending | Monitor, mark complete when done |
 | `completed` | All sessions done | Student has 1 week to renew |
 | `expired` | Grace period elapsed | Remove student from group if not renewed |
 | `cancelled` | Cancelled manually | — |
+
+> **Note**: When creating an acquisition manually via `POST /api/admin/acquisitions`, you can set any starting status. For a confirmed cash payment, use `paid` directly and optionally include `groups_access`/`tests_access` to skip the separate grant-access step.

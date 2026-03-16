@@ -59,14 +59,21 @@ Authorization: Bearer {access_token}
 | GET | `/api/admin/events/{id}` | Yes | Get a single event |
 | PUT | `/api/admin/events/{id}` | Yes | Update an event |
 | DELETE | `/api/admin/events/{id}` | Yes | Delete an event |
+| GET | `/api/admin/events/{id}/attendance` | Yes | View all guest attendance for an event |
 | POST | `/api/admin/events/{id}/create-zoom-meeting` | Yes | Auto-create a Zoom meeting for an event |
+| POST | `/api/admin/events/{id}/recur-monthly` | Yes | Create recurring weekly copies for the rest of the month |
 | GET | `/api/admin/groups` | Yes | List all groups |
 | POST | `/api/admin/groups` | Yes | Create a group |
+| GET | `/api/admin/groups/schedule/options` | Yes | Get allowed schedule days and times |
 | GET | `/api/admin/groups/{id}` | Yes | Get a single group |
 | PUT | `/api/admin/groups/{id}` | Yes | Update a group |
 | DELETE | `/api/admin/groups/{id}` | Yes | Delete a group (soft delete) |
 | POST | `/api/admin/groups/{id}/students` | Yes | Add a student to a group |
+| POST | `/api/admin/groups/{id}/students/by-username` | Yes | Add a student to a group by username |
 | DELETE | `/api/admin/groups/{groupId}/students/{studentId}` | Yes | Remove a student from a group |
+| GET | `/api/admin/groups/{id}/attendance` | Yes | View all session attendance for a group (filterable by date) |
+| PUT | `/api/admin/groups/{id}/members` | Yes | Bulk-replace all group members |
+| POST | `/api/admin/groups/{id}/generate-code` | Yes | Generate or regenerate the group's class code |
 | GET | `/api/admin/users` | Yes | List all users |
 | POST | `/api/admin/users/teachers` | Yes | Create a teacher account |
 | POST | `/api/admin/users/students` | Yes | Create a student account |
@@ -182,6 +189,7 @@ Authorization: Bearer {access_token}
 | PUT | `/api/admin/products/{id}` | Yes | Update a product |
 | DELETE | `/api/admin/products/{id}` | Yes | Soft-delete a product |
 | GET | `/api/admin/acquisitions` | Yes | List all acquisitions (filterable, incl. `needs_groups`) |
+| POST | `/api/admin/acquisitions` | Yes | Manually create an acquisition for a student (cash/bank transfer) |
 | GET | `/api/admin/acquisitions/{id}` | Yes | Get a single acquisition with full profile details |
 | POST | `/api/admin/acquisitions/{id}/grant-access` | Yes | Grant groups/tests access → marks active |
 | POST | `/api/admin/acquisitions/{id}/create-invoice` | Yes | Create SmartBill invoice (requires profile confirmation if observations exist) |
