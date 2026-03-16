@@ -14,7 +14,38 @@ Teachers record attendance. Admins can read attendance for any group or event. S
 
 ---
 
-## Group Attendance
+## View Group Attendance
+
+Returns all attendance records for a group. Only the group's teacher may call this. Optionally filter to a single session date.
+
+- **URL**: `GET /api/teacher/groups/{id}/attendance`
+- **Auth Required**: Yes
+- **Query Parameters**:
+
+  | Parameter | Type | Required | Notes |
+  |-----------|------|----------|-------|
+  | `session_date` | string | No | Filter to a single session (`YYYY-MM-DD`) |
+
+- **Success Response** `200`:
+  ```json
+  {
+    "message": "Attendance retrieved successfully",
+    "group_id": 3,
+    "group_name": "English B2 Morning",
+    "attendance": [
+      { "student_id": 12, "username": "student1", "email": "s1@example.com", "session_date": "2026-03-20", "session_time": "09:00:00", "status": "present" },
+      { "student_id": 15, "username": "student2", "email": "s2@example.com", "session_date": "2026-03-20", "session_time": "09:00:00", "status": "absent" }
+    ]
+  }
+  ```
+
+- **Error Responses**:
+  - **404** — group not found
+  - **403** — teacher is not the group's teacher
+
+---
+
+## Record Group Attendance
 
 Records attendance for a specific group session. Only the group's teacher may call this.
 Uses `updateOrCreate` — calling it again for the same `(group_id, student_id, session_date, session_time)` overwrites the previous status.
@@ -78,7 +109,35 @@ Uses `updateOrCreate` — calling it again for the same `(group_id, student_id, 
 
 ---
 
-## Event Attendance
+## View Event Attendance
+
+Returns all guests for an event (direct + from guest groups) with their recorded status. Only the event organizer or a direct guest (teacher) may call this.
+
+- **URL**: `GET /api/teacher/events/{id}/attendance`
+- **Auth Required**: Yes
+
+- **Success Response** `200`:
+  ```json
+  {
+    "message": "Attendance retrieved successfully",
+    "event_id": 5,
+    "attendance": [
+      { "student_id": 12, "username": "student1", "email": "s1@example.com", "role": "student", "status": "present" },
+      { "student_id": 15, "username": "student2", "email": "s2@example.com", "role": "student", "status": null },
+      { "student_id": 19, "username": "teacher2", "email": "t2@example.com", "role": "teacher", "status": "absent" }
+    ]
+  }
+  ```
+
+  > `status: null` means the guest has not been marked yet.
+
+- **Error Responses**:
+  - **404** — event not found
+  - **403** — teacher is not the organizer or a guest
+
+---
+
+## Record Event Attendance
 
 Records which invited guests attended an event. Only the event organizer may call this.
 Uses `updateOrCreate` keyed on `(event_id, student_id)` — re-submitting overwrites the previous status.

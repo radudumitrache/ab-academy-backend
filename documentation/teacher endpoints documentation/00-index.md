@@ -63,7 +63,9 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | GET | `/api/teacher/events/{id}` | Yes | Get a single event |
 | PUT | `/api/teacher/events/{id}` | Yes | Update an event (organizer only) |
 | DELETE | `/api/teacher/events/{id}` | Yes | Delete an event (organizer only) |
+| GET | `/api/teacher/events/{id}/attendance` | Yes | View event attendance (organizer or guest) — see [Attendance](12-attendance.md) |
 | PUT | `/api/teacher/events/{id}/attendance` | Yes | Record event guest attendance (organizer only) — see [Attendance](12-attendance.md) |
+| GET | `/api/teacher/groups/{id}/attendance` | Yes | View group attendance, filterable by date (group teacher only) — see [Attendance](12-attendance.md) |
 | POST | `/api/teacher/groups/{id}/attendance` | Yes | Record group session attendance (group teacher only) — see [Attendance](12-attendance.md) |
 | POST | `/api/teacher/events/{id}/guests/by-username` | Yes | Add guests to an event by username (organizer only) |
 | POST | `/api/teacher/events/{id}/create-zoom-meeting` | Yes | Auto-create a Zoom meeting for an event (organizer only) |

@@ -433,4 +433,47 @@ class GroupController extends Controller
             'group'   => $group->load('students'),
         ]);
     }
+
+    /**
+     * Return attendance records for a group.
+     * Only the group's teacher may view. Optionally filter by session_date.
+     */
+    public function getAttendance(Request $request, $id)
+    {
+        $group = Group::find($id);
+
+        if (!$group) {
+            return response()->json(['message' => 'Group not found'], 404);
+        }
+
+        if ($group->group_teacher !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $query = Attendance::where('group_id', $group->group_id);
+
+        if ($request->filled('session_date')) {
+            $query->where('session_date', $request->input('session_date'));
+        }
+
+        $records = $query->with('student:id,username,email,role')
+            ->orderBy('session_date')
+            ->orderBy('session_time')
+            ->get()
+            ->map(fn($a) => [
+                'student_id'   => $a->student_id,
+                'username'     => $a->student?->username,
+                'email'        => $a->student?->email,
+                'session_date' => $a->session_date,
+                'session_time' => $a->session_time,
+                'status'       => $a->status,
+            ]);
+
+        return response()->json([
+            'message'    => 'Attendance retrieved successfully',
+            'group_id'   => $group->group_id,
+            'group_name' => $group->group_name,
+            'attendance' => $records,
+        ]);
+    }
 }
