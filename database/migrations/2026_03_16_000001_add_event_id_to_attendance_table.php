@@ -47,7 +47,9 @@ return new class extends Migration
             $table->unsignedBigInteger('group_id')->nullable()->change();
             $table->date('session_date')->nullable()->change();
             $table->time('session_time')->nullable()->change();
-            $table->unsignedBigInteger('event_id')->nullable()->after('group_id');
+            if (!Schema::hasColumn('attendance', 'event_id')) {
+                $table->unsignedBigInteger('event_id')->nullable()->after('group_id');
+            }
         });
 
         // Step 4: re-add foreign keys and constraints
