@@ -7,7 +7,11 @@ This document describes the full admin workflow from a student paying for a prod
 ## Full Admin Flow
 
 ```
+[Option A — EuPlatesc online payment]
 Student pays  →  Acquisition status: "paid"
+      │
+[Option B — Cash / bank transfer]
+Admin creates manually  →  POST /api/admin/acquisitions  (set status: "paid")
       │
       ▼
 Admin reviews payment  →  GET /api/admin/acquisitions?status=paid
@@ -45,6 +49,48 @@ Student has 1 week to renew before being removed from group
 ---
 
 ## Acquisition Endpoints
+
+### Create Acquisition (Manual)
+
+`POST /api/admin/acquisitions`
+
+Creates an acquisition directly on behalf of a student — used for cash payments, bank transfers, or any flow that bypasses EuPlatesc. You can create it in any starting status (e.g. `paid` if payment is already confirmed).
+
+**Request body**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `student_id` | integer | Yes | ID of the student |
+| `product_id` | integer | Yes | ID of the product being purchased |
+| `payment_profile_id` | integer | No | Student's payment profile to use for invoicing |
+| `amount_paid` | numeric | Yes | Amount paid (≥ 0) |
+| `currency` | string | Yes | `RON` or `EUR` |
+| `acquisition_status` | string | Yes | Starting status: `pending_payment`, `paid`, `active`, `completed`, `cancelled`, `expired` |
+| `acquisition_date` | date | No | Date of acquisition (`YYYY-MM-DD`). Defaults to `null` |
+| `acquisition_notes` | string | No | Internal admin notes |
+| `groups_access` | array of integers | No | Group IDs to grant immediately (for course products) |
+| `tests_access` | array of integers | No | Test IDs to grant immediately (for single products) |
+
+**Response** `201`:
+```json
+{
+  "message": "Acquisition created successfully",
+  "acquisition": {
+    "id": 12,
+    "student": { "id": 7, "username": "maria.ionescu", "email": "maria@example.com" },
+    "product": { "id": 1, "name": "IELTS Preparation — 20 sessions", "type": "course" },
+    "payment_profile": null,
+    "amount_paid": "985.05",
+    "currency": "RON",
+    "acquisition_status": "paid",
+    ...
+  }
+}
+```
+
+**Errors**: `422` if validation fails (e.g. unknown student/product/group/test ID).
+
+---
 
 ### List Acquisitions
 

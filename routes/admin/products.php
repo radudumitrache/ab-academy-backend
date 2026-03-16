@@ -15,6 +15,7 @@ Route::delete('/products/{id}',  [ProductController::class, 'destroy']);
 
 // ── Acquisition management ────────────────────────────────────────────────────
 Route::get('/acquisitions',                                [ProductAcquisitionController::class, 'index']);
+Route::post('/acquisitions',                               [ProductAcquisitionController::class, 'store']);
 Route::get('/acquisitions/{id}',                           [ProductAcquisitionController::class, 'show']);
 Route::post('/acquisitions/{id}/grant-access',             [ProductAcquisitionController::class, 'grantAccess']);
 Route::post('/acquisitions/{id}/create-invoice',           [ProductAcquisitionController::class, 'createInvoice']);

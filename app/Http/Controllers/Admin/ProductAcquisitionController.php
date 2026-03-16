@@ -67,6 +67,35 @@ class ProductAcquisitionController extends Controller
     }
 
     /**
+     * Manually create an acquisition on behalf of a student.
+     * Used for cash/bank-transfer payments that bypass EuPlatesc.
+     */
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'student_id'         => 'required|integer|exists:users,id',
+            'product_id'         => 'required|integer|exists:products,id',
+            'payment_profile_id' => 'nullable|integer|exists:payment_profiles,id',
+            'amount_paid'        => 'required|numeric|min:0',
+            'currency'           => 'required|in:RON,EUR',
+            'acquisition_status' => 'required|in:pending_payment,paid,active,completed,cancelled,expired',
+            'acquisition_date'   => 'nullable|date',
+            'acquisition_notes'  => 'nullable|string',
+            'groups_access'      => 'nullable|array',
+            'groups_access.*'    => 'integer|exists:groups,group_id',
+            'tests_access'       => 'nullable|array',
+            'tests_access.*'     => 'integer|exists:tests,id',
+        ]);
+
+        $acquisition = ProductAcquisition::create($data);
+
+        return response()->json([
+            'message'     => 'Acquisition created successfully',
+            'acquisition' => $this->format($acquisition->load(['product', 'student', 'paymentProfile'])),
+        ], 201);
+    }
+
+    /**
      * Grant access to groups/tests for a paid acquisition and mark it active.
      */
     public function grantAccess(Request $request, $id)
