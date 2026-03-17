@@ -1,6 +1,10 @@
 # Event Management
 
-Teachers can view events they are involved in (as organizer or guest), create new events with themselves as organizer, and edit or delete events they created.
+Teachers can view events they are involved in (as organizer, guest, or assistant teacher of an invited group), create new events with themselves as organizer, and edit or delete events they are authorized to manage.
+
+**Management access** applies to the organizer **and** to any teacher who is an assistant of a group listed in the event's `guest_groups`. Managers can edit, delete, mark attendance, add guests, and create Zoom meetings. The `event_start_link` (host URL) is visible only to managers.
+
+Plain guests (directly invited but not a manager) can view events but cannot modify them and do not receive `event_start_link`.
 
 ---
 
@@ -45,7 +49,7 @@ Teachers can view events they are involved in (as organizer or guest), create ne
 | `guest_groups` | Array of group IDs — all members of these groups can see the event |
 | `present_guests` | Array of guest IDs who attended (managed separately) |
 | `event_meet_link` | Guest join URL (populated after Zoom meeting creation) |
-| `event_start_link` | Host start URL for the organizer — opens meeting as the owner (populated after Zoom meeting creation). Contains an embedded token that expires ~2 hours after creation. |
+| `event_start_link` | Host start URL — visible only to managers (organizer or assistant teachers of invited groups). Opens meeting as the Zoom host. Contains an embedded token that expires ~2 hours after creation. |
 | `event_notes` | Optional free-text notes |
 | `meeting_account_id` | ID of the `MeetingAccount` used to create the Zoom meeting |
 | `organizer` | Full organizer object (eager-loaded) |
@@ -54,8 +58,9 @@ Teachers can view events they are involved in (as organizer or guest), create ne
 
 ## List My Events
 
-Returns all events where the authenticated teacher is the organizer **or** appears in the guest list.
+Returns all events where the authenticated teacher is the organizer, appears in the guest list, **or** is an assistant teacher of any group in `guest_groups`.
 Results are ordered by `event_date` and `event_time` ascending.
+`event_start_link` is included only for events the teacher can manage (organizer or assistant of an invited group); it is omitted for plain guests.
 
 - **URL**: `/api/teacher/events`
 - **Method**: `GET`
@@ -108,6 +113,7 @@ Returns a single event. Accessible to any authenticated teacher.
   ```
 
   > `guest_users` is the resolved list of full user objects for each ID in `guests`. The list endpoint returns raw guest IDs only; `show` resolves them to full objects.
+  > `event_start_link` is included only if the requesting teacher is a manager (organizer or assistant of an invited group); otherwise it is hidden.
 
 - **Error Responses**:
   - **404** — event not found:
@@ -184,7 +190,7 @@ Creates a new event. The authenticated teacher is automatically set as the organ
 
 ## Update Event
 
-Updates an event. Only the teacher who is the organizer of the event may edit it.
+Updates an event. The organizer **or** any assistant teacher of a group in the event's `guest_groups` may edit it.
 All fields are optional — only provided fields are changed.
 
 - **URL**: `/api/teacher/events/{id}`
@@ -218,9 +224,9 @@ All fields are optional — only provided fields are changed.
     ```json
     { "message": "Event not found" }
     ```
-  - **403** — teacher is not the organizer:
+  - **403** — teacher is not a manager of this event:
     ```json
-    { "message": "Unauthorized — only the event organizer can edit this event" }
+    { "message": "Unauthorized — only the event organizer or an assistant teacher of the event's groups can edit this event" }
     ```
   - **422** — validation failed (same shape as create).
 
@@ -228,7 +234,7 @@ All fields are optional — only provided fields are changed.
 
 ## Delete Event
 
-Deletes an event. Only the teacher who is the organizer may delete it.
+Deletes an event. The organizer **or** any assistant teacher of a group in the event's `guest_groups` may delete it.
 
 - **URL**: `/api/teacher/events/{id}`
 - **Method**: `DELETE`
@@ -244,9 +250,9 @@ Deletes an event. Only the teacher who is the organizer may delete it.
     ```json
     { "message": "Event not found" }
     ```
-  - **403** — teacher is not the organizer:
+  - **403** — teacher is not a manager of this event:
     ```json
-    { "message": "Unauthorized — only the event organizer can delete this event" }
+    { "message": "Unauthorized — only the event organizer or an assistant teacher of the event's groups can delete this event" }
     ```
 
 ---
@@ -255,7 +261,7 @@ Deletes an event. Only the teacher who is the organizer may delete it.
 
 Adds one or more users to the event's guest list by their usernames.
 Existing guests are preserved — duplicates are silently ignored.
-Only the event organizer may call this endpoint.
+The organizer **or** any assistant teacher of a group in the event's `guest_groups` may call this endpoint.
 
 - **URL**: `/api/teacher/events/{id}/guests/by-username`
 - **Method**: `POST`
@@ -292,9 +298,9 @@ Only the event organizer may call this endpoint.
     ```json
     { "message": "Event not found" }
     ```
-  - **403** — teacher is not the organizer:
+  - **403** — teacher is not a manager of this event:
     ```json
-    { "message": "Unauthorized — only the event organizer can add guests" }
+    { "message": "Unauthorized — only the event organizer or an assistant teacher of the event's groups can add guests" }
     ```
   - **422** — one or more usernames not found:
     ```json
@@ -308,7 +314,7 @@ Only the event organizer may call this endpoint.
 
 ## Create Zoom Meeting
 
-Automatically selects an available (non-conflicting) meeting account and creates a Zoom meeting for the event. Only the event organizer may call this. Stores the guest join URL in `event_meet_link`, the host start URL in `event_start_link`, and associates the chosen account via `meeting_account_id`.
+Automatically selects an available (non-conflicting) meeting account and creates a Zoom meeting for the event. The organizer **or** any assistant teacher of a group in the event's `guest_groups` may call this. Stores the guest join URL in `event_meet_link`, the host start URL in `event_start_link`, and associates the chosen account via `meeting_account_id`.
 
 - **URL**: `POST /api/teacher/events/{id}/create-zoom-meeting`
 - **Auth Required**: Yes
@@ -330,7 +336,7 @@ Automatically selects an available (non-conflicting) meeting account and creates
   }
   ```
 - **Error Responses**:
-  - `403` — authenticated teacher is not the event organizer
+  - `403` — teacher is not a manager of this event (not organizer and not assistant of any invited group)
   - `404` — event not found
   - `422` — no available meeting accounts for this time slot
   - `502` — Zoom API call failed (error message included)
@@ -339,7 +345,7 @@ Automatically selects an available (non-conflicting) meeting account and creates
 
 **Host vs guest URLs**:
 - `meeting_link` / `event_meet_link` — the guest join URL. Share this with students and other attendees.
-- `start_link` / `event_start_link` — the host start URL. Show this **only to the event organizer**. Opening it launches the meeting with the organizer as the Zoom host (owner). Contains an embedded token that expires approximately 2 hours after creation — for events scheduled further in advance, re-fetch via the Zoom API if needed.
+- `start_link` / `event_start_link` — the host start URL. Show this **only to managers** (organizer or assistant teachers of invited groups). Opening it launches the meeting with the organizer as the Zoom host (owner). Contains an embedded token that expires approximately 2 hours after creation — for events scheduled further in advance, re-fetch via the Zoom API if needed.
 
 ---
 

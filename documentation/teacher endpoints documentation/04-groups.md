@@ -1,7 +1,8 @@
 # Group Management
 
 Teachers can create, view, update, and delete their own groups, as well as add and remove students.
-All endpoints are scoped to the authenticated teacher — a teacher can only manage groups they own.
+A teacher can manage groups they **own** or groups where they are an **assistant teacher**.
+Only the main (owner) teacher can invite or remove assistant teachers.
 
 ---
 
@@ -21,12 +22,17 @@ All endpoints are scoped to the authenticated teacher — a teacher can only man
   "formatted_schedule": "Monday at 18:00 (90min), Wednesday at 18:00 (90min)",
   "total_weekly_minutes": 180,
   "group_members": [12, 15, 19],
+  "assistant_teacher_ids": [7, 9],
   "students": [
     {
       "id": 12,
       "username": "student1",
       "role": "student"
     }
+  ],
+  "assistant_teachers": [
+    { "id": 7, "username": "teacher_ion", "role": "teacher" },
+    { "id": 9, "username": "teacher_maria", "role": "teacher" }
   ],
   "created_at": "2026-01-10T09:00:00.000000Z",
   "updated_at": "2026-02-01T14:30:00.000000Z",
@@ -48,6 +54,8 @@ All endpoints are scoped to the authenticated teacher — a teacher can only man
 | `formatted_schedule` | Human-readable schedule (e.g. `Monday at 18:00 (90min), Wednesday at 18:00 (90min)`) |
 | `total_weekly_minutes` | Sum of all session durations per week |
 | `group_members` | Array of student user IDs currently in the group |
+| `assistant_teacher_ids` | Array of assistant teacher user IDs |
+| `assistant_teachers` | Full assistant teacher objects (eager-loaded) |
 | `students` | Full student objects (eager-loaded) |
 
 ---
@@ -73,7 +81,7 @@ Returns the allowed values for `schedule_days[].day` and `schedule_days[].time`.
 
 ## List My Groups
 
-Returns all groups owned by the authenticated teacher.
+Returns all groups where the authenticated teacher is the owner **or** an assistant teacher.
 
 - **URL**: `/api/teacher/groups`
 - **Method**: `GET`
@@ -509,6 +517,60 @@ Each student entry must have one of three statuses: `present`, `absent`, or `mot
       }
     }
     ```
+
+---
+
+## Add Assistant Teacher
+
+Invites a teacher to be an assistant for this group. **Only the main (owner) teacher can call this.**
+Assistant teachers gain the same management permissions as the owner (edit group, add/remove students, take attendance, assign homework).
+
+- **URL**: `/api/teacher/groups/{id}/assistant-teachers`
+- **Method**: `POST`
+- **Auth Required**: Yes (must be the group owner)
+- **Request Body**:
+  ```json
+  { "teacher_id": 7 }
+  ```
+
+- **Success Response** `200`:
+  ```json
+  {
+    "message": "Assistant teacher added successfully",
+    "group": { ...group object... }
+  }
+  ```
+
+- **Error Responses**:
+  - **404** — group not found
+  - **403** — you are not the group owner
+  - **404** — `teacher_id` is not a valid teacher: `{ "message": "Teacher not found or user is not a teacher" }`
+  - **422** — teacher is the group owner: `{ "message": "This teacher is already the group owner" }`
+  - **409** — already an assistant: `{ "message": "Teacher is already an assistant in this group" }`
+  - **422** — validation failed
+
+---
+
+## Remove Assistant Teacher
+
+Removes an assistant teacher from the group. **Only the main (owner) teacher can call this.**
+
+- **URL**: `/api/teacher/groups/{groupId}/assistant-teachers/{teacherId}`
+- **Method**: `DELETE`
+- **Auth Required**: Yes (must be the group owner)
+
+- **Success Response** `200`:
+  ```json
+  {
+    "message": "Assistant teacher removed successfully",
+    "group": { ...group object... }
+  }
+  ```
+
+- **Error Responses**:
+  - **404** — group not found
+  - **403** — you are not the group owner
+  - **404** — teacher is not an assistant in this group: `{ "message": "Teacher is not an assistant in this group" }`
 
 ---
 

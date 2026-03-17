@@ -20,6 +20,7 @@ Admins have full access to **all groups** — no ownership filter applies. They 
   "formatted_schedule": "Monday at 18:00 (90min), Wednesday at 18:00 (90min)",
   "total_weekly_minutes": 180,
   "group_members": [12, 15, 19],
+  "assistant_teacher_ids": [7, 9],
   "teacher": {
     "id": 4,
     "username": "teacher_ana",
@@ -28,6 +29,10 @@ Admins have full access to **all groups** — no ownership filter applies. They 
   "students": [
     { "id": 12, "username": "student1", "role": "student" },
     { "id": 15, "username": "student2", "role": "student" }
+  ],
+  "assistant_teachers": [
+    { "id": 7, "username": "teacher_ion", "role": "teacher" },
+    { "id": 9, "username": "teacher_maria", "role": "teacher" }
   ],
   "created_at": "2026-01-10T09:00:00.000000Z",
   "updated_at": "2026-02-01T14:30:00.000000Z",
@@ -49,8 +54,10 @@ Admins have full access to **all groups** — no ownership filter applies. They 
 | `formatted_schedule` | Human-readable schedule string |
 | `total_weekly_minutes` | Sum of all session durations per week |
 | `group_members` | Array of student user IDs currently in the group |
-| `teacher` | Resolved teacher object |
+| `assistant_teacher_ids` | Array of assistant teacher user IDs |
+| `teacher` | Resolved owner teacher object |
 | `students` | Full student objects (eager-loaded) |
+| `assistant_teachers` | Full assistant teacher objects (eager-loaded) |
 
 ---
 
@@ -306,6 +313,52 @@ Generates (or regenerates) a unique 8-character alphanumeric class code for the 
 ```
 
 **Errors**: `404` if group not found.
+
+---
+
+## Add Assistant Teacher
+
+`POST /api/admin/groups/{id}/assistant-teachers`
+
+Assigns a teacher as an assistant to the group. Admins can assign any teacher regardless of group ownership.
+
+**Request body**:
+```json
+{ "teacher_id": 7 }
+```
+
+**Response** `200`:
+```json
+{
+  "message": "Assistant teacher added successfully",
+  "group": { ...group object... }
+}
+```
+
+**Errors**:
+- `404` — group not found
+- `404` — `teacher_id` is not a valid teacher: `{ "message": "Teacher not found or user is not a teacher" }`
+- `422` — teacher is already the group owner: `{ "message": "This teacher is already the group owner" }`
+- `409` — already an assistant: `{ "message": "Teacher is already an assistant in this group" }`
+- `422` — validation failed
+
+---
+
+## Remove Assistant Teacher
+
+`DELETE /api/admin/groups/{groupId}/assistant-teachers/{teacherId}`
+
+**Response** `200`:
+```json
+{
+  "message": "Assistant teacher removed successfully",
+  "group": { ...group object... }
+}
+```
+
+**Errors**:
+- `404` — group not found
+- `404` — teacher is not an assistant: `{ "message": "Teacher is not an assistant in this group" }`
 
 ---
 

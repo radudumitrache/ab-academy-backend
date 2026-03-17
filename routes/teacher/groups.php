@@ -21,7 +21,11 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/groups/{id}/students',                     [GroupController::class, 'addStudent']);
     Route::post('/groups/{id}/students/by-username',         [GroupController::class, 'addStudentByUsername']);
     Route::delete('/groups/{groupId}/students/{studentId}',  [GroupController::class, 'removeStudent']);
-    Route::post('/groups/{id}/generate-code',                [GroupController::class, 'generateCode']);
-    Route::get('/groups/{id}/attendance',                    [GroupController::class, 'getAttendance']);
-    Route::post('/groups/{id}/attendance',                   [GroupController::class, 'takeAttendance']);
+    Route::post('/groups/{id}/generate-code',                            [GroupController::class, 'generateCode']);
+    Route::get('/groups/{id}/attendance',                                [GroupController::class, 'getAttendance']);
+    Route::post('/groups/{id}/attendance',                               [GroupController::class, 'takeAttendance']);
+
+    // Assistant teacher management (main teacher only)
+    Route::post('/groups/{id}/assistant-teachers',                       [GroupController::class, 'addAssistantTeacher']);
+    Route::delete('/groups/{groupId}/assistant-teachers/{teacherId}',    [GroupController::class, 'removeAssistantTeacher']);
 });

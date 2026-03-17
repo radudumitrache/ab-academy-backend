@@ -44,6 +44,7 @@ class Group extends Model
 
     protected $appends = [
         'group_members',
+        'assistant_teacher_ids',
     ];
 
     /**
@@ -61,6 +62,40 @@ class Group extends Model
     {
         return $this->belongsToMany(Student::class, 'group_student', 'group_id', 'student_id')
                     ->withTimestamps();
+    }
+
+    /**
+     * Assistant teachers for this group.
+     */
+    public function assistantTeachers()
+    {
+        return $this->belongsToMany(Teacher::class, 'group_assistant_teachers', 'group_id', 'teacher_id')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Returns true if the given user ID is the main teacher or an assistant teacher.
+     */
+    public function canManage(int $userId): bool
+    {
+        if ($this->group_teacher === $userId) {
+            return true;
+        }
+
+        if ($this->relationLoaded('assistantTeachers')) {
+            return $this->assistantTeachers->contains('id', $userId);
+        }
+
+        return $this->assistantTeachers()->where('teacher_id', $userId)->exists();
+    }
+
+    public function getAssistantTeacherIdsAttribute(): array
+    {
+        if ($this->relationLoaded('assistantTeachers')) {
+            return $this->assistantTeachers->pluck('id')->values()->all();
+        }
+
+        return $this->assistantTeachers()->pluck('users.id')->values()->all();
     }
 
     public function getGroupMembersAttribute()

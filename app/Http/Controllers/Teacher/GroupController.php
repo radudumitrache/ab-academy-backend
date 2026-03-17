@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Group;
 use App\Models\Student;
+use App\Models\Teacher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -17,8 +18,13 @@ class GroupController extends Controller
      */
     public function index()
     {
-        $groups = Group::with(['students'])
-            ->where('group_teacher', Auth::id())
+        $teacherId = Auth::id();
+
+        $groups = Group::with(['students', 'assistantTeachers'])
+            ->where(function ($q) use ($teacherId) {
+                $q->where('group_teacher', $teacherId)
+                  ->orWhereHas('assistantTeachers', fn($q2) => $q2->where('teacher_id', $teacherId));
+            })
             ->get()
             ->each(fn($g) => $g->append('formatted_schedule'));
 
@@ -93,13 +99,13 @@ class GroupController extends Controller
      */
     public function show($id)
     {
-        $group = Group::with(['students'])->find($id);
+        $group = Group::with(['students', 'assistantTeachers'])->find($id);
 
         if (!$group) {
             return response()->json(['message' => 'Group not found'], 404);
         }
 
-        if ($group->group_teacher !== Auth::id()) {
+        if (!$group->canManage(Auth::id())) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -122,7 +128,7 @@ class GroupController extends Controller
             return response()->json(['message' => 'Group not found'], 404);
         }
 
-        if ($group->group_teacher !== Auth::id()) {
+        if (!$group->canManage(Auth::id())) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -177,7 +183,7 @@ class GroupController extends Controller
             return response()->json(['message' => 'Group not found'], 404);
         }
 
-        if ($group->group_teacher !== Auth::id()) {
+        if (!$group->canManage(Auth::id())) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -197,7 +203,7 @@ class GroupController extends Controller
             return response()->json(['message' => 'Group not found'], 404);
         }
 
-        if ($group->group_teacher !== Auth::id()) {
+        if (!$group->canManage(Auth::id())) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -243,7 +249,7 @@ class GroupController extends Controller
             return response()->json(['message' => 'Group not found'], 404);
         }
 
-        if ($group->group_teacher !== Auth::id()) {
+        if (!$group->canManage(Auth::id())) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -289,7 +295,7 @@ class GroupController extends Controller
             return response()->json(['message' => 'Group not found'], 404);
         }
 
-        if ($group->group_teacher !== Auth::id()) {
+        if (!$group->canManage(Auth::id())) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -316,7 +322,7 @@ class GroupController extends Controller
             return response()->json(['message' => 'Group not found'], 404);
         }
 
-        if ($group->group_teacher !== Auth::id()) {
+        if (!$group->canManage(Auth::id())) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -342,7 +348,7 @@ class GroupController extends Controller
             return response()->json(['message' => 'Group not found'], 404);
         }
 
-        if ($group->group_teacher !== Auth::id()) {
+        if (!$group->canManage(Auth::id())) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -446,7 +452,7 @@ class GroupController extends Controller
             return response()->json(['message' => 'Group not found'], 404);
         }
 
-        if ($group->group_teacher !== Auth::id()) {
+        if (!$group->canManage(Auth::id())) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -474,6 +480,83 @@ class GroupController extends Controller
             'group_id'   => $group->group_id,
             'group_name' => $group->group_name,
             'attendance' => $records,
+        ]);
+    }
+
+    /**
+     * Invite an assistant teacher to the group (by teacher ID).
+     * Only the main teacher (group owner) can invite assistants.
+     */
+    public function addAssistantTeacher(Request $request, $id)
+    {
+        $group = Group::with('assistantTeachers')->find($id);
+
+        if (!$group) {
+            return response()->json(['message' => 'Group not found'], 404);
+        }
+
+        if ($group->group_teacher !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'teacher_id' => 'required|exists:users,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $teacher = Teacher::find($request->teacher_id);
+
+        if (!$teacher) {
+            return response()->json(['message' => 'Teacher not found or user is not a teacher'], 404);
+        }
+
+        if ($teacher->id === $group->group_teacher) {
+            return response()->json(['message' => 'This teacher is already the group owner'], 422);
+        }
+
+        if ($group->assistantTeachers()->where('teacher_id', $teacher->id)->exists()) {
+            return response()->json(['message' => 'Teacher is already an assistant in this group'], 409);
+        }
+
+        $group->assistantTeachers()->attach($teacher->id);
+
+        return response()->json([
+            'message' => 'Assistant teacher added successfully',
+            'group'   => $group->load(['students', 'assistantTeachers']),
+        ]);
+    }
+
+    /**
+     * Remove an assistant teacher from the group.
+     * Only the main teacher (group owner) can remove assistants.
+     */
+    public function removeAssistantTeacher($groupId, $teacherId)
+    {
+        $group = Group::find($groupId);
+
+        if (!$group) {
+            return response()->json(['message' => 'Group not found'], 404);
+        }
+
+        if ($group->group_teacher !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        if (!$group->assistantTeachers()->where('teacher_id', $teacherId)->exists()) {
+            return response()->json(['message' => 'Teacher is not an assistant in this group'], 404);
+        }
+
+        $group->assistantTeachers()->detach($teacherId);
+
+        return response()->json([
+            'message' => 'Assistant teacher removed successfully',
+            'group'   => $group->load(['students', 'assistantTeachers']),
         ]);
     }
 }

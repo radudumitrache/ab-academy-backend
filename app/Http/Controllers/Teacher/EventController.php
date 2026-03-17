@@ -16,24 +16,55 @@ use Illuminate\Validation\Rule;
 class EventController extends Controller
 {
     /**
+     * Returns true if the given teacher can manage (edit/delete/zoom) an event.
+     * This is the case when they are the organizer, or when they are an assistant
+     * teacher of at least one group that is in the event's guest_groups.
+     */
+    private function canManageEvent(Event $event, int $teacherId): bool
+    {
+        if ((int) $event->event_organizer === $teacherId) {
+            return true;
+        }
+
+        $groupIds = collect($event->guest_groups ?? [])->map(fn($g) => (int) $g)->filter()->toArray();
+
+        if (empty($groupIds)) {
+            return false;
+        }
+
+        return Group::whereIn('group_id', $groupIds)
+            ->whereHas('assistantTeachers', fn($q) => $q->where('teacher_id', $teacherId))
+            ->exists();
+    }
+
+    /**
      * List all events where the teacher is the organizer or is in the guest list.
      */
     public function index()
     {
         $teacherId = Auth::id();
 
+        $assistantGroupIds = Group::whereHas('assistantTeachers', fn($q) => $q->where('teacher_id', $teacherId))
+            ->pluck('group_id')
+            ->toArray();
+
         $events = Event::with('organizer')
-            ->where(function ($query) use ($teacherId) {
+            ->where(function ($query) use ($teacherId, $assistantGroupIds) {
                 $query->where('event_organizer', $teacherId)
                       ->orWhereJsonContains('guests', $teacherId);
+
+                foreach ($assistantGroupIds as $groupId) {
+                    $query->orWhereJsonContains('guest_groups', $groupId);
+                }
             })
             ->orderBy('event_date')
             ->orderBy('event_time')
             ->get()
-            ->map(function ($event) use ($teacherId) {
-                return (int) $event->event_organizer !== $teacherId
-                    ? $event->makeHidden('event_start_link')
-                    : $event;
+            ->map(function ($event) use ($teacherId, $assistantGroupIds) {
+                $isManager = (int) $event->event_organizer === $teacherId
+                    || collect($event->guest_groups ?? [])->map(fn($g) => (int) $g)->intersect($assistantGroupIds)->isNotEmpty();
+
+                return $isManager ? $event : $event->makeHidden('event_start_link');
             });
 
         return response()->json([
@@ -62,7 +93,7 @@ class EventController extends Controller
             ->select('id', 'username', 'email', 'role')
             ->get();
 
-        if ((int) $event->event_organizer !== Auth::id()) {
+        if (!$this->canManageEvent($event, Auth::id())) {
             $event->makeHidden('event_start_link');
         }
 
@@ -113,8 +144,8 @@ class EventController extends Controller
             return response()->json(['message' => 'Event not found'], 404);
         }
 
-        if ((int) $event->event_organizer !== Auth::id()) {
-            return response()->json(['message' => 'Unauthorized — only the event organizer can edit this event'], 403);
+        if (!$this->canManageEvent($event, Auth::id())) {
+            return response()->json(['message' => 'Unauthorized — only the event organizer or an assistant teacher of the event\'s groups can edit this event'], 403);
         }
 
         $validated = $request->validate([
@@ -152,8 +183,8 @@ class EventController extends Controller
             return response()->json(['message' => 'Event not found'], 404);
         }
 
-        if ((int) $event->event_organizer !== Auth::id()) {
-            return response()->json(['message' => 'Unauthorized — only the event organizer can mark attendance'], 403);
+        if (!$this->canManageEvent($event, Auth::id())) {
+            return response()->json(['message' => 'Unauthorized — only the event organizer or an assistant teacher of the event\'s groups can mark attendance'], 403);
         }
 
         $validated = $request->validate([
@@ -227,8 +258,8 @@ class EventController extends Controller
             return response()->json(['message' => 'Event not found'], 404);
         }
 
-        if ((int) $event->event_organizer !== Auth::id()) {
-            return response()->json(['message' => 'Unauthorized — only the event organizer can add guests'], 403);
+        if (!$this->canManageEvent($event, Auth::id())) {
+            return response()->json(['message' => 'Unauthorized — only the event organizer or an assistant teacher of the event\'s groups can add guests'], 403);
         }
 
         $validated = $request->validate([
@@ -280,8 +311,8 @@ class EventController extends Controller
             return response()->json(['message' => 'Event not found'], 404);
         }
 
-        if ((int) $event->event_organizer !== Auth::id()) {
-            return response()->json(['message' => 'Unauthorized — only the event organizer can create a Zoom meeting'], 403);
+        if (!$this->canManageEvent($event, Auth::id())) {
+            return response()->json(['message' => 'Unauthorized — only the event organizer or an assistant teacher of the event\'s groups can create a Zoom meeting'], 403);
         }
 
         // Find account IDs already booked for a time-overlapping event on the same date
@@ -340,8 +371,8 @@ class EventController extends Controller
             return response()->json(['message' => 'Event not found'], 404);
         }
 
-        if ((int) $event->event_organizer !== Auth::id()) {
-            return response()->json(['message' => 'Unauthorized — only the event organizer can delete this event'], 403);
+        if (!$this->canManageEvent($event, Auth::id())) {
+            return response()->json(['message' => 'Unauthorized — only the event organizer or an assistant teacher of the event\'s groups can delete this event'], 403);
         }
 
         $event->delete();
