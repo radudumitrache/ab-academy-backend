@@ -142,14 +142,19 @@ class ProductAcquisitionController extends Controller
      * - Once the profile is confirmed (or has no special text), the invoice is created in SmartBill
      *   and the acquisition is updated with the invoice_series and invoice_number.
      */
-    public function createInvoice(Request $request, $id)
+    public function createInvoice(Request $request)
     {
+        $data = $request->validate([
+            'id'     => 'required|integer',
+            'series' => 'required|string|max:50',
+        ]);
+
         $acquisition = ProductAcquisition::with([
             'paymentProfile.physicalPerson',
             'paymentProfile.company',
             'product',
             'student',
-        ])->find($id);
+        ])->find($data['id']);
 
         if (!$acquisition) {
             return response()->json(['message' => 'Acquisition not found'], 404);
@@ -181,10 +186,6 @@ class ProductAcquisitionController extends Controller
                 'needs_confirmation' => true,
             ], 422);
         }
-
-        $data = $request->validate([
-            'series' => 'required|string|max:50',
-        ]);
 
         try {
             $smartbillNumber = $this->smartbill->createInvoiceForAcquisition($acquisition, $data['series']);

@@ -27,7 +27,7 @@ Admin checks payment profile for billing mentions
       │     └─ POST /api/admin/payment-profiles/{id}/set-invoice-text  (first time only)
       │
       ▼
-Admin creates SmartBill invoice  →  POST /api/admin/acquisitions/{id}/create-invoice
+Admin creates SmartBill invoice  →  POST /api/admin/acquisitions/create-invoice
       │
       ▼
 Admin marks invoice paid in SmartBill  →  POST /api/admin/acquisitions/{id}/mark-invoice-paid
@@ -185,7 +185,7 @@ Assigns groups or tests to the student and marks the acquisition `active`. Only 
 
 ### Create SmartBill Invoice
 
-`POST /api/admin/acquisitions/{id}/create-invoice`
+`POST /api/admin/acquisitions/create-invoice`
 
 Creates a SmartBill invoice for the acquisition. The invoice line description is taken from the payment profile's `invoice_text` (if set), otherwise falls back to the product name.
 
@@ -195,6 +195,7 @@ Creates a SmartBill invoice for the acquisition. The invoice line description is
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| `id` | integer | Yes | ID of the acquisition |
 | `series` | string | Yes | SmartBill invoice series (e.g. `"AB"`) |
 
 **Response** `200`:
