@@ -236,6 +236,53 @@ class ProductAcquisitionController extends Controller
     }
 
     /**
+     * Send the SmartBill invoice for an acquisition by email.
+     */
+    public function sendInvoiceByEmail(Request $request, $id)
+    {
+        $acquisition = ProductAcquisition::with('student:id,username,email')->find($id);
+
+        if (!$acquisition) {
+            return response()->json(['message' => 'Acquisition not found'], 404);
+        }
+
+        if (!$acquisition->invoice_number || !$acquisition->invoice_series) {
+            return response()->json([
+                'message' => 'No invoice exists for this acquisition yet',
+            ], 422);
+        }
+
+        $data = $request->validate([
+            'email' => 'nullable|email',
+        ]);
+
+        $email = $data['email'] ?? $acquisition->student?->email;
+
+        if (!$email) {
+            return response()->json([
+                'message' => 'No email address provided and the student has no email on record',
+            ], 422);
+        }
+
+        try {
+            $this->smartbill->sendInvoiceByEmail(
+                $acquisition->invoice_series,
+                $acquisition->invoice_number,
+                $email,
+            );
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'SmartBill send-email failed: ' . $e->getMessage(),
+            ], 502);
+        }
+
+        return response()->json([
+            'message' => 'Invoice sent by email successfully',
+            'email'   => $email,
+        ]);
+    }
+
+    /**
      * Update acquisition status (complete, cancel, expire, etc.).
      */
     public function updateStatus(Request $request, $id)

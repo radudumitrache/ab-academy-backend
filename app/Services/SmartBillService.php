@@ -121,6 +121,27 @@ class SmartBillService
     }
 
     /**
+     * Send a SmartBill invoice by email.
+     *
+     * @param  string  $series        Invoice series (e.g. "AB")
+     * @param  string  $number        SmartBill invoice number
+     * @param  string  $recipientEmail  Email address to send the invoice to
+     * @throws \RuntimeException on API error
+     */
+    public function sendInvoiceByEmail(string $series, string $number, string $recipientEmail): void
+    {
+        $payload = [
+            'companyVatCode' => $this->companyVatCode,
+            'seriesName'     => $series,
+            'number'         => $number,
+            'type'           => 'factura',
+            'email'          => $recipientEmail,
+        ];
+
+        $this->post('/invoice/sendmail', $payload);
+    }
+
+    /**
      * Mark a SmartBill invoice (for a product acquisition) as paid.
      *
      * @throws \RuntimeException on API error

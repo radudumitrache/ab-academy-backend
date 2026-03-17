@@ -246,6 +246,32 @@ Sends a "mark as paid" request to SmartBill for the acquisition's invoice. Shoul
 
 ---
 
+### Send Invoice by Email
+
+`POST /api/admin/acquisitions/{id}/send-invoice-email`
+
+Sends the SmartBill invoice for the acquisition to an email address. If no email is provided in the request body, it defaults to the student's email on record.
+
+**Pre-condition**: An invoice must already exist (`invoice_series` and `invoice_number` must be set on the acquisition).
+
+**Request body**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `email` | string (email) | No | Recipient email address. Defaults to the student's email if omitted. |
+
+**Response** `200`:
+```json
+{
+  "message": "Invoice sent by email successfully",
+  "email": "maria@example.com"
+}
+```
+
+**Errors**: `404` if not found, `422` if no invoice exists yet or no email is available, `502` if SmartBill API fails.
+
+---
+
 ### Update Acquisition Status
 
 `PUT /api/admin/acquisitions/{id}/status`
