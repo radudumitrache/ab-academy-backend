@@ -284,6 +284,35 @@ class ProductAcquisitionController extends Controller
     }
 
     /**
+     * Send the SmartBill invoice to SPV (ANAF e-Factura) for an acquisition.
+     */
+    public function sendInvoiceToSpv($id)
+    {
+        $acquisition = ProductAcquisition::find($id);
+
+        if (!$acquisition) {
+            return response()->json(['message' => 'Acquisition not found'], 404);
+        }
+
+        if (!$acquisition->invoice_number || !$acquisition->invoice_series) {
+            return response()->json(['message' => 'No invoice exists for this acquisition yet'], 422);
+        }
+
+        try {
+            $this->smartbill->sendInvoiceToSpv(
+                $acquisition->invoice_series,
+                $acquisition->invoice_number,
+            );
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'SmartBill SPV submission failed: ' . $e->getMessage(),
+            ], 502);
+        }
+
+        return response()->json(['message' => 'Invoice sent to SPV successfully']);
+    }
+
+    /**
      * Download the SmartBill invoice PDF for an acquisition.
      */
     public function downloadInvoice($id)

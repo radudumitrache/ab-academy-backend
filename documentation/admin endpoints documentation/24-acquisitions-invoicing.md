@@ -246,11 +246,30 @@ Downloads the SmartBill invoice PDF for the acquisition.
 
 ---
 
+### Send Invoice to SPV (ANAF e-Factura)
+
+`POST /api/admin/acquisitions/{id}/send-invoice-to-spv`
+
+Submits the SmartBill invoice to SPV (ANAF's e-Factura system) for the acquisition.
+
+**Pre-condition**: An invoice must already exist (`invoice_series` and `invoice_number` must be set on the acquisition).
+
+**Response** `200`:
+```json
+{
+  "message": "Invoice sent to SPV successfully"
+}
+```
+
+**Errors**: `404` if not found, `422` if no invoice exists yet, `502` if SmartBill API fails.
+
+---
+
 ### Mark Invoice as Paid in SmartBill
 
 `POST /api/admin/acquisitions/{id}/mark-invoice-paid`
 
-Sends a "mark as paid" request to SmartBill for the acquisition's invoice. Should be called after EuPlatesc confirms payment.
+Sends a "mark as paid" request to SmartBill for the acquisition's invoice.
 
 **Response** `200`:
 ```json

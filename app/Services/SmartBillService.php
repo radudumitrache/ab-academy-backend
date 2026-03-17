@@ -159,11 +159,9 @@ class SmartBillService
         $payload = [
             'companyVatCode' => $this->companyVatCode,
             'seriesName'     => $acquisition->invoice_series,
-            'isDraft'        => false,
-            'invoiceDate'    => $acquisition->acquisition_date?->format('Y-m-d') ?? now()->format('Y-m-d'),
             'invoiceNumber'  => $acquisition->invoice_number,
             'paymentDate'    => now()->format('Y-m-d'),
-            'paymentType'    => 'Card',
+            'paymentType'    => 'Ordin plata',
             'paymentValue'   => (float) $acquisition->amount_paid,
             'currency'       => $acquisition->currency,
         ];
@@ -305,6 +303,33 @@ class SmartBillService
                 ],
             ],
         ];
+    }
+
+    /**
+     * Send a SmartBill invoice to SPV (ANAF e-Factura).
+     *
+     * @throws \RuntimeException on API error
+     */
+    public function sendInvoiceToSpv(string $series, string $number): void
+    {
+        $response = Http::withBasicAuth($this->email, $this->token)
+            ->acceptJson()
+            ->get($this->baseUrl . '/invoice/spv', [
+                'cif'        => $this->companyVatCode,
+                'seriesname' => $series,
+                'number'     => $number,
+            ]);
+
+        if ($response->failed()) {
+            Log::error('SmartBill API error', [
+                'endpoint' => '/invoice/spv',
+                'status'   => $response->status(),
+                'body'     => $response->body(),
+            ]);
+            throw new \RuntimeException(
+                "SmartBill API error {$response->status()}: " . $response->body()
+            );
+        }
     }
 
     /**
