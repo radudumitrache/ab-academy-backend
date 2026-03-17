@@ -109,6 +109,8 @@ class SmartBillService
 
         $payload = $this->buildAcquisitionInvoicePayload($acquisition, $student, $profile, $product, $series);
 
+        Log::info('SmartBill createInvoice payload', ['payload' => $payload]);
+
         $response = $this->post('/invoice', $payload);
 
         if (!isset($response['number'])) {
