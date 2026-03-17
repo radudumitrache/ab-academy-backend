@@ -19,6 +19,7 @@ Route::post('/acquisitions',                               [ProductAcquisitionCo
 Route::get('/acquisitions/{id}',                           [ProductAcquisitionController::class, 'show']);
 Route::post('/acquisitions/{id}/grant-access',             [ProductAcquisitionController::class, 'grantAccess']);
 Route::post('/acquisitions/create-invoice',                [ProductAcquisitionController::class, 'createInvoice']);
+Route::get('/acquisitions/{id}/download-invoice',          [ProductAcquisitionController::class, 'downloadInvoice']);
 Route::post('/acquisitions/{id}/mark-invoice-paid',        [ProductAcquisitionController::class, 'markInvoicePaid']);
 Route::post('/acquisitions/{id}/send-invoice-email',       [ProductAcquisitionController::class, 'sendInvoiceByEmail']);
 Route::put('/acquisitions/{id}/status',                    [ProductAcquisitionController::class, 'updateStatus']);

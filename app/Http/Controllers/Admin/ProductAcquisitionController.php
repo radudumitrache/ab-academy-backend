@@ -284,6 +284,39 @@ class ProductAcquisitionController extends Controller
     }
 
     /**
+     * Download the SmartBill invoice PDF for an acquisition.
+     */
+    public function downloadInvoice($id)
+    {
+        $acquisition = ProductAcquisition::find($id);
+
+        if (!$acquisition) {
+            return response()->json(['message' => 'Acquisition not found'], 404);
+        }
+
+        if (!$acquisition->invoice_number || !$acquisition->invoice_series) {
+            return response()->json(['message' => 'No invoice exists for this acquisition yet'], 422);
+        }
+
+        try {
+            $pdf = $this->smartbill->downloadInvoicePdf(
+                $acquisition->invoice_series,
+                $acquisition->invoice_number,
+            );
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'SmartBill PDF download failed: ' . $e->getMessage(),
+            ], 502);
+        }
+
+        $filename = "invoice-{$acquisition->invoice_series}-{$acquisition->invoice_number}.pdf";
+
+        return response($pdf, 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
+    }
+
+    /**
      * Update acquisition status (complete, cancel, expire, etc.).
      */
     public function updateStatus(Request $request, $id)

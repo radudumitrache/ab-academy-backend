@@ -230,6 +230,22 @@ Creates a SmartBill invoice for the acquisition. The invoice line description is
 
 ---
 
+### Download Invoice PDF
+
+`GET /api/admin/acquisitions/{id}/download-invoice`
+
+Downloads the SmartBill invoice PDF for the acquisition.
+
+**Pre-condition**: An invoice must already exist (`invoice_series` and `invoice_number` must be set on the acquisition).
+
+**Response** `200`: Binary PDF file with headers:
+- `Content-Type: application/pdf`
+- `Content-Disposition: attachment; filename="invoice-{series}-{number}.pdf"`
+
+**Errors**: `404` if not found, `422` if no invoice exists yet, `502` if SmartBill API fails.
+
+---
+
 ### Mark Invoice as Paid in SmartBill
 
 `POST /api/admin/acquisitions/{id}/mark-invoice-paid`

@@ -307,6 +307,37 @@ class SmartBillService
         ];
     }
 
+    /**
+     * Download the PDF of a SmartBill invoice.
+     * Returns the raw PDF binary string.
+     *
+     * @throws \RuntimeException on API error
+     */
+    public function downloadInvoicePdf(string $series, string $number): string
+    {
+        $response = Http::withBasicAuth($this->email, $this->token)
+            ->accept('application/octet-stream')
+            ->get($this->baseUrl . '/invoice/pdf', [
+                'cif'        => $this->companyVatCode,
+                'seriesname' => $series,
+                'number'     => $number,
+                'type'       => 'factura',
+            ]);
+
+        if ($response->failed()) {
+            Log::error('SmartBill API error', [
+                'endpoint' => '/invoice/pdf',
+                'status'   => $response->status(),
+                'body'     => $response->body(),
+            ]);
+            throw new \RuntimeException(
+                "SmartBill API error {$response->status()}: " . $response->body()
+            );
+        }
+
+        return $response->body();
+    }
+
     private function post(string $endpoint, array $payload): array
     {
         $response = Http::withBasicAuth($this->email, $this->token)
