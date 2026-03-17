@@ -23,8 +23,8 @@ Students can browse available products and purchase them using a payment profile
 2. Student browses products  →  GET /api/student/products
          │
          ▼
-3. Student initiates checkout  →  POST /api/student/products/{id}/purchase
-   { "payment_profile_id": 1 }
+3. Student initiates checkout  →  POST /api/student/products/init
+   { "product_id": 1, "payment_profile_id": 1 }
          │
          ▼
 4. Backend creates a pending acquisition, returns EuPlatesc HTML form
@@ -117,7 +117,7 @@ Returns all active products available for purchase.
 
 ## Purchase a Product
 
-`POST /api/student/products/{id}/purchase`
+`POST /api/student/products/init`
 
 Initiates an EuPlatesc payment for the selected product. Returns an HTML page with an auto-submitting `<form>` that redirects the browser to the EuPlatesc hosted checkout page.
 
@@ -127,6 +127,7 @@ Initiates an EuPlatesc payment for the selected product. Returns an HTML page wi
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| `product_id` | integer | Yes | ID of the product to purchase |
 | `payment_profile_id` | integer | Yes | ID of the payment profile to use for billing |
 
 **Price conversion**: The product price is always stored in EUR. If the selected payment profile's currency is `RON`, the price is automatically converted using the configured EUR→RON rate (`EUR_TO_RON_RATE` env var, default `4.95`).

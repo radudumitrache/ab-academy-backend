@@ -69,8 +69,7 @@ class EuPlatescService
         $request  = $gateway->purchase($data);
         $response = $request->send();
 
-        // The library returns an HTML auto-submit form
-        return $response->getRedirectForm() ?? $response->getRedirectUrl();
+        return $response->getRedirectHTML();
     }
 
     /**
@@ -150,7 +149,7 @@ class EuPlatescService
         $request  = $gateway->purchase($data);
         $response = $request->send();
 
-        return $response->getRedirectForm() ?? $response->getRedirectUrl();
+        return $response->getRedirectHTML();
     }
 
     /**
