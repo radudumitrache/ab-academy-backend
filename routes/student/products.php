@@ -12,6 +12,6 @@ Route::middleware('auth:api')->group(function () {
     // Acquisitions
     Route::get('/acquisitions',                      [ProductAcquisitionController::class, 'index']);
     Route::get('/acquisitions/{id}',                 [ProductAcquisitionController::class, 'show']);
-    Route::post('/products/{id}/init',               [ProductAcquisitionController::class, 'purchase']);
+    Route::post('/products/init',                    [ProductAcquisitionController::class, 'purchase']);
     Route::post('/acquisitions/{id}/renew',          [ProductAcquisitionController::class, 'renew']);
 });

@@ -56,15 +56,16 @@ class ProductAcquisitionController extends Controller
      *
      * Creates a pending acquisition and returns an EuPlatesc checkout form.
      */
-    public function purchase(Request $request, $id)
+    public function purchase(Request $request)
     {
         $data = $request->validate([
+            'product_id'         => 'required|integer',
             'payment_profile_id' => 'required|integer',
         ]);
 
         $student = Auth::user();
 
-        $product = Product::where('is_active', true)->find($id);
+        $product = Product::where('is_active', true)->find($data['product_id']);
         if (!$product) {
             return response()->json(['message' => 'Product not found or not available'], 404);
         }
