@@ -20,6 +20,9 @@ class EuPlatescService
     public function initiatePayment(Invoice $invoice, User $student): string
     {
         $gateway = new \Paytic\Omnipay\Euplatesc\Gateway();
+        $gateway->setTestMode(config('payment.test_mode', true));
+        $gateway->setMid(config('payment.euplatesc_mid'));
+        $gateway->setKey(config('payment.euplatesc_key'));
 
         // Generate a unique 7-character order key
         $orderKey = strtoupper(Str::random(7));
@@ -80,6 +83,9 @@ class EuPlatescService
     public function initiateProductPayment(ProductAcquisition $acquisition, User $student, Product $product): string
     {
         $gateway = new \Paytic\Omnipay\Euplatesc\Gateway();
+        $gateway->setTestMode(config('payment.test_mode', true));
+        $gateway->setMid(config('payment.euplatesc_mid'));
+        $gateway->setKey(config('payment.euplatesc_key'));
 
         // Generate a unique order key (shared uniqueness pool with invoice_payments)
         do {
