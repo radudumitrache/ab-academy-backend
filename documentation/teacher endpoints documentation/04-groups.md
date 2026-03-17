@@ -520,9 +520,37 @@ Each student entry must have one of three statuses: `present`, `absent`, or `mot
 
 ---
 
+## Join a Group as Assistant Teacher
+
+`POST /api/teacher/groups/join`
+
+A teacher can enter a group's class code to become an **assistant teacher** of that group.
+This is the teacher equivalent of a student joining via class code — instead of becoming a student member, the teacher is added to the assistant teachers list.
+
+**Request body**:
+```json
+{ "class_code": "AB12CD34" }
+```
+
+**Response** `200`:
+```json
+{
+  "message": "Joined group as assistant teacher successfully",
+  "group": { ...group object... }
+}
+```
+
+**Errors**:
+- `404` — invalid class code
+- `409` — you are the group owner: `{ "message": "You are already the owner of this group" }`
+- `409` — already an assistant: `{ "message": "You are already an assistant teacher in this group" }`
+- `422` — validation failed
+
+---
+
 ## Add Assistant Teacher
 
-Invites a teacher to be an assistant for this group. **Only the main (owner) teacher can call this.**
+Invites a teacher to be an assistant for this group by their user ID. **Only the main (owner) teacher can call this.**
 Assistant teachers gain the same management permissions as the owner (edit group, add/remove students, take attendance, assign homework).
 
 - **URL**: `/api/teacher/groups/{id}/assistant-teachers`

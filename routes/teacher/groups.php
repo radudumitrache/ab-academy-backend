@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Teacher\GroupController;
+use App\Http\Controllers\Teacher\TeacherController;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -10,8 +11,12 @@ use Illuminate\Support\Facades\Route;
  */
 
 Route::middleware('auth:api')->group(function () {
-    // Schedule options helper — must be before {id} routes
+    // List all teachers (for assistant teacher lookup)
+    Route::get('/teachers',                                  [TeacherController::class, 'index']);
+
+    // Static routes — must be before {id} routes
     Route::get('/groups/schedule/options',                   [GroupController::class, 'getScheduleOptions']);
+    Route::post('/groups/join',                              [GroupController::class, 'joinByCode']);
 
     Route::get('/groups',                                    [GroupController::class, 'index']);
     Route::post('/groups',                                   [GroupController::class, 'store']);

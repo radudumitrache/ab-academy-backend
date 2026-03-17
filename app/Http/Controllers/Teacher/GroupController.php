@@ -401,7 +401,9 @@ class GroupController extends Controller
     }
 
     /**
-     * Join a group using a class code (student-facing; also available here for flexibility).
+     * Join a group as an assistant teacher using a class code.
+     * Teachers who enter a class code are added as assistant teachers, not as students.
+     * The group owner cannot join their own group this way.
      */
     public function joinByCode(Request $request)
     {
@@ -416,27 +418,27 @@ class GroupController extends Controller
             ], 422);
         }
 
-        $group = Group::where('class_code', strtoupper($request->class_code))->first();
+        $group = Group::with('assistantTeachers')->where('class_code', strtoupper($request->class_code))->first();
 
         if (!$group) {
             return response()->json(['message' => 'Invalid class code'], 404);
         }
 
-        $student = \App\Models\Student::find(Auth::id());
+        $teacherId = Auth::id();
 
-        if (!$student) {
-            return response()->json(['message' => 'Only students can join a group via class code'], 403);
+        if ($group->group_teacher === $teacherId) {
+            return response()->json(['message' => 'You are already the owner of this group'], 409);
         }
 
-        if ($group->students()->where('student_id', Auth::id())->exists()) {
-            return response()->json(['message' => 'You are already in this group'], 409);
+        if ($group->assistantTeachers()->where('teacher_id', $teacherId)->exists()) {
+            return response()->json(['message' => 'You are already an assistant teacher in this group'], 409);
         }
 
-        $group->students()->attach(Auth::id());
+        $group->assistantTeachers()->attach($teacherId);
 
         return response()->json([
-            'message' => 'Joined group successfully',
-            'group'   => $group->load('students'),
+            'message' => 'Joined group as assistant teacher successfully',
+            'group'   => $group->load(['students', 'assistantTeachers']),
         ]);
     }
 
