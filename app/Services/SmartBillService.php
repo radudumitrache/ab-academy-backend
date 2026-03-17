@@ -137,14 +137,18 @@ class SmartBillService
             'seriesName'     => $series,
             'number'         => $number,
             'type'           => 'factura',
-            'email'          => $recipientEmail,
+            'subject'        => base64_encode("Factura {$series}-{$number}"),
+            'to'             => $recipientEmail,
+            'bodyText'       => base64_encode("Stimate client,\n\nVa transmitem anexat factura {$series}-{$number}.\n\nVa multumim!"),
         ];
 
-        $this->post('/invoice/sendmail', $payload);
+        $this->post('/document/send', $payload);
     }
 
     /**
      * Mark a SmartBill invoice (for a product acquisition) as paid.
+     *
+     * Uses POST /payment to register a bank-transfer payment against the invoice.
      *
      * @throws \RuntimeException on API error
      */
@@ -157,16 +161,22 @@ class SmartBillService
         }
 
         $payload = [
-            'companyVatCode' => $this->companyVatCode,
-            'seriesName'     => $acquisition->invoice_series,
-            'invoiceNumber'  => $acquisition->invoice_number,
-            'paymentDate'    => now()->format('Y-m-d'),
-            'paymentType'    => 'Ordin plata',
-            'paymentValue'   => (float) $acquisition->amount_paid,
-            'currency'       => $acquisition->currency,
+            'companyVatCode'    => $this->companyVatCode,
+            'issueDate'         => now()->format('Y-m-d'),
+            'value'             => (float) $acquisition->amount_paid,
+            'type'              => 'Ordin plata',
+            'isCash'            => false,
+            'useInvoiceDetails' => true,
+            'currency'          => $acquisition->currency,
+            'invoicesList'      => [
+                [
+                    'seriesName' => $acquisition->invoice_series,
+                    'number'     => $acquisition->invoice_number,
+                ],
+            ],
         ];
 
-        $this->post('/invoice/paymentstatus', $payload);
+        $this->post('/payment', $payload);
     }
 
     // -------------------------------------------------------------------------
