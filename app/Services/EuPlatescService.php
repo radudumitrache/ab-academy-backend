@@ -42,19 +42,18 @@ class EuPlatescService
         ]);
 
         $data = [
-            'amount'      => $amount,
-            'currency'    => $currency,
-            'fname'       => $student->username,
-            'lname'       => '',
-            'orderId'     => $orderKey,
-            'orderName'   => $invoice->title,
-            'key'         => config('payment.euplatesc_key'),
-            'mid'         => config('payment.euplatesc_mid'),
-            'notifyUrl'   => config('app.url') . '/api/euplatesc/notify',
-            'returnUrl'   => config('app.url') . '/api/euplatesc/return',
-            'testMode'    => config('payment.test_mode', true),
-            'endpointUrl' => config('app.url'),
-            'card'        => [
+            'amount'    => $amount,
+            'currency'  => $currency,
+            'fname'     => $student->username,
+            'lname'     => '',
+            'orderId'   => $orderKey,
+            'orderName' => $invoice->title,
+            'key'       => config('payment.euplatesc_key'),
+            'mid'       => config('payment.euplatesc_mid'),
+            'notifyUrl' => config('app.url') . '/api/euplatesc/notify',
+            'returnUrl' => config('app.url') . '/api/euplatesc/return',
+            'testMode'  => config('payment.test_mode', true),
+            'card'      => [
                 'billingFirstName' => $student->username,
                 'billingLastName'  => '',
                 'country'          => $student->country ?? 'Romania',
@@ -122,19 +121,18 @@ class EuPlatescService
         }
 
         $data = [
-            'amount'      => $amount,
-            'currency'    => $currency,
-            'fname'       => $billingFirstName,
-            'lname'       => $billingLastName,
-            'orderId'     => $orderKey,
-            'orderName'   => $product->name,
-            'key'         => config('payment.euplatesc_key'),
-            'mid'         => config('payment.euplatesc_mid'),
-            'notifyUrl'   => config('app.url') . '/api/euplatesc/notify',
-            'returnUrl'   => config('app.url') . '/api/euplatesc/return',
-            'testMode'    => config('payment.test_mode', true),
-            'endpointUrl' => config('app.url'),
-            'card'        => [
+            'amount'    => $amount,
+            'currency'  => $currency,
+            'fname'     => $billingFirstName,
+            'lname'     => $billingLastName,
+            'orderId'   => $orderKey,
+            'orderName' => $product->name,
+            'key'       => config('payment.euplatesc_key'),
+            'mid'       => config('payment.euplatesc_mid'),
+            'notifyUrl' => config('app.url') . '/api/euplatesc/notify',
+            'returnUrl' => config('app.url') . '/api/euplatesc/return',
+            'testMode'  => config('payment.test_mode', true),
+            'card'      => [
                 'billingFirstName' => $billingFirstName,
                 'billingLastName'  => $billingLastName,
                 'country'          => $billingCountry,
