@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Mail\NotificationMail;
+use App\Models\DatabaseLog;
 use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -62,6 +63,8 @@ class NotificationController extends Controller
             $validated['is_seen'] = false;
 
             $notification = Notification::create($validated);
+
+            DatabaseLog::logAction('create', Notification::class, $notification->id, "Notification created for user #{$notification->notification_owner}");
 
             return response()->json([
                 'message'      => 'Notification created successfully',
@@ -138,7 +141,10 @@ class NotificationController extends Controller
             return response()->json(['message' => 'Notification not found'], 404);
         }
 
+        $notificationId = $notification->id;
         $notification->delete();
+
+        DatabaseLog::logAction('delete', Notification::class, $notificationId, "Notification #{$notificationId} deleted");
 
         return response()->json(['message' => 'Notification deleted successfully']);
     }

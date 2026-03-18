@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\DatabaseLog;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\User;
@@ -28,6 +29,8 @@ class UserManagementController extends Controller
             'telephone' => $request->telephone,
             'password' => Hash::make($request->password),
         ]);
+
+        DatabaseLog::logAction('create', Teacher::class, $teacher->id, "Teacher '{$teacher->username}' created");
 
         return response()->json([
             'message' => 'Teacher created successfully',
@@ -57,6 +60,8 @@ class UserManagementController extends Controller
             'telephone' => $request->telephone,
             'password' => Hash::make($request->password),
         ]);
+
+        DatabaseLog::logAction('create', Student::class, $student->id, "Student '{$student->username}' created");
 
         return response()->json([
             'message' => 'Student created successfully',
@@ -189,7 +194,9 @@ class UserManagementController extends Controller
         }
         
         $teacher->save();
-        
+
+        DatabaseLog::logAction('update', Teacher::class, $teacher->id, "Teacher '{$teacher->username}' updated");
+
         return response()->json([
             'message' => 'Teacher updated successfully',
             'teacher' => [
@@ -210,6 +217,8 @@ class UserManagementController extends Controller
         $teacher = Teacher::findOrFail($id);
         $username = $teacher->username;
         $teacher->delete();
+
+        DatabaseLog::logAction('delete', Teacher::class, $id, "Teacher '{$username}' deleted");
 
         return response()->json([
             'message' => "Teacher '{$username}' deleted successfully",
@@ -379,7 +388,9 @@ class UserManagementController extends Controller
         }
         
         $student->save();
-        
+
+        DatabaseLog::logAction('update', Student::class, $student->id, "Student '{$student->username}' updated");
+
         return response()->json([
             'message' => 'Student updated successfully',
             'student' => [
@@ -399,6 +410,8 @@ class UserManagementController extends Controller
         $student = Student::findOrFail($id);
         $username = $student->username;
         $student->delete();
+
+        DatabaseLog::logAction('delete', Student::class, $id, "Student '{$username}' deleted");
 
         return response()->json([
             'message' => "Student '{$username}' deleted successfully",

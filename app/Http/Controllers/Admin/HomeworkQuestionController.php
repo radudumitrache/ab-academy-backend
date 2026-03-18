@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\DatabaseLog;
 use App\Models\Homework;
 use App\Models\HomeworkSection;
 use App\Models\Question;
@@ -109,6 +110,8 @@ class HomeworkQuestionController extends Controller
 
         $this->createDetailRecord($question, $validated['question_type'], $validated);
 
+        DatabaseLog::logAction('create', Question::class, $question->question_id, "Question (type: {$question->question_type}) created for homework #{$homeworkId}");
+
         return response()->json([
             'message'  => 'Question created successfully',
             'question' => $this->loadDetailRelation($question->fresh()),
@@ -164,6 +167,8 @@ class HomeworkQuestionController extends Controller
 
         $this->updateDetailRecord($question, $question->question_type, $validated);
 
+        DatabaseLog::logAction('update', Question::class, $question->question_id, "Question #{$questionId} updated for homework #{$homeworkId}");
+
         return response()->json([
             'message'  => 'Question updated successfully',
             'question' => $this->loadDetailRelation($question->fresh()),
@@ -182,6 +187,8 @@ class HomeworkQuestionController extends Controller
         }
 
         $question->delete();
+
+        DatabaseLog::logAction('delete', Question::class, $questionId, "Question #{$questionId} deleted from homework #{$homeworkId}");
 
         return response()->json(['message' => 'Question deleted successfully']);
     }

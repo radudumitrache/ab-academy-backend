@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
+use App\Models\DatabaseLog;
 use App\Models\Event;
 use App\Models\Group;
 use App\Models\MeetingAccount;
@@ -52,6 +53,8 @@ class EventController extends Controller
         ]);
 
         $event = Event::create($validated);
+
+        DatabaseLog::logAction('create', Event::class, $event->id, "Event '{$event->title}' created");
 
         return response()->json([
             'message' => 'Event created successfully',
@@ -107,6 +110,8 @@ class EventController extends Controller
 
         $event->update($validated);
 
+        DatabaseLog::logAction('update', Event::class, $event->id, "Event '{$event->title}' updated");
+
         return response()->json([
             'message' => 'Event updated successfully',
             'event' => $event->load('organizer'),
@@ -123,7 +128,10 @@ class EventController extends Controller
             ], 404);
         }
 
+        $eventTitle = $event->title;
         $event->delete();
+
+        DatabaseLog::logAction('delete', Event::class, $id, "Event '{$eventTitle}' deleted");
 
         return response()->json([
             'message' => 'Event deleted successfully',
@@ -231,6 +239,8 @@ class EventController extends Controller
 
         $event->refresh();
 
+        DatabaseLog::logAction('update', Event::class, $event->id, "Zoom meeting created for event '{$event->title}'");
+
         return response()->json([
             'message'      => 'Zoom meeting created successfully',
             'event'        => $event->load('organizer'),
@@ -295,6 +305,8 @@ class EventController extends Controller
                 'events'  => [],
             ]);
         }
+
+        DatabaseLog::logAction('create', Event::class, $event->id, count($created) . " recurring event(s) created from event '{$event->title}'");
 
         return response()->json([
             'message' => count($created) . ' recurring event(s) created',

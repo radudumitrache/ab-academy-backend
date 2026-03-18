@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\DatabaseLog;
 use App\Models\MeetingAccount;
 use App\Services\ZoomService;
 use Illuminate\Http\Request;
@@ -50,6 +51,8 @@ class MeetingAccountController extends Controller
         $data['created_by'] = Auth::id();
 
         $account = MeetingAccount::create($data);
+
+        DatabaseLog::logAction('create', MeetingAccount::class, $account->id, "Meeting account '{$account->name}' ({$account->provider}) created");
 
         return response()->json([
             'message' => 'Meeting account created successfully',
@@ -103,6 +106,8 @@ class MeetingAccountController extends Controller
 
         $account->update($validator->validated());
 
+        DatabaseLog::logAction('update', MeetingAccount::class, $account->id, "Meeting account '{$account->name}' updated");
+
         return response()->json([
             'message' => 'Meeting account updated successfully',
             'account' => $account->fresh(),
@@ -120,7 +125,10 @@ class MeetingAccountController extends Controller
             return response()->json(['message' => 'Meeting account not found'], 404);
         }
 
+        $accountName = $account->name;
         $account->delete();
+
+        DatabaseLog::logAction('delete', MeetingAccount::class, $id, "Meeting account '{$accountName}' deleted");
 
         return response()->json(['message' => 'Meeting account deleted successfully']);
     }

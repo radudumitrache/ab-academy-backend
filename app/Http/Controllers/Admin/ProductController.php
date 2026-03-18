@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\CourseProduct;
+use App\Models\DatabaseLog;
 use App\Models\Product;
 use App\Models\SingleProduct;
 use Illuminate\Http\Request;
@@ -89,6 +90,8 @@ class ProductController extends Controller
             return $product->load(['singleProduct.test', 'courseProduct']);
         });
 
+        DatabaseLog::logAction('create', Product::class, $product->id, "Product '{$product->name}' ({$product->type}) created");
+
         return response()->json([
             'message' => 'Product created successfully',
             'product' => $this->format($product),
@@ -141,6 +144,8 @@ class ProductController extends Controller
 
         $product->load(['singleProduct.test', 'courseProduct']);
 
+        DatabaseLog::logAction('update', Product::class, $product->id, "Product '{$product->name}' updated");
+
         return response()->json([
             'message' => 'Product updated successfully',
             'product' => $this->format($product),
@@ -157,7 +162,10 @@ class ProductController extends Controller
             return response()->json(['message' => 'Product not found'], 404);
         }
 
+        $productName = $product->name;
         $product->delete();
+
+        DatabaseLog::logAction('delete', Product::class, $id, "Product '{$productName}' deleted");
 
         return response()->json(['message' => 'Product deleted successfully']);
     }

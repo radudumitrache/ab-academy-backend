@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\DatabaseLog;
 use App\Models\Material;
 use App\Models\Test;
 use App\Models\TestSection;
@@ -79,6 +80,8 @@ class TestController extends Controller
 
         $test = Test::create($validated);
 
+        DatabaseLog::logAction('create', Test::class, $test->id, "Test '{$test->test_title}' created");
+
         return response()->json([
             'message' => 'Test created successfully',
             'test'    => $test,
@@ -105,6 +108,8 @@ class TestController extends Controller
 
         $test->update($validated);
 
+        DatabaseLog::logAction('update', Test::class, $test->id, "Test '{$test->test_title}' updated");
+
         return response()->json([
             'message' => 'Test updated successfully',
             'test'    => $test->fresh(),
@@ -119,7 +124,10 @@ class TestController extends Controller
             return response()->json(['message' => 'Test not found'], 404);
         }
 
+        $testTitle = $test->test_title;
         $test->delete();
+
+        DatabaseLog::logAction('delete', Test::class, $id, "Test '{$testTitle}' deleted");
 
         return response()->json(['message' => 'Test deleted successfully']);
     }
@@ -143,6 +151,8 @@ class TestController extends Controller
             'people_assigned' => $validated['people_assigned'] ?? [],
             'groups_assigned' => $validated['groups_assigned'] ?? [],
         ]);
+
+        DatabaseLog::logAction('update', Test::class, $test->id, "Students assigned to test '{$test->test_title}'");
 
         return response()->json([
             'message' => 'Students assigned successfully',
@@ -201,6 +211,8 @@ class TestController extends Controller
             'transcript'        => $validated['transcript'] ?? null,
         ]);
 
+        DatabaseLog::logAction('create', TestSection::class, $section->id, "Section created for test #{$testId}");
+
         return response()->json([
             'message' => 'Section created successfully',
             'section' => $section,
@@ -232,6 +244,8 @@ class TestController extends Controller
 
         $section->update(array_filter($validated, fn ($v) => !is_null($v)));
 
+        DatabaseLog::logAction('update', TestSection::class, $section->id, "Section #{$sectionId} updated for test #{$testId}");
+
         return response()->json([
             'message' => 'Section updated successfully',
             'section' => $section->fresh(),
@@ -250,6 +264,8 @@ class TestController extends Controller
         }
 
         $section->delete();
+
+        DatabaseLog::logAction('delete', TestSection::class, $sectionId, "Section #{$sectionId} deleted from test #{$testId}");
 
         return response()->json(['message' => 'Section deleted successfully']);
     }

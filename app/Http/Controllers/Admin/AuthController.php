@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
+use App\Models\DatabaseLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -40,7 +41,8 @@ class AuthController extends Controller
                     $token = $superAdmin->createToken('super-admin-token')->accessToken;
                     
                     Log::info('Super admin token generated successfully');
-                    
+                    DatabaseLog::logAction('login', Admin::class, 0, 'Super admin logged in');
+
                     return response()->json([
                         'message' => 'Super admin login successful',
                         'user' => [
@@ -86,7 +88,8 @@ class AuthController extends Controller
                 $token = $user->createToken('admin-token')->accessToken;
                 
                 Log::info('Admin token generated successfully for user: ' . $user->username);
-                
+                DatabaseLog::logAction('login', Admin::class, $user->id, "Admin '{$user->username}' logged in");
+
                 // Return successful response with token
                 return response()->json([
                     'message' => 'Admin login successful',
@@ -125,8 +128,10 @@ class AuthController extends Controller
             $user = $request->user();
             $username = $user ? $user->username : 'unknown';
             
+            $userId = $user->id ?? null;
             $request->user()->token()->revoke();
-            
+            DatabaseLog::logAction('logout', Admin::class, $userId, "Admin '{$username}' logged out");
+
             Log::info('Admin logged out successfully: ' . $username);
             
             return response()->json([

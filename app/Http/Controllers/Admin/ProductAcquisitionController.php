@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\DatabaseLog;
 use App\Models\ProductAcquisition;
 use App\Services\SmartBillService;
 use Illuminate\Http\Request;
@@ -89,6 +90,8 @@ class ProductAcquisitionController extends Controller
 
         $acquisition = ProductAcquisition::create($data);
 
+        DatabaseLog::logAction('create', ProductAcquisition::class, $acquisition->id, "Acquisition created for student #{$acquisition->student_id}, product #{$acquisition->product_id}");
+
         return response()->json([
             'message'     => 'Acquisition created successfully',
             'acquisition' => $this->format($acquisition->load(['product', 'student', 'paymentProfile'])),
@@ -126,6 +129,8 @@ class ProductAcquisitionController extends Controller
             'acquisition_status' => 'active',
             'acquisition_date'   => $acquisition->acquisition_date ?? now()->toDateString(),
         ]));
+
+        DatabaseLog::logAction('update', ProductAcquisition::class, $acquisition->id, "Access granted for acquisition #{$acquisition->id} (student #{$acquisition->student_id})");
 
         return response()->json([
             'message'     => 'Access granted successfully',
@@ -200,6 +205,8 @@ class ProductAcquisitionController extends Controller
             'invoice_number' => $smartbillNumber,
         ]);
 
+        DatabaseLog::logAction('update', ProductAcquisition::class, $acquisition->id, "SmartBill invoice '{$data['series']}-{$smartbillNumber}' created for acquisition #{$acquisition->id}");
+
         return response()->json([
             'message'        => 'Invoice created successfully',
             'invoice_series' => $data['series'],
@@ -232,6 +239,8 @@ class ProductAcquisitionController extends Controller
                 'message' => 'SmartBill mark-paid failed: ' . $e->getMessage(),
             ], 502);
         }
+
+        DatabaseLog::logAction('update', ProductAcquisition::class, $acquisition->id, "SmartBill invoice marked as paid for acquisition #{$acquisition->id}");
 
         return response()->json(['message' => 'Invoice marked as paid in SmartBill']);
     }
@@ -309,6 +318,8 @@ class ProductAcquisitionController extends Controller
             ], 502);
         }
 
+        DatabaseLog::logAction('update', ProductAcquisition::class, $acquisition->id, "SmartBill invoice sent to SPV for acquisition #{$acquisition->id}");
+
         return response()->json(['message' => 'Invoice sent to SPV successfully']);
     }
 
@@ -364,6 +375,8 @@ class ProductAcquisitionController extends Controller
         ]);
 
         $acquisition->update($data);
+
+        DatabaseLog::logAction('update', ProductAcquisition::class, $acquisition->id, "Acquisition #{$acquisition->id} status updated to '{$data['acquisition_status']}'");
 
         return response()->json([
             'message'     => 'Acquisition updated successfully',

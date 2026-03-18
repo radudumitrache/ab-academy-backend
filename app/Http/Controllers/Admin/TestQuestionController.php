@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\DatabaseLog;
 use App\Models\Test;
 use App\Models\TestQuestion;
 use App\Models\TestSection;
@@ -108,6 +109,8 @@ class TestQuestionController extends Controller
 
         $this->createDetailRecord($question, $validated['question_type'], $validated);
 
+        DatabaseLog::logAction('create', TestQuestion::class, $question->test_question_id, "Question (type: {$question->question_type}) created for test #{$testId}");
+
         return response()->json([
             'message'  => 'Question created successfully',
             'question' => $this->loadDetailRelation($question->fresh()),
@@ -161,6 +164,8 @@ class TestQuestionController extends Controller
 
         $this->updateDetailRecord($question, $question->question_type, $validated);
 
+        DatabaseLog::logAction('update', TestQuestion::class, $question->test_question_id, "Question #{$questionId} updated for test #{$testId}");
+
         return response()->json([
             'message'  => 'Question updated successfully',
             'question' => $this->loadDetailRelation($question->fresh()),
@@ -179,6 +184,8 @@ class TestQuestionController extends Controller
         }
 
         $question->delete();
+
+        DatabaseLog::logAction('delete', TestQuestion::class, $questionId, "Question #{$questionId} deleted from test #{$testId}");
 
         return response()->json(['message' => 'Question deleted successfully']);
     }

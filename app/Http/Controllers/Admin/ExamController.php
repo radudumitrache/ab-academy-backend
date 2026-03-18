@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\DatabaseLog;
 use App\Models\Exam;
 use App\Models\Student;
 use Illuminate\Http\Request;
@@ -66,6 +67,8 @@ class ExamController extends Controller
             $exam->students()->attach($studentIds);
         }
 
+        DatabaseLog::logAction('create', Exam::class, $exam->id, "Exam '{$exam->name}' created");
+
         return response()->json([
             'message' => 'Exam created successfully',
             'exam'    => $exam->load(['students', 'statusHistory']),
@@ -124,6 +127,8 @@ class ExamController extends Controller
         $exam->fill($request->only(['name', 'exam_type', 'date']));
         $exam->save();
 
+        DatabaseLog::logAction('update', Exam::class, $exam->id, "Exam '{$exam->name}' updated");
+
         return response()->json([
             'message' => 'Exam updated successfully',
             'exam'    => $exam->fresh(['students', 'statusHistory']),
@@ -141,7 +146,10 @@ class ExamController extends Controller
             return response()->json(['message' => 'Exam not found'], 404);
         }
 
+        $examName = $exam->name;
         $exam->delete();
+
+        DatabaseLog::logAction('delete', Exam::class, $id, "Exam '{$examName}' deleted");
 
         return response()->json(['message' => 'Exam deleted successfully'], 200);
     }
@@ -177,6 +185,8 @@ class ExamController extends Controller
 
         $exam->students()->syncWithoutDetaching($studentIds);
 
+        DatabaseLog::logAction('update', Exam::class, $exam->id, count($studentIds) . " student(s) enrolled in exam '{$exam->name}'");
+
         return response()->json([
             'message' => 'Students enrolled in exam successfully',
             'exam'    => $exam->fresh(['students']),
@@ -208,6 +218,8 @@ class ExamController extends Controller
             'feedback' => $request->feedback,
         ]);
 
+        DatabaseLog::logAction('update', Exam::class, $examId, "Student #{$studentId} graded in exam '{$exam->name}'");
+
         return response()->json([
             'message' => 'Student graded successfully',
             'exam'    => $exam->load(['students' => fn($q) => $q->withPivot('score', 'feedback', 'student_score', 'notes')]),
@@ -236,6 +248,8 @@ class ExamController extends Controller
         }
 
         $exam->students()->detach($studentId);
+
+        DatabaseLog::logAction('update', Exam::class, $examId, "Student '{$student->username}' removed from exam '{$exam->name}'");
 
         return response()->json([
             'message' => 'Student removed from exam successfully',

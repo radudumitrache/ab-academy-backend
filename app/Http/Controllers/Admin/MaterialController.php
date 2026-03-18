@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\DatabaseLog;
 use App\Models\Material;
 use App\Models\User;
 use App\Services\GcsService;
@@ -73,6 +74,8 @@ class MaterialController extends Controller
             'folder'        => $folder,
         ]);
 
+        DatabaseLog::logAction('create', Material::class, $material->material_id, "Material '{$material->material_name}' uploaded to '{$folder}'");
+
         return response()->json([
             'message'  => 'Material uploaded successfully',
             'material' => $material,
@@ -115,6 +118,8 @@ class MaterialController extends Controller
 
         $material->update(['allowed_users' => $request->input('allowed_users')]);
 
+        DatabaseLog::logAction('update', Material::class, $material->material_id, "Access updated for material '{$material->material_name}'");
+
         return response()->json([
             'message'  => 'Access updated successfully',
             'material' => $material,
@@ -128,8 +133,12 @@ class MaterialController extends Controller
     {
         $material = Material::findOrFail($id);
 
+        $materialName = $material->material_name;
+        $materialId = $material->material_id;
         $this->gcs->delete($material->gcs_path);
         $material->delete();
+
+        DatabaseLog::logAction('delete', Material::class, $materialId, "Material '{$materialName}' deleted");
 
         return response()->json(['message' => 'Material deleted successfully']);
     }
@@ -197,6 +206,8 @@ class MaterialController extends Controller
             return response()->json(['message' => 'Folder already exists'], 409);
         }
 
+        DatabaseLog::logAction('create', Material::class, null, "Folder '{$path}/' created in storage");
+
         return response()->json([
             'message' => 'Folder created successfully',
             'path'    => $path . '/',
@@ -226,6 +237,8 @@ class MaterialController extends Controller
         if ($deleted === 0) {
             return response()->json(['message' => 'Folder not found or already empty'], 404);
         }
+
+        DatabaseLog::logAction('delete', Material::class, null, "Folder '{$path}/' deleted from storage ({$deleted} objects removed)");
 
         return response()->json([
             'message'         => 'Folder deleted successfully',

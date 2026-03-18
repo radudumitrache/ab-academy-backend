@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\DatabaseLog;
 use App\Services\GcsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -89,6 +90,8 @@ class ProfileController extends Controller
         $user->update($validated);
         $user->refresh();
 
+        DatabaseLog::logAction('update', get_class($user), $user->id, "Admin '{$user->username}' updated their profile");
+
         return response()->json([
             'message' => 'Profile updated successfully',
             'profile' => [
@@ -142,6 +145,8 @@ class ProfileController extends Controller
         $this->gcs->upload($file, $path);
         $user->update(['profile_picture_path' => $path]);
 
+        DatabaseLog::logAction('update', get_class($user), $user->id, "Admin '{$user->username}' uploaded a profile picture");
+
         $url = $this->gcs->signedUrl($path, 60);
 
         return response()->json([
@@ -188,6 +193,8 @@ class ProfileController extends Controller
         }
 
         $user->update(['password' => Hash::make($validated['new_password'])]);
+
+        DatabaseLog::logAction('update', get_class($user), $user->id, "Admin '{$user->username}' changed their password");
 
         return response()->json(['message' => 'Password changed successfully']);
     }

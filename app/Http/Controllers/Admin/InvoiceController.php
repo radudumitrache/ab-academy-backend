@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\DatabaseLog;
 use App\Models\Invoice;
 use App\Models\Student;
 use App\Services\SmartBillService;
@@ -82,6 +83,8 @@ class InvoiceController extends Controller
             ]);
         }
 
+        DatabaseLog::logAction('create', Invoice::class, $invoice->id, "Invoice '{$invoice->series}-{$invoice->number}' created for student #{$invoice->student_id}");
+
         return response()->json([
             'message' => 'Invoice created successfully',
             'invoice' => $invoice->fresh('student'),
@@ -126,6 +129,8 @@ class InvoiceController extends Controller
         $invoice->update($request->only(['title', 'value', 'currency', 'due_date', 'status']));
         $invoice->load('student');
 
+        DatabaseLog::logAction('update', Invoice::class, $invoice->id, "Invoice '{$invoice->series}-{$invoice->number}' updated");
+
         return response()->json([
             'message' => 'Invoice updated successfully',
             'invoice' => $invoice,
@@ -138,7 +143,10 @@ class InvoiceController extends Controller
     public function destroy($id)
     {
         $invoice = Invoice::findOrFail($id);
+        $invoiceRef = "{$invoice->series}-{$invoice->number}";
         $invoice->delete();
+
+        DatabaseLog::logAction('delete', Invoice::class, $id, "Invoice '{$invoiceRef}' deleted");
 
         return response()->json(['message' => 'Invoice deleted successfully']);
     }
@@ -181,6 +189,8 @@ class InvoiceController extends Controller
 
         $invoice->status = $request->status;
         $invoice->save();
+
+        DatabaseLog::logAction('update', Invoice::class, $invoice->id, "Invoice '{$invoice->series}-{$invoice->number}' status changed to '{$request->status}'");
 
         // Sync payment status to SmartBill when marking as paid
         if ($request->status === 'paid' && $invoice->smartbill_synced) {
@@ -225,6 +235,8 @@ class InvoiceController extends Controller
                 'message' => 'SmartBill sync failed: ' . $e->getMessage(),
             ], 502);
         }
+
+        DatabaseLog::logAction('update', Invoice::class, $invoice->id, "Invoice #{$invoice->id} synced to SmartBill (number: {$invoice->smartbill_number})");
 
         return response()->json([
             'message'          => 'Invoice synced to SmartBill successfully',

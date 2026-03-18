@@ -5,6 +5,8 @@ This section covers the notification system used to alert users about platform a
 Notifications are created **automatically** by model observers whenever key platform events occur.
 They can also be created manually via the API.
 
+For the following notification types, an email is **also sent** to each recipient who has an email address on their account: `Exam`, `Homework`, `Schedule`, `Payment`. Recipients with no email address are silently skipped.
+
 ---
 
 ## Data Model
@@ -286,17 +288,56 @@ Deletes a single notification.
 
 ---
 
+### Send Test Email
+
+Sends a test email to verify that the mail configuration (SMTP credentials) is working correctly.
+
+- **URL**: `/api/admin/notifications/test-email`
+- **Method**: `POST`
+- **Auth Required**: Yes — admin token
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  ```
+- **Request Body**:
+  ```json
+  {
+    "email": "you@example.com"
+  }
+  ```
+- **Field Notes**:
+  - `email` (required): valid email address to send the test to
+- **Success Response** `200`:
+  ```json
+  {
+    "message": "Test email sent to you@example.com"
+  }
+  ```
+- **Error Response** `422`:
+  ```json
+  {
+    "message": "The email field must be a valid email address.",
+    "errors": {
+      "email": ["The email field must be a valid email address."]
+    }
+  }
+  ```
+
+> Use `MAIL_MAILER=log` in `.env` during development to write emails to `storage/logs/laravel.log` without needing a real SMTP server.
+
+---
+
 ## Reference Tables
 
 ### Notification Types
 
-| Type | Triggered by | Observer |
-|------|-------------|----------|
-| `Exam` | Exam created, updated, or deleted | `ExamObserver` |
-| `Schedule` | Event created, updated, or deleted | `EventObserver` |
-| `Homework` | Homework created, updated, or deleted | `HomeworkObserver` |
-| `Message` | Admin sends a chat message | `MessageObserver` |
-| `Payment` | Invoice created | `InvoiceObserver` |
+| Type | Triggered by | Observer | Email sent |
+|------|-------------|----------|-----------|
+| `Exam` | Exam created, updated, or deleted | `ExamObserver` | Yes |
+| `Schedule` | Event created, updated, or deleted | `EventObserver` | Yes |
+| `Homework` | Homework created, updated, or deleted | `HomeworkObserver` | Yes |
+| `Message` | Admin sends a chat message | `MessageObserver` | No |
+| `Payment` | Invoice created | `InvoiceObserver` | Yes |
 
 ### Notification Sources
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\DatabaseLog;
 use App\Models\PaymentProfile;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -105,6 +106,8 @@ class PaymentProfileController extends Controller
             'invoice_confirmed' => true,
         ]);
 
+        DatabaseLog::logAction('update', PaymentProfile::class, $profile->id, "Invoice text set and payment profile #{$profile->id} confirmed");
+
         return response()->json([
             'message' => 'Invoice text saved and profile confirmed',
             'profile' => $this->format($profile->fresh(['physicalPerson', 'company'])),
@@ -123,6 +126,8 @@ class PaymentProfileController extends Controller
         }
 
         $profile->update(['invoice_confirmed' => true]);
+
+        DatabaseLog::logAction('update', PaymentProfile::class, $profile->id, "Payment profile #{$profile->id} confirmed");
 
         return response()->json([
             'message' => 'Payment profile confirmed',

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\DatabaseLog;
 use App\Models\Homework;
 use App\Models\HomeworkSection;
 use App\Models\HomeworkSubmission;
@@ -91,6 +92,8 @@ class HomeworkController extends Controller
 
         $homework = Homework::create($validated);
 
+        DatabaseLog::logAction('create', Homework::class, $homework->id, "Homework '{$homework->homework_title}' created");
+
         return response()->json([
             'message'  => 'Homework created successfully',
             'homework' => $homework,
@@ -120,6 +123,8 @@ class HomeworkController extends Controller
 
         $homework->update($validated);
 
+        DatabaseLog::logAction('update', Homework::class, $homework->id, "Homework '{$homework->homework_title}' updated");
+
         return response()->json([
             'message'  => 'Homework updated successfully',
             'homework' => $homework->fresh(),
@@ -137,7 +142,11 @@ class HomeworkController extends Controller
             return response()->json(['message' => 'Homework not found'], 404);
         }
 
+        $homeworkTitle = $homework->homework_title;
+        $homeworkId = $homework->id;
         $homework->delete();
+
+        DatabaseLog::logAction('delete', Homework::class, $homeworkId, "Homework '{$homeworkTitle}' deleted");
 
         return response()->json(['message' => 'Homework deleted successfully']);
     }
@@ -164,6 +173,8 @@ class HomeworkController extends Controller
             'people_assigned' => $validated['people_assigned'] ?? [],
             'groups_assigned' => $validated['groups_assigned'] ?? [],
         ]);
+
+        DatabaseLog::logAction('update', Homework::class, $homework->id, "Students assigned to homework '{$homework->homework_title}'");
 
         return response()->json([
             'message'  => 'Students assigned successfully',
@@ -222,6 +233,8 @@ class HomeworkController extends Controller
             'transcript'        => $validated['transcript'] ?? null,
         ]);
 
+        DatabaseLog::logAction('create', HomeworkSection::class, $section->id, "Section created for homework #{$homeworkId}");
+
         return response()->json([
             'message' => 'Section created successfully',
             'section' => $section,
@@ -253,6 +266,8 @@ class HomeworkController extends Controller
 
         $section->update(array_filter($validated, fn ($v) => !is_null($v)));
 
+        DatabaseLog::logAction('update', HomeworkSection::class, $section->id, "Section #{$sectionId} updated for homework #{$homeworkId}");
+
         return response()->json([
             'message' => 'Section updated successfully',
             'section' => $section->fresh(),
@@ -271,6 +286,8 @@ class HomeworkController extends Controller
         }
 
         $section->delete();
+
+        DatabaseLog::logAction('delete', HomeworkSection::class, $sectionId, "Section #{$sectionId} deleted from homework #{$homeworkId}");
 
         return response()->json(['message' => 'Section deleted successfully']);
     }

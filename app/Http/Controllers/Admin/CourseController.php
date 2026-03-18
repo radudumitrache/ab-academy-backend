@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\DatabaseLog;
 use App\Models\Teacher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -57,6 +58,8 @@ class CourseController extends Controller
         }
 
         $course = Course::create($request->all());
+
+        DatabaseLog::logAction('create', Course::class, $course->id, "Course '{$course->title}' created");
 
         return response()->json([
             'message' => 'Course created successfully',
@@ -125,6 +128,8 @@ class CourseController extends Controller
 
         $course->update($request->all());
 
+        DatabaseLog::logAction('update', Course::class, $course->id, "Course '{$course->title}' updated");
+
         return response()->json([
             'message' => 'Course updated successfully',
             'course' => $course->fresh(['teacher'])
@@ -144,7 +149,10 @@ class CourseController extends Controller
             ], 404);
         }
 
+        $courseTitle = $course->title;
         $course->delete();
+
+        DatabaseLog::logAction('delete', Course::class, $id, "Course '{$courseTitle}' deleted");
 
         return response()->json([
             'message' => 'Course deleted successfully'
