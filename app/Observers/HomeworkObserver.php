@@ -11,33 +11,29 @@ class HomeworkObserver
     public function created(Homework $homework): void
     {
         $due = $homework->due_date ? $homework->due_date->format('Y-m-d') : 'TBD';
+        $recipients = $this->resolveRecipients($homework);
+        $message = "New homework '{$homework->homework_title}' has been assigned, due on {$due}.";
 
-        NotificationService::notify(
-            $this->resolveRecipients($homework),
-            "New homework '{$homework->homework_title}' has been assigned, due on {$due}.",
-            'Admin',
-            'Homework'
-        );
+        NotificationService::notify($recipients, $message, 'Admin', 'Homework');
+        NotificationService::notifyByEmail($recipients, $message, 'Homework');
     }
 
     public function updated(Homework $homework): void
     {
-        NotificationService::notify(
-            $this->resolveRecipients($homework),
-            "Homework '{$homework->homework_title}' has been updated.",
-            'Admin',
-            'Homework'
-        );
+        $recipients = $this->resolveRecipients($homework);
+        $message = "Homework '{$homework->homework_title}' has been updated.";
+
+        NotificationService::notify($recipients, $message, 'Admin', 'Homework');
+        NotificationService::notifyByEmail($recipients, $message, 'Homework');
     }
 
     public function deleting(Homework $homework): void
     {
-        NotificationService::notify(
-            $this->resolveRecipients($homework),
-            "Homework '{$homework->homework_title}' has been removed.",
-            'Admin',
-            'Homework'
-        );
+        $recipients = $this->resolveRecipients($homework);
+        $message = "Homework '{$homework->homework_title}' has been removed.";
+
+        NotificationService::notify($recipients, $message, 'Admin', 'Homework');
+        NotificationService::notifyByEmail($recipients, $message, 'Homework');
     }
 
     private function resolveRecipients(Homework $homework): array

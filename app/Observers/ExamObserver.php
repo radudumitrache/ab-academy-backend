@@ -54,5 +54,6 @@ class ExamObserver
         $allIds = array_unique(array_merge($studentIds, $teacherIds));
 
         NotificationService::notify($allIds, $message, 'Admin', 'Exam');
+        NotificationService::notifyByEmail($allIds, $message, 'Exam');
     }
 }

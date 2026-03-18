@@ -34,8 +34,8 @@ Sections have:
 - `title` (optional)
 - `instruction_text` (optional) — large text field for written instructions shown to students
 - `instruction_files` — JSON array of **Material IDs** (integers from the `materials` table). When the homework is fetched via `GET /api/teacher/homework/{id}`, each ID is resolved to a 60-minute signed GCS URL and returned in `instruction_file_urls`.
-- **Reading only**: `passage` (required) — the text students read
-- **Listening only**: `audio_url` (external URL, optional) or `audio_material_id` (Material ID for a GCS-hosted audio file, optional). At least one must be provided. When fetched, `audio_url_signed` is added if `audio_material_id` is set.
+- **Reading only**: `passage` (optional) — the text students read
+- **Listening only**: `audio_url` (external URL, optional) or `audio_material_id` (Material ID for a GCS-hosted audio file, optional). When fetched, `audio_url_signed` is added if `audio_material_id` is set.
 
 ---
 
@@ -216,9 +216,9 @@ Returns all sections of a homework with question counts.
 | `instruction_text` | string | No | Large text shown as written instructions to students |
 | `instruction_files` | array | No | Array of **Material IDs** (integers from the `materials` table) |
 | `order` | integer | No | Display order |
-| `passage` | string | Required for `Reading` | |
-| `audio_url` | url | Required for `Listening` (if `audio_material_id` not provided) | External audio URL |
-| `audio_material_id` | integer | Required for `Listening` (if `audio_url` not provided) | Material ID of a GCS-hosted audio file |
+| `passage` | string | No (`Reading` only) | The text students read |
+| `audio_url` | url | No (`Listening` only) | External audio URL |
+| `audio_material_id` | integer | No (`Listening` only) | Material ID of a GCS-hosted audio file |
 | `transcript` | string | No (`Listening` only) | |
 
 **Response** `201` with created section object.
