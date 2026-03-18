@@ -209,16 +209,6 @@ class HomeworkController extends Controller
             'transcript'          => 'nullable|string',
         ]);
 
-        if ($validated['section_type'] === 'Reading' && empty($validated['passage'])) {
-            return response()->json(['message' => 'Reading sections require a passage'], 422);
-        }
-
-        if ($validated['section_type'] === 'Listening'
-            && empty($validated['audio_url'])
-            && empty($validated['audio_material_id'])) {
-            return response()->json(['message' => 'Listening sections require an audio_url or audio_material_id'], 422);
-        }
-
         $section = HomeworkSection::create([
             'homework_id'       => $homeworkId,
             'section_type'      => $validated['section_type'],

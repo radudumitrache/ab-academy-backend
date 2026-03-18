@@ -42,8 +42,8 @@ class SectionController extends Controller
      *
      * section_type: GrammarAndVocabulary | Writing | Reading | Listening | Speaking
      *
-     * Reading sections accept:  passage (required)
-     * Listening sections accept: audio_url (required), transcript (optional)
+     * Reading sections accept:  passage (optional)
+     * Listening sections accept: audio_url (optional), audio_material_id (optional), transcript (optional)
      * All sections accept: title, instruction_text, instruction_files, order
      */
     public function store(Request $request, $homeworkId)
@@ -68,15 +68,7 @@ class SectionController extends Controller
             'transcript'          => 'nullable|string',
         ]);
 
-        if ($validated['section_type'] === 'Reading' && empty($validated['passage'])) {
-            return response()->json(['message' => 'Reading sections require a passage'], 422);
-        }
 
-        if ($validated['section_type'] === 'Listening'
-            && empty($validated['audio_url'])
-            && empty($validated['audio_material_id'])) {
-            return response()->json(['message' => 'Listening sections require an audio_url or audio_material_id'], 422);
-        }
 
         $section = HomeworkSection::create([
             'homework_id'       => $homeworkId,
