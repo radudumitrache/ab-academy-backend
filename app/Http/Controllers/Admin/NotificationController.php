@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\NotificationMail;
 use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class NotificationController extends Controller
@@ -102,6 +104,25 @@ class NotificationController extends Controller
         return response()->json([
             'message'      => 'Notification marked as seen',
             'notification' => $notification,
+        ]);
+    }
+
+    /**
+     * Send a test email to verify mail configuration.
+     */
+    public function testEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        Mail::to($request->email)->send(new NotificationMail(
+            'Test',
+            'This is a test email from ' . config('app.name') . ' to verify that mail delivery is working correctly.'
+        ));
+
+        return response()->json([
+            'message' => 'Test email sent to ' . $request->email,
         ]);
     }
 

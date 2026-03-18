@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\NotificationController;
 
 // Mark all seen must come before {id} routes to avoid route conflict
 Route::put('/notifications/seen-all', [NotificationController::class, 'markAllSeen']);
+Route::post('/notifications/test-email', [NotificationController::class, 'testEmail']);
 
 Route::get('/notifications',          [NotificationController::class, 'index']);
 Route::post('/notifications',         [NotificationController::class, 'store']);
