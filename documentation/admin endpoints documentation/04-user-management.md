@@ -408,11 +408,6 @@ This section covers the API endpoints for managing users (teachers and students)
         "name": "Mathematics Midterm",
         "date": "2026-03-15T10:00:00.000000Z",
         "status": "upcoming",
-        "teacher": {
-          "id": 2,
-          "username": "teacher1",
-          "role": "teacher"
-        },
         "score": null,
         "feedback": null
       },
@@ -421,11 +416,6 @@ This section covers the API endpoints for managing users (teachers and students)
         "name": "Physics Quiz",
         "date": "2026-02-28T14:00:00.000000Z",
         "status": "completed",
-        "teacher": {
-          "id": 3,
-          "username": "teacher2",
-          "role": "teacher"
-        },
         "score": 85,
         "feedback": "Good work on the theoretical questions."
       }

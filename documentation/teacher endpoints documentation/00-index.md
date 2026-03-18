@@ -44,15 +44,20 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | POST | `/api/teacher/logout` | Yes | Revoke the current token |
 | GET | `/api/teacher/dashboard` | Yes | Teacher dashboard stats |
 | POST | `/api/teacher/ai-assistant/translate` | Yes | Translate text via Claude AI |
+| GET | `/api/teacher/teachers` | Yes | List all other teachers (id + username) for assistant lookup |
 | GET | `/api/teacher/groups/schedule/options` | Yes | Get allowed schedule days and times |
-| GET | `/api/teacher/groups` | Yes | List all groups owned by the teacher |
+| POST | `/api/teacher/groups/join` | Yes | Join a group as assistant teacher via class code |
+| GET | `/api/teacher/groups` | Yes | List all groups owned by or assisted by the teacher |
 | POST | `/api/teacher/groups` | Yes | Create a new group |
 | GET | `/api/teacher/groups/{id}` | Yes | Get a single group |
-| PUT | `/api/teacher/groups/{id}` | Yes | Update a group |
-| DELETE | `/api/teacher/groups/{id}` | Yes | Delete a group (soft delete) |
-| POST | `/api/teacher/groups/{id}/students` | Yes | Add a student to a group by ID |
-| POST | `/api/teacher/groups/{id}/students/by-username` | Yes | Add a student to a group by username |
-| DELETE | `/api/teacher/groups/{groupId}/students/{studentId}` | Yes | Remove a student from a group |
+| PUT | `/api/teacher/groups/{id}` | Yes | Update a group (owner or assistant) |
+| DELETE | `/api/teacher/groups/{id}` | Yes | Delete a group (owner or assistant, soft delete) |
+| POST | `/api/teacher/groups/{id}/students` | Yes | Add a student to a group by ID (owner or assistant) |
+| POST | `/api/teacher/groups/{id}/students/by-username` | Yes | Add a student to a group by username (owner or assistant) |
+| DELETE | `/api/teacher/groups/{groupId}/students/{studentId}` | Yes | Remove a student from a group (owner or assistant) |
+| POST | `/api/teacher/groups/{id}/generate-code` | Yes | Generate or regenerate a class code (owner or assistant) |
+| POST | `/api/teacher/groups/{id}/assistant-teachers` | Yes | Add an assistant teacher to a group (owner only) |
+| DELETE | `/api/teacher/groups/{groupId}/assistant-teachers/{teacherId}` | Yes | Remove an assistant teacher from a group (owner only) |
 | GET | `/api/teacher/exams` | Yes | List all exams |
 | POST | `/api/teacher/exams` | Yes | Create a new exam |
 | GET | `/api/teacher/exams/{id}` | Yes | Get a single exam |
@@ -61,14 +66,14 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | GET | `/api/teacher/events` | Yes | List events where teacher is organizer or invited |
 | POST | `/api/teacher/events` | Yes | Create a new event |
 | GET | `/api/teacher/events/{id}` | Yes | Get a single event |
-| PUT | `/api/teacher/events/{id}` | Yes | Update an event (organizer only) |
-| DELETE | `/api/teacher/events/{id}` | Yes | Delete an event (organizer only) |
+| PUT | `/api/teacher/events/{id}` | Yes | Update an event (organizer or assistant of invited group) |
+| DELETE | `/api/teacher/events/{id}` | Yes | Delete an event (organizer or assistant of invited group) |
 | GET | `/api/teacher/events/{id}/attendance` | Yes | View event attendance (organizer or guest) — see [Attendance](12-attendance.md) |
-| PUT | `/api/teacher/events/{id}/attendance` | Yes | Record event guest attendance (organizer only) — see [Attendance](12-attendance.md) |
-| GET | `/api/teacher/groups/{id}/attendance` | Yes | View group attendance, filterable by date (group teacher only) — see [Attendance](12-attendance.md) |
-| POST | `/api/teacher/groups/{id}/attendance` | Yes | Record group session attendance (group teacher only) — see [Attendance](12-attendance.md) |
-| POST | `/api/teacher/events/{id}/guests/by-username` | Yes | Add guests to an event by username (organizer only) |
-| POST | `/api/teacher/events/{id}/create-zoom-meeting` | Yes | Auto-create a Zoom meeting for an event (organizer only) |
+| PUT | `/api/teacher/events/{id}/attendance` | Yes | Record event guest attendance (organizer or assistant of invited group) — see [Attendance](12-attendance.md) |
+| GET | `/api/teacher/groups/{id}/attendance` | Yes | View group attendance, filterable by date (owner or assistant teacher) — see [Attendance](12-attendance.md) |
+| POST | `/api/teacher/groups/{id}/attendance` | Yes | Record group session attendance (owner or assistant teacher) — see [Attendance](12-attendance.md) |
+| POST | `/api/teacher/events/{id}/guests/by-username` | Yes | Add guests to an event by username (organizer or assistant of invited group) |
+| POST | `/api/teacher/events/{id}/create-zoom-meeting` | Yes | Auto-create a Zoom meeting for an event (organizer or assistant of invited group) |
 | GET | `/api/teacher/notifications` | Yes | List own notifications (filterable) |
 | PUT | `/api/teacher/notifications/seen-all` | Yes | Mark all notifications as seen |
 | PUT | `/api/teacher/notifications/{id}/seen` | Yes | Mark a single notification as seen |

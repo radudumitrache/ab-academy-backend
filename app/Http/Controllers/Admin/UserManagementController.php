@@ -218,7 +218,7 @@ class UserManagementController extends Controller
 
     public function getStudent($id)
     {
-        $student = Student::with(['groups.teacher', 'enrolledExams.teacher', 'acquisitions.product'])->findOrFail($id);
+        $student = Student::with(['groups.teacher', 'enrolledExams', 'acquisitions.product'])->findOrFail($id);
         
         // Get student invoices
         $invoices = Invoice::where('student_id', $student->id)->orderBy('created_at', 'desc')->get();
@@ -248,11 +248,6 @@ class UserManagementController extends Controller
                 'name' => $exam->name,
                 'date' => $exam->date,
                 'status' => $exam->status,
-                'teacher' => [
-                    'id' => $exam->teacher->id,
-                    'username' => $exam->teacher->username,
-                    'role' => $exam->teacher->role
-                ],
                 'score' => $exam->pivot->score,
                 'feedback' => $exam->pivot->feedback
             ];

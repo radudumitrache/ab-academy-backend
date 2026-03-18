@@ -60,6 +60,33 @@ Only the main (owner) teacher can invite or remove assistant teachers.
 
 ---
 
+## List All Teachers
+
+Returns the `id` and `username` of every other teacher on the platform. Use this to look up a colleague's ID before adding them as an assistant teacher.
+
+- **URL**: `/api/teacher/teachers`
+- **Method**: `GET`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  ```
+
+- **Success Response** `200`:
+  ```json
+  {
+    "message": "Teachers retrieved successfully",
+    "teachers": [
+      { "id": 7, "username": "teacher_ion" },
+      { "id": 9, "username": "teacher_maria" }
+    ]
+  }
+  ```
+
+  > Results are sorted alphabetically by `username`. The authenticated teacher is excluded from the list.
+
+---
+
 ## Get Schedule Options
 
 Returns the allowed values for `schedule_days[].day` and `schedule_days[].time`.
