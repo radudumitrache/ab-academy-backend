@@ -169,17 +169,33 @@ class HomeworkSubmissionController extends Controller
         $contentType  = $request->header('Content-Type', '');
 
         if (str_contains($contentType, 'multipart/form-data')) {
-            preg_match('/boundary=(.+)$/', $contentType, $matches);
-            $boundary = $matches[1] ?? null;
+            preg_match('/boundary=(.*)$/i', $contentType, $matches);
+            $boundary = trim($matches[1] ?? '');
             if ($boundary) {
-                $raw  = $request->getContent();
+                $raw   = $request->getContent();
                 $parts = array_slice(explode('--' . $boundary, $raw), 1, -1);
                 foreach ($parts as $part) {
                     if (trim($part) === '--') continue;
-                    [$headers, $body] = explode("\r\n\r\n", $part, 2);
-                    $body = rtrim($body, "\r\n");
-                    if (preg_match('/name="([^"]+)"/', $headers, $nm)) {
-                        $parsedBody[$nm[1]] = $body;
+                    $pos = strpos($part, "\r\n\r\n");
+                    if ($pos === false) continue;
+                    $headers = substr($part, 0, $pos);
+                    $body    = substr($part, $pos + 4);
+                    $body    = rtrim($body, "\r\n");
+
+                    preg_match('/name="([^"]+)"/', $headers, $nm);
+                    $fieldName = $nm[1] ?? null;
+                    if (!$fieldName) continue;
+
+                    // Detect file parts by presence of filename attribute
+                    if (preg_match('/filename="([^"]*)"/', $headers, $fn)) {
+                        preg_match('/Content-Type:\s*(\S+)/i', $headers, $ct);
+                        $parsedFiles[$fieldName] = [
+                            'filename'    => $fn[1],
+                            'content'     => $body,
+                            'contentType' => $ct[1] ?? 'application/octet-stream',
+                        ];
+                    } else {
+                        $parsedBody[$fieldName] = $body;
                     }
                 }
             }
@@ -236,11 +252,26 @@ class HomeworkSubmissionController extends Controller
                 'observation' => array_key_exists('observation', $item) ? $item['observation'] : $response->observation,
             ];
 
-            // Handle optional correction file for this response
-            if ($request->hasFile("files.{$responseId}")) {
-                $file = $request->file("files.{$responseId}");
-                $ext  = $file->getClientOriginalExtension();
-                $path = "{$correctionsFolder}/{$submissionId}_{$responseId}.{$ext}";
+            // Handle optional correction file for this response.
+            // Laravel/Symfony does not parse multipart files on PATCH requests,
+            // so we check both the standard request files and our manually parsed files.
+            $fileKey     = "files.{$responseId}";
+            $parsedKey   = "files[{$responseId}]";
+            $fileContent = null;
+            $fileExt     = null;
+
+            if ($request->hasFile($fileKey)) {
+                $file        = $request->file($fileKey);
+                $fileExt     = $file->getClientOriginalExtension();
+                $fileContent = file_get_contents($file->getRealPath());
+            } elseif (isset($parsedFiles[$parsedKey]) && $parsedFiles[$parsedKey]['content'] !== '') {
+                $parsed      = $parsedFiles[$parsedKey];
+                $fileExt     = pathinfo($parsed['filename'], PATHINFO_EXTENSION) ?: 'bin';
+                $fileContent = $parsed['content'];
+            }
+
+            if ($fileContent !== null) {
+                $path = "{$correctionsFolder}/{$submissionId}_{$responseId}.{$fileExt}";
 
                 // Delete old correction file if present
                 if ($response->correction_file_path) {
@@ -250,7 +281,7 @@ class HomeworkSubmissionController extends Controller
                 }
 
                 $this->gcs->createFolder($correctionsFolder);
-                $this->gcs->upload($file, $path);
+                $this->gcs->uploadContent($fileContent, $path);
                 $updates['correction_file_path'] = $path;
             }
 

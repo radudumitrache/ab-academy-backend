@@ -56,6 +56,16 @@ class GcsService
     }
 
     /**
+     * Upload raw string/binary content to GCS and return the object path.
+     */
+    public function uploadContent(string $content, string $path): string
+    {
+        $bucket = $this->client->bucket($this->bucketName);
+        $bucket->upload($content, ['name' => $path]);
+        return $path;
+    }
+
+    /**
      * Generate a signed download URL valid for $minutes.
      */
     public function signedUrl(string $path, int $minutes = 60): string
