@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CourseProduct;
 use App\Models\DatabaseLog;
 use App\Models\ProductAcquisition;
 use App\Services\SmartBillService;
@@ -124,6 +125,15 @@ class ProductAcquisitionController extends Controller
             'invoice_number'   => 'nullable|string|max:50',
             'acquisition_notes'=> 'nullable|string',
         ]);
+
+        // For course products, initialise remaining_courses from the product definition
+        // only on the first grant (i.e. remaining_courses is not yet set).
+        if ($acquisition->product && $acquisition->product->type === 'course' && is_null($acquisition->remaining_courses)) {
+            $courseProduct = CourseProduct::where('product_id', $acquisition->product_id)->first();
+            if ($courseProduct) {
+                $data['remaining_courses'] = $courseProduct->number_of_courses;
+            }
+        }
 
         $acquisition->update(array_merge($data, [
             'acquisition_status' => 'active',
@@ -384,6 +394,31 @@ class ProductAcquisitionController extends Controller
         ]);
     }
 
+    /**
+     * Manually set the number of remaining course sessions for an acquisition.
+     */
+    public function updateRemainingCourses(Request $request, $id)
+    {
+        $acquisition = ProductAcquisition::find($id);
+
+        if (!$acquisition) {
+            return response()->json(['message' => 'Acquisition not found'], 404);
+        }
+
+        $data = $request->validate([
+            'remaining_courses' => 'required|integer|min:0',
+        ]);
+
+        $acquisition->update($data);
+
+        DatabaseLog::logAction('update', ProductAcquisition::class, $acquisition->id, "Remaining courses manually set to {$data['remaining_courses']} for acquisition #{$acquisition->id}");
+
+        return response()->json([
+            'message'           => 'Remaining courses updated successfully',
+            'remaining_courses' => $acquisition->remaining_courses,
+        ]);
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     private function format(ProductAcquisition $a, bool $withProfileDetails = false): array
@@ -442,6 +477,7 @@ class ProductAcquisitionController extends Controller
             'acquisition_date'   => $a->acquisition_date?->toDateString(),
             'completion_date'    => $a->completion_date?->toDateString(),
             'is_completed'       => $a->is_completed,
+            'remaining_courses'  => $a->remaining_courses,
             'invoice_series'     => $a->invoice_series,
             'invoice_number'     => $a->invoice_number,
             'groups_access'      => $a->groups_access,

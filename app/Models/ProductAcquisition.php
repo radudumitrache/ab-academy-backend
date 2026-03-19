@@ -20,6 +20,7 @@ class ProductAcquisition extends Model
         'acquisition_date',
         'completion_date',
         'is_completed',
+        'remaining_courses',
         'invoice_series',
         'invoice_number',
         'ep_id',
@@ -29,13 +30,14 @@ class ProductAcquisition extends Model
     ];
 
     protected $casts = [
-        'amount_paid'      => 'decimal:2',
-        'groups_access'    => 'array',
-        'tests_access'     => 'array',
-        'acquisition_date' => 'date',
-        'completion_date'  => 'date',
-        'is_completed'     => 'boolean',
-        'paid_at'          => 'datetime',
+        'amount_paid'       => 'decimal:2',
+        'groups_access'     => 'array',
+        'tests_access'      => 'array',
+        'acquisition_date'  => 'date',
+        'completion_date'   => 'date',
+        'is_completed'      => 'boolean',
+        'paid_at'           => 'datetime',
+        'remaining_courses' => 'integer',
     ];
 
     public function paymentProfile()
@@ -61,5 +63,24 @@ class ProductAcquisition extends Model
     public function renewals()
     {
         return $this->hasMany(ProductAcquisition::class, 'renewed_from_id');
+    }
+
+    /**
+     * Remove the student from all groups linked to this acquisition.
+     */
+    public function removeStudentFromGroups(): void
+    {
+        $groupIds = $this->groups_access ?? [];
+
+        if (empty($groupIds)) {
+            return;
+        }
+
+        foreach ($groupIds as $groupId) {
+            $group = Group::find($groupId);
+            if ($group) {
+                $group->students()->detach($this->student_id);
+            }
+        }
     }
 }

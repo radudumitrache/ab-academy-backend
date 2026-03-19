@@ -24,6 +24,7 @@ Route::post('/acquisitions/{id}/send-invoice-to-spv',      [ProductAcquisitionCo
 Route::post('/acquisitions/{id}/mark-invoice-paid',        [ProductAcquisitionController::class, 'markInvoicePaid']);
 Route::post('/acquisitions/{id}/send-invoice-email',       [ProductAcquisitionController::class, 'sendInvoiceByEmail']);
 Route::put('/acquisitions/{id}/status',                    [ProductAcquisitionController::class, 'updateStatus']);
+Route::patch('/acquisitions/{id}/remaining-courses',       [ProductAcquisitionController::class, 'updateRemainingCourses']);
 
 // ── Payment profiles (admin view) ─────────────────────────────────────────────
 Route::get('/payment-profiles',                            [PaymentProfileController::class, 'index']);

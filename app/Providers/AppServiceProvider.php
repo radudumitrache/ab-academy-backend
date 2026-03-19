@@ -11,7 +11,9 @@ use App\Models\Exam;
 use App\Models\Homework;
 use App\Models\Event;
 use App\Models\Message;
+use App\Models\Attendance;
 use App\Models\Invoice;
+use App\Observers\AttendanceObserver;
 use App\Observers\UserObserver;
 use App\Observers\ExamObserver;
 use App\Observers\HomeworkObserver;
@@ -38,5 +40,6 @@ class AppServiceProvider extends ServiceProvider
         Event::observe(EventObserver::class);
         Message::observe(MessageObserver::class);
         Invoice::observe(InvoiceObserver::class);
+        Attendance::observe(AttendanceObserver::class);
     }
 }
