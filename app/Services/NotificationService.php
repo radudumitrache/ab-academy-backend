@@ -42,6 +42,10 @@ class NotificationService
      */
     public static function notifyByEmail(int|array $userIds, string $message, string $type): void
     {
+        if (!env('EMAIL_NOTIFICATIONS', false)) {
+            return;
+        }
+
         $ids = array_unique(array_filter((array) $userIds));
 
         if (empty($ids)) {
