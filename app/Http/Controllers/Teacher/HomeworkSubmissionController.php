@@ -169,33 +169,62 @@ class HomeworkSubmissionController extends Controller
         $contentType  = $request->header('Content-Type', '');
 
         if (str_contains($contentType, 'multipart/form-data')) {
-            preg_match('/boundary=(.*)$/i', $contentType, $matches);
-            $boundary = trim($matches[1] ?? '');
+            preg_match('/boundary=("?)(.+?)\1\s*$/i', $contentType, $matches);
+            $boundary = $matches[2] ?? '';
             if ($boundary) {
-                $raw   = $request->getContent();
-                $parts = array_slice(explode('--' . $boundary, $raw), 1, -1);
-                foreach ($parts as $part) {
-                    if (trim($part) === '--') continue;
-                    $pos = strpos($part, "\r\n\r\n");
-                    if ($pos === false) continue;
-                    $headers = substr($part, 0, $pos);
-                    $body    = substr($part, $pos + 4);
-                    $body    = rtrim($body, "\r\n");
+                // Read raw body from php://input since getContent() may be empty
+                // after Symfony has already consumed the stream.
+                $raw = $request->getContent();
+                if ($raw === '') {
+                    $raw = file_get_contents('php://input');
+                }
 
-                    preg_match('/name="([^"]+)"/', $headers, $nm);
-                    $fieldName = $nm[1] ?? null;
-                    if (!$fieldName) continue;
+                $delimiter = "\r\n--" . $boundary;
+                // Find the first part boundary (may start without leading \r\n)
+                $start = strpos($raw, '--' . $boundary);
+                if ($start !== false) {
+                    $pos = $start;
+                    while (true) {
+                        // Move past the boundary line (boundary + optional \r\n)
+                        $lineEnd = strpos($raw, "\r\n", $pos);
+                        if ($lineEnd === false) break;
+                        $boundaryLine = substr($raw, $pos, $lineEnd - $pos);
+                        // Check for closing boundary (ends with --)
+                        if (str_ends_with(trim($boundaryLine), '--')) break;
 
-                    // Detect file parts by presence of filename attribute
-                    if (preg_match('/filename="([^"]*)"/', $headers, $fn)) {
-                        preg_match('/Content-Type:\s*(\S+)/i', $headers, $ct);
-                        $parsedFiles[$fieldName] = [
-                            'filename'    => $fn[1],
-                            'content'     => $body,
-                            'contentType' => $ct[1] ?? 'application/octet-stream',
-                        ];
-                    } else {
-                        $parsedBody[$fieldName] = $body;
+                        $partStart = $lineEnd + 2; // skip \r\n after boundary
+                        // Find the next boundary
+                        $nextBoundary = strpos($raw, "\r\n--" . $boundary, $partStart);
+                        if ($nextBoundary === false) break;
+
+                        $partRaw = substr($raw, $partStart, $nextBoundary - $partStart);
+
+                        // Split headers from body on first blank line
+                        $headerEnd = strpos($partRaw, "\r\n\r\n");
+                        if ($headerEnd === false) {
+                            $pos = $nextBoundary + 2;
+                            continue;
+                        }
+                        $partHeaders = substr($partRaw, 0, $headerEnd);
+                        $partBody    = substr($partRaw, $headerEnd + 4);
+
+                        preg_match('/name="([^"]+)"/i', $partHeaders, $nm);
+                        $fieldName = $nm[1] ?? null;
+
+                        if ($fieldName) {
+                            if (preg_match('/filename="([^"]*)"/i', $partHeaders, $fn)) {
+                                preg_match('/Content-Type:\s*(\S+)/i', $partHeaders, $ct);
+                                $parsedFiles[$fieldName] = [
+                                    'filename'    => $fn[1],
+                                    'content'     => $partBody,
+                                    'contentType' => $ct[1] ?? 'application/octet-stream',
+                                ];
+                            } else {
+                                $parsedBody[$fieldName] = $partBody;
+                            }
+                        }
+
+                        $pos = $nextBoundary + 2; // move to \r\n before next --boundary
                     }
                 }
             }

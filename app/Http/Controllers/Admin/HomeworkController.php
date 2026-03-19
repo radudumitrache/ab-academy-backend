@@ -311,14 +311,19 @@ class HomeworkController extends Controller
         // Attach signed URLs for any file-based responses
         $submissions->each(function ($submission) {
             $submission->responses->each(function ($response) {
-                if ($response->file_path) {
-                    try {
-                        $response->file_url = $this->gcs->signedUrl($response->file_path, 60);
-                    } catch (\Throwable) {
-                        $response->file_url = null;
-                    }
-                } else {
+                try {
+                    $response->file_url = $response->file_path
+                        ? $this->gcs->signedUrl($response->file_path, 60)
+                        : null;
+                } catch (\Throwable) {
                     $response->file_url = null;
+                }
+                try {
+                    $response->correction_file_url = $response->correction_file_path
+                        ? $this->gcs->signedUrl($response->correction_file_path, 60)
+                        : null;
+                } catch (\Throwable) {
+                    $response->correction_file_url = null;
                 }
             });
         });

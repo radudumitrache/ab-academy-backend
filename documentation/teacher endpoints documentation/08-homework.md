@@ -357,6 +357,7 @@ Returns a single submission with all student responses and question details.
         "grade": null,
         "observation": null,
         "correction_file_path": null,
+        "correction_file_url": null,
         "question": { "question_id": 5, "question_type": "multiple_choice", "question_text": "She ___ to school.", "..." : "..." }
       },
       {
@@ -367,9 +368,10 @@ Returns a single submission with all student responses and question details.
         "answer_text": null,
         "correct_answer": ["red", "Red"],
         "file_path": null,
-        "grade": null,
-        "observation": null,
-        "correction_file_path": null,
+        "grade": "1/2",
+        "observation": "See attached.",
+        "correction_file_path": "teachers/Irina/private/corrections/14_56.pdf",
+        "correction_file_url": "https://storage.googleapis.com/...?X-Goog-Signature=...",
         "question": { "question_id": 6, "question_type": "gap_fill", "question_text": "An apple is ____.", "..." : "..." }
       }
     ]
@@ -377,12 +379,14 @@ Returns a single submission with all student responses and question details.
 }
 ```
 
-Each response object includes two resolved fields:
+Each response object includes these resolved fields:
 
 | Field | Description |
 |-------|-------------|
 | `answer_text` | For `multiple_choice` only — the variant string the student selected. `null` for all other types. |
 | `correct_answer` | The expected answer for question types that define one. `null` for open-ended types (`writing_question`, `speaking_question`, `reading_question`). |
+| `correction_file_path` | Raw GCS object path of the correction file uploaded by the teacher, or `null`. |
+| `correction_file_url` | 60-minute signed GCS URL for the correction file — use this to open or download the file. `null` if no file has been uploaded. |
 
 `correct_answer` by question type:
 
@@ -439,6 +443,8 @@ Sets a grade, observation, and/or an attached correction file on one or more ind
 
 Accepts **`multipart/form-data`** so that correction files can be sent alongside the grading data.
 
+> **Important:** Always send this request as `multipart/form-data`. Do **not** set `Content-Type: application/json` — the file cannot be transmitted that way and the upload will be silently skipped. When using `fetch` or `axios` with a `FormData` object, do **not** manually set the `Content-Type` header — let the browser/library set it automatically so the `boundary` parameter is included.
+
 **Request** (multipart/form-data):
 
 | Field | Type | Required | Notes |
@@ -455,11 +461,21 @@ responses = [{"response_id":55,"grade":"2/2","observation":"Perfect."},{"respons
 files[56]  = <uploaded correction file>
 ```
 
-**Response** `200`:
+**Response** `200` — the updated submission is returned. Each response in `responses` includes `correction_file_url`, a 60-minute signed URL to open or download the correction file directly:
 ```json
 {
   "message": "Responses graded successfully",
-  "submission": { ... }
+  "submission": {
+    "responses": [
+      {
+        "response_id": 56,
+        "grade": "1/2",
+        "observation": "See attached.",
+        "correction_file_path": "teachers/Irina/private/corrections/14_56.pdf",
+        "correction_file_url": "https://storage.googleapis.com/...?X-Goog-Signature=..."
+      }
+    ]
+  }
 }
 ```
 
