@@ -54,7 +54,7 @@ class NotificationService
             ->get(['id', 'email']);
 
         foreach ($users as $user) {
-            Mail::to($user->email)->send(new NotificationMail($type, $message));
+            Mail::to($user->email)->queue(new NotificationMail($type, $message));
         }
     }
 }

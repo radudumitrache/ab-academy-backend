@@ -18,7 +18,7 @@ Admin reviews payment  →  GET /api/admin/acquisitions?status=paid
       │
       ▼
 Admin grants access  →  POST /api/admin/acquisitions/{id}/grant-access
-(adds student to groups / assigns tests)
+(adds student to groups / assigns tests; remaining_courses set from product)
       │  Acquisition status: "active"
       ▼
 Admin checks payment profile for billing mentions
@@ -33,8 +33,9 @@ Admin creates SmartBill invoice  →  POST /api/admin/acquisitions/create-invoic
 Admin marks invoice paid in SmartBill  →  POST /api/admin/acquisitions/{id}/mark-invoice-paid
       │
       ▼
-Student attends sessions → Admin monitors attendance
-      │
+Student attends sessions → remaining_courses decrements on each presence/unmotivated absence
+      │  When remaining_courses = 0: admins notified, student removed from group(s)
+      │  Admin can adjust at any time  →  PATCH /api/admin/acquisitions/{id}/remaining-courses
       ▼
 Admin marks acquisition completed  →  PUT /api/admin/acquisitions/{id}/status
       │  acquisition_status: "completed"
@@ -130,6 +131,7 @@ Creates an acquisition directly on behalf of a student — used for cash payment
       "acquisition_date": "2026-03-15",
       "completion_date": null,
       "is_completed": false,
+      "remaining_courses": null,
       "invoice_series": null,
       "invoice_number": null,
       "groups_access": null,
@@ -160,6 +162,8 @@ Returns the acquisition with full payment profile billing details (useful when p
 `POST /api/admin/acquisitions/{id}/grant-access`
 
 Assigns groups or tests to the student and marks the acquisition `active`. Only works on acquisitions with status `paid`.
+
+For course products, `remaining_courses` is automatically initialised from `course_products.number_of_courses` on the first grant (only if not already set).
 
 **Request body**:
 
@@ -305,6 +309,32 @@ Sends the SmartBill invoice for the acquisition to an email address. If no email
 ```
 
 **Errors**: `404` if not found, `422` if no invoice exists yet or no email is available, `502` if SmartBill API fails.
+
+---
+
+### Update Remaining Courses
+
+`PATCH /api/admin/acquisitions/{id}/remaining-courses`
+
+Manually override the number of remaining course sessions for an acquisition. Useful for corrections, top-ups, or resetting after a renewal.
+
+For course acquisitions, `remaining_courses` is automatically initialised from the product's `number_of_courses` when access is granted, and decremented each time the student is marked `present` or `absent` (unmotivated) in the attendance table. When it reaches `0`, all admins are notified and the student is removed from the linked groups.
+
+**Request body**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `remaining_courses` | integer | Yes | New value (≥ 0) |
+
+**Response** `200`:
+```json
+{
+  "message": "Remaining courses updated successfully",
+  "remaining_courses": 5
+}
+```
+
+**Errors**: `404` if not found, `422` if validation fails.
 
 ---
 
