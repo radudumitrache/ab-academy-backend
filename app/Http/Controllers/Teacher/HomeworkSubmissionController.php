@@ -346,8 +346,11 @@ class HomeworkSubmissionController extends Controller
             $row = $response->toArray();
             $q   = $response->question;
 
-            $row['answer_text']    = null;
-            $row['correct_answer'] = null;
+            $row['answer_text']         = null;
+            $row['correct_answer']      = null;
+            $row['correction_file_url'] = $response->correction_file_path
+                ? $this->gcs->signedUrl($response->correction_file_path, 60)
+                : null;
 
             if (!$q) return $row;
 
