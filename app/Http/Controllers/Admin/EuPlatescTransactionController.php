@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\DatabaseLog;
 use App\Models\ProductAcquisition;
 use App\Services\EuPlatescService;
 use Illuminate\Http\Request;
@@ -92,6 +93,33 @@ class EuPlatescTransactionController extends Controller
             'ep_status'   => $status,
             'acquisition' => $this->formatTransaction($acquisition),
         ]);
+    }
+
+    /**
+     * Delete an EuPlatesc transaction (acquisition) permanently.
+     * Only transactions in pending_payment, cancelled, or expired status can be deleted.
+     */
+    public function destroy($id)
+    {
+        $acquisition = ProductAcquisition::whereNotNull('order_key')->find($id);
+
+        if (!$acquisition) {
+            return response()->json(['message' => 'Transaction not found'], 404);
+        }
+
+        $deletableStatuses = ['pending_payment', 'cancelled', 'expired'];
+        if (!in_array($acquisition->acquisition_status, $deletableStatuses)) {
+            return response()->json([
+                'message' => 'Only transactions with status pending_payment, cancelled, or expired can be deleted',
+                'current_status' => $acquisition->acquisition_status,
+            ], 422);
+        }
+
+        DatabaseLog::logAction('delete', ProductAcquisition::class, $acquisition->id, "EuPlatesc transaction #{$acquisition->id} (order_key: {$acquisition->order_key}) deleted");
+
+        $acquisition->delete();
+
+        return response()->json(['message' => 'Transaction deleted successfully']);
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────

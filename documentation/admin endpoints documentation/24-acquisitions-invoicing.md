@@ -363,6 +363,60 @@ Manually update the lifecycle status of an acquisition.
 
 ---
 
+### Delete Acquisition
+
+`DELETE /api/admin/acquisitions/{id}`
+
+Permanently deletes an acquisition record. Only acquisitions in a terminal or pre-payment status can be deleted to prevent accidental removal of financial records.
+
+**Allowed statuses**: `pending_payment`, `cancelled`, `expired`
+
+**Response** `200`:
+```json
+{
+  "message": "Acquisition deleted successfully"
+}
+```
+
+**Error — status not deletable** `422`:
+```json
+{
+  "message": "Only acquisitions with status pending_payment, cancelled, or expired can be deleted",
+  "current_status": "active"
+}
+```
+
+**Errors**: `404` if not found.
+
+---
+
+### Delete EuPlatesc Transaction
+
+`DELETE /api/admin/euplatesc-transactions/{id}`
+
+Permanently deletes an EuPlatesc transaction record (a `ProductAcquisition` that went through EuPlatesc checkout). The same status restriction applies.
+
+**Allowed statuses**: `pending_payment`, `cancelled`, `expired`
+
+**Response** `200`:
+```json
+{
+  "message": "Transaction deleted successfully"
+}
+```
+
+**Error — status not deletable** `422`:
+```json
+{
+  "message": "Only transactions with status pending_payment, cancelled, or expired can be deleted",
+  "current_status": "paid"
+}
+```
+
+**Errors**: `404` if not found or not an EuPlatesc transaction.
+
+---
+
 ## Acquisition Status Reference
 
 | Status | Meaning | Admin action |

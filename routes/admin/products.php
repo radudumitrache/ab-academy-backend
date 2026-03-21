@@ -25,6 +25,7 @@ Route::post('/acquisitions/{id}/mark-invoice-paid',        [ProductAcquisitionCo
 Route::post('/acquisitions/{id}/send-invoice-email',       [ProductAcquisitionController::class, 'sendInvoiceByEmail']);
 Route::put('/acquisitions/{id}/status',                    [ProductAcquisitionController::class, 'updateStatus']);
 Route::patch('/acquisitions/{id}/remaining-courses',       [ProductAcquisitionController::class, 'updateRemainingCourses']);
+Route::delete('/acquisitions/{id}',                        [ProductAcquisitionController::class, 'destroy']);
 
 // ── Payment profiles (admin view) ─────────────────────────────────────────────
 Route::get('/payment-profiles',                            [PaymentProfileController::class, 'index']);
@@ -36,3 +37,4 @@ Route::post('/payment-profiles/{id}/confirm',              [PaymentProfileContro
 // ── EuPlatesc transactions ────────────────────────────────────────────────────
 Route::get('/euplatesc-transactions',                      [EuPlatescTransactionController::class, 'index']);
 Route::get('/euplatesc-transactions/{id}/check-status',    [EuPlatescTransactionController::class, 'checkStatus']);
+Route::delete('/euplatesc-transactions/{id}',              [EuPlatescTransactionController::class, 'destroy']);

@@ -395,6 +395,33 @@ class ProductAcquisitionController extends Controller
     }
 
     /**
+     * Delete an acquisition permanently.
+     * Only acquisitions in pending_payment, cancelled, or expired status can be deleted.
+     */
+    public function destroy($id)
+    {
+        $acquisition = ProductAcquisition::find($id);
+
+        if (!$acquisition) {
+            return response()->json(['message' => 'Acquisition not found'], 404);
+        }
+
+        $deletableStatuses = ['pending_payment', 'cancelled', 'expired'];
+        if (!in_array($acquisition->acquisition_status, $deletableStatuses)) {
+            return response()->json([
+                'message' => 'Only acquisitions with status pending_payment, cancelled, or expired can be deleted',
+                'current_status' => $acquisition->acquisition_status,
+            ], 422);
+        }
+
+        DatabaseLog::logAction('delete', ProductAcquisition::class, $acquisition->id, "Acquisition #{$acquisition->id} deleted (student #{$acquisition->student_id}, product #{$acquisition->product_id})");
+
+        $acquisition->delete();
+
+        return response()->json(['message' => 'Acquisition deleted successfully']);
+    }
+
+    /**
      * Manually set the number of remaining course sessions for an acquisition.
      */
     public function updateRemainingCourses(Request $request, $id)
