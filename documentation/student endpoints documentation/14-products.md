@@ -218,6 +218,39 @@ Returns all product acquisitions for the authenticated student, newest first.
 
 ---
 
+## Simulating a Payment (Testing)
+
+In test/development environments, EuPlatesc will not call the notify endpoint automatically unless the card flow completes. To manually simulate a successful payment and advance an acquisition from `pending_payment` to `paid`, send the following request directly to the backend.
+
+`POST /api/euplatesc/notify`
+
+> No authentication or CSRF token required — this endpoint is publicly accessible by design.
+
+**Content-Type:** `application/x-www-form-urlencoded` (not JSON)
+
+**Body fields:**
+
+| Key | Value | Notes |
+|-----|-------|-------|
+| `invoice_id` | `AITO10L` | The `order_key` of the acquisition (get it from `GET /api/admin/euplatesc-transactions`) |
+| `ep_id` | `EP123456` | Any string — EuPlatesc's transaction ID |
+| `action` | `0` | `0` = approved. Any other value keeps the status as `pending_payment` |
+| `message` | `Approved` | Status message |
+| `amount` | `0.50` | Amount |
+| `currency` | `RON` | |
+| `timestamp` | `20260322202649` | Format: `YmdHis` |
+
+**Expected response:**
+```
+<EPAYMENT>20260322202649|OK
+```
+
+After a successful call, the acquisition's `acquisition_status` will be updated to `paid`.
+
+> **Important:** The body must be sent as `x-www-form-urlencoded`, not raw JSON. If sent as JSON the fields will not be read correctly and the acquisition will not update.
+
+---
+
 ## Renew a Subscription
 
 `POST /api/student/acquisitions/{id}/renew`

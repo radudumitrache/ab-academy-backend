@@ -12,6 +12,9 @@ use App\Models\User;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\Invoice;
+use App\Models\ProductAcquisition;
+use App\Models\Event;
+use App\Models\Attendance;
 
 class DashboardController extends Controller
 {
@@ -56,54 +59,35 @@ class DashboardController extends Controller
         // Teacher statistics
         $totalTeachers = Teacher::count();
         
-        // Revenue statistics from paid invoices
+        // Revenue statistics from paid product acquisitions
         $totalRevenue = 0;
         $revenueThisMonth = 0;
         $revenueLastMonth = 0;
         $revenueGrowthPercentage = 0;
-        
-        if (Schema::hasTable('invoices')) {
-            // Calculate total revenue from paid invoices
-            $paidInvoices = Invoice::where('status', 'paid')->get();
-            
-            // Calculate total revenue
-            foreach ($paidInvoices as $invoice) {
-                // Convert all values to EUR for consistency
-                if ($invoice->currency === 'RON') {
-                    // Assuming 1 EUR = 4.9 RON (you may want to use a real exchange rate service)
-                    $totalRevenue += $invoice->value / 4.9;
-                } else {
-                    $totalRevenue += $invoice->value;
-                }
-            }
-            
-            // Calculate revenue this month
-            $paidInvoicesThisMonth = Invoice::where('status', 'paid')
-                ->where('updated_at', '>=', $startOfMonth)
-                ->get();
-                
-            foreach ($paidInvoicesThisMonth as $invoice) {
-                if ($invoice->currency === 'RON') {
-                    $revenueThisMonth += $invoice->value / 4.9;
-                } else {
-                    $revenueThisMonth += $invoice->value;
-                }
-            }
-            
-            // Calculate revenue last month
-            $paidInvoicesLastMonth = Invoice::where('status', 'paid')
-                ->whereBetween('updated_at', [$lastMonthStart, $lastMonthEnd])
-                ->get();
-                
-            foreach ($paidInvoicesLastMonth as $invoice) {
-                if ($invoice->currency === 'RON') {
-                    $revenueLastMonth += $invoice->value / 4.9;
-                } else {
-                    $revenueLastMonth += $invoice->value;
-                }
-            }
-            
-            // Calculate revenue growth percentage
+
+        if (Schema::hasTable('product_acquisitions')) {
+            $eurToRon = config('payment.eur_to_ron_rate', 4.95);
+
+            $toEur = function (float $amount, string $currency) use ($eurToRon): float {
+                return $currency === 'RON' ? $amount / $eurToRon : $amount;
+            };
+
+            // Base query: any acquisition that has been paid (status moved past pending_payment)
+            $paidBase = ProductAcquisition::whereNotNull('paid_at');
+
+            $totalRevenue = $paidBase->clone()->get(['amount_paid', 'currency'])
+                ->sum(fn($a) => $toEur((float) $a->amount_paid, $a->currency));
+
+            $revenueThisMonth = $paidBase->clone()
+                ->where('paid_at', '>=', $startOfMonth)
+                ->get(['amount_paid', 'currency'])
+                ->sum(fn($a) => $toEur((float) $a->amount_paid, $a->currency));
+
+            $revenueLastMonth = $paidBase->clone()
+                ->whereBetween('paid_at', [$lastMonthStart, $lastMonthEnd])
+                ->get(['amount_paid', 'currency'])
+                ->sum(fn($a) => $toEur((float) $a->amount_paid, $a->currency));
+
             if ($revenueLastMonth > 0) {
                 $revenueGrowthPercentage = (($revenueThisMonth - $revenueLastMonth) / $revenueLastMonth) * 100;
             }
@@ -124,6 +108,32 @@ class DashboardController extends Controller
                 ->where('event_date', '>=', $startOfWeek)
                 ->count();
         }
+
+        // Attendance rate: total guests across all events vs. those marked present
+        $attendanceRate = 0;
+        if (Schema::hasTable('events') && Schema::hasTable('attendance')) {
+            $totalGuests = 0;
+            $totalPresent = 0;
+
+            Event::whereNotNull('guests')
+                ->with(['attendance' => fn($q) => $q->where('status', 'present')])
+                ->get(['id', 'guests'])
+                ->each(function (Event $event) use (&$totalGuests, &$totalPresent) {
+                    $guests = $event->guests ?? [];
+                    $guestCount = count($guests);
+                    if ($guestCount === 0) {
+                        return;
+                    }
+                    $totalGuests += $guestCount;
+                    $totalPresent += $event->attendance
+                        ->whereIn('student_id', $guests)
+                        ->count();
+                });
+
+            if ($totalGuests > 0) {
+                $attendanceRate = round(($totalPresent / $totalGuests) * 100, 2);
+            }
+        }
         
         $kpiData = [
             'message' => 'KPI data retrieved successfully',
@@ -142,7 +152,7 @@ class DashboardController extends Controller
                 'classes' => [
                     'total' => $totalGroups,
                     'this_week' => $classesThisWeek,
-                    'attendance_rate' => 0
+                    'attendance_rate' => $attendanceRate
                 ],
                 'teachers' => [
                     'total' => $totalTeachers
