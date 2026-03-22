@@ -72,19 +72,34 @@ class DashboardController extends Controller
                 return $currency === 'RON' ? $amount / $eurToRon : $amount;
             };
 
-            // Base query: any acquisition that has been paid (status moved past pending_payment)
-            $paidBase = ProductAcquisition::whereNotNull('paid_at');
+            // Base query: any acquisition that has been paid (via EuPlatesc or manually set)
+            $paidStatuses = ['paid', 'active', 'completed'];
+            $paidBase = ProductAcquisition::where(function ($q) use ($paidStatuses) {
+                $q->whereNotNull('paid_at')
+                  ->orWhereIn('acquisition_status', $paidStatuses);
+            });
 
             $totalRevenue = $paidBase->clone()->get(['amount_paid', 'currency'])
                 ->sum(fn($a) => $toEur((float) $a->amount_paid, $a->currency));
 
+            // For monthly breakdown use paid_at when available, else acquisition_date
             $revenueThisMonth = $paidBase->clone()
-                ->where('paid_at', '>=', $startOfMonth)
+                ->where(function ($q) use ($startOfMonth) {
+                    $q->where('paid_at', '>=', $startOfMonth)
+                      ->orWhere(function ($q2) use ($startOfMonth) {
+                          $q2->whereNull('paid_at')->where('acquisition_date', '>=', $startOfMonth);
+                      });
+                })
                 ->get(['amount_paid', 'currency'])
                 ->sum(fn($a) => $toEur((float) $a->amount_paid, $a->currency));
 
             $revenueLastMonth = $paidBase->clone()
-                ->whereBetween('paid_at', [$lastMonthStart, $lastMonthEnd])
+                ->where(function ($q) use ($lastMonthStart, $lastMonthEnd) {
+                    $q->whereBetween('paid_at', [$lastMonthStart, $lastMonthEnd])
+                      ->orWhere(function ($q2) use ($lastMonthStart, $lastMonthEnd) {
+                          $q2->whereNull('paid_at')->whereBetween('acquisition_date', [$lastMonthStart, $lastMonthEnd]);
+                      });
+                })
                 ->get(['amount_paid', 'currency'])
                 ->sum(fn($a) => $toEur((float) $a->amount_paid, $a->currency));
 
