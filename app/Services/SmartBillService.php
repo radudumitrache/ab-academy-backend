@@ -222,6 +222,21 @@ class SmartBillService
             }
         }
 
+        // Determine invoice currency: use payment profile currency if available,
+        // otherwise fall back to the acquisition's currency.
+        $invoiceCurrency = $profile?->currency ?? $acquisition->currency;
+
+        // Convert amount if acquisition currency differs from invoice currency.
+        $amount = (float) $acquisition->amount_paid;
+        if ($acquisition->currency !== $invoiceCurrency) {
+            $rate = (float) config('payment.eur_to_ron_rate', 4.95);
+            if ($acquisition->currency === 'EUR' && $invoiceCurrency === 'RON') {
+                $amount = round($amount * $rate, 2);
+            } elseif ($acquisition->currency === 'RON' && $invoiceCurrency === 'EUR') {
+                $amount = round($amount / $rate, 2);
+            }
+        }
+
         // Product line name: use invoice_text from profile if set, otherwise product name
         $lineName = ($profile?->invoice_text) ?: ($product?->name ?? 'Produs');
 
@@ -243,16 +258,16 @@ class SmartBillService
             'issueDate'  => now()->format('Y-m-d'),
             'seriesName' => $series,
             'isDraft'    => false,
-            'currency'   => $acquisition->currency,
+            'currency'   => $invoiceCurrency,
             'language'   => 'RO',
             'precision'  => 2,
             'products'   => [
                 [
                     'name'              => $lineName,
                     'measuringUnitName' => 'buc',
-                    'currency'          => $acquisition->currency,
+                    'currency'          => $invoiceCurrency,
                     'quantity'          => 1,
-                    'price'             => (float) $acquisition->amount_paid,
+                    'price'             => $amount,
                     'isDiscount'        => false,
                     'isTaxIncluded'     => true,
                     'taxName'           => 'Normala',
