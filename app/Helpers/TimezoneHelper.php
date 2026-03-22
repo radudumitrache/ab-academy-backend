@@ -35,4 +35,40 @@ class TimezoneHelper
             'time' => $local->format('H:i'),
         ];
     }
+
+    /**
+     * Convert a recurring weekly schedule time (HH:MM) from a local timezone to UTC.
+     *
+     * Uses a fixed anchor date in standard time (2026-01-05) to produce a stable
+     * UTC offset that is not affected by the current date's DST state.
+     *
+     * @param  string  $time      Time string in H:i format (e.g. "18:00")
+     * @param  string  $timezone  IANA timezone of the actor submitting the schedule
+     * @return string  UTC time in H:i format
+     */
+    public static function scheduleTimeToUtc(string $time, string $timezone): string
+    {
+        $anchor = Carbon::createFromFormat('Y-m-d H:i', '2026-01-05 ' . substr($time, 0, 5), $timezone)
+            ->setTimezone('UTC');
+
+        return $anchor->format('H:i');
+    }
+
+    /**
+     * Convert a recurring weekly schedule time (HH:MM) from UTC to a local timezone.
+     *
+     * Uses the same fixed anchor date as scheduleTimeToUtc to ensure the round-trip
+     * is consistent.
+     *
+     * @param  string  $utcTime   UTC time string in H:i format
+     * @param  string  $timezone  IANA timezone of the requesting user
+     * @return string  Local time in H:i format
+     */
+    public static function scheduleTimeFromUtc(string $utcTime, string $timezone): string
+    {
+        $anchor = Carbon::createFromFormat('Y-m-d H:i', '2026-01-05 ' . substr($utcTime, 0, 5), 'UTC')
+            ->setTimezone($timezone);
+
+        return $anchor->format('H:i');
+    }
 }

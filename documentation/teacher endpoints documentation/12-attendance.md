@@ -18,13 +18,15 @@ Teachers record attendance. Admins can read attendance for any group or event. S
 
 Returns all attendance records for a group. Only the group's teacher may call this. Optionally filter to a single session date.
 
+> `session_date` and `session_time` are returned in the requesting teacher's timezone. When filtering by `session_date`, provide the date in your own timezone — the API translates it to the appropriate UTC range internally.
+
 - **URL**: `GET /api/teacher/groups/{id}/attendance`
 - **Auth Required**: Yes
 - **Query Parameters**:
 
   | Parameter | Type | Required | Notes |
   |-----------|------|----------|-------|
-  | `session_date` | string | No | Filter to a single session (`YYYY-MM-DD`) |
+  | `session_date` | string | No | Filter to a single session (`YYYY-MM-DD`) — in your timezone |
 
 - **Success Response** `200`:
   ```json
@@ -73,8 +75,8 @@ Uses `updateOrCreate` — calling it again for the same `(group_id, student_id, 
 
   | Field | Type | Required | Notes |
   |-------|------|----------|-------|
-  | `session_date` | string | Yes | `YYYY-MM-DD` format |
-  | `session_time` | string | Yes | `HH:MM` format |
+  | `session_date` | string | Yes | `YYYY-MM-DD` in your timezone |
+  | `session_time` | string | Yes | `HH:MM` in your timezone — should match a slot in `schedule_days` |
   | `attendance` | array | Yes | At least one entry required |
   | `attendance.*.student_id` | integer | Yes | Must be a valid user ID and a member of the group |
   | `attendance.*.status` | string | Yes | `present`, `absent`, or `motivated_absent` |
@@ -231,13 +233,15 @@ Returns all guests for an event (direct + from guest groups) with their recorded
 
 Returns all attendance records for a group, ordered by session date and time. Can be filtered to a specific session date.
 
+> `session_date` and `session_time` are returned in the requesting admin's timezone. When filtering by `session_date`, provide the date in your own timezone — the API translates it to the appropriate UTC range internally.
+
 - **URL**: `GET /api/admin/groups/{id}/attendance`
 - **Auth Required**: Yes (admin)
 - **Query Parameters**:
 
   | Parameter | Type | Required | Notes |
   |-----------|------|----------|-------|
-  | `session_date` | string | No | Filter to a single session (`YYYY-MM-DD`) |
+  | `session_date` | string | No | Filter to a single session (`YYYY-MM-DD`) — in your timezone |
 
 - **Success Response** `200`:
   ```json

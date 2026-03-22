@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Student;
 
+use App\Helpers\TimezoneHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Group;
@@ -20,17 +21,34 @@ class GroupController extends Controller
     {
         $studentId = Auth::id();
 
+        $userTz = Auth::user()->effective_timezone;
+
         $groups = Group::whereHas('students', fn($q) => $q->where('student_id', $studentId))
             ->with('teacher:id,username')
             ->get()
-            ->map(fn($g) => [
-                'group_id'         => $g->group_id,
-                'group_name'       => $g->group_name,
-                'description'      => $g->description,
-                'schedule_days'    => $g->schedule_days,
-                'formatted_schedule' => $g->formatted_schedule,
-                'teacher'          => $g->teacher,
-            ]);
+            ->map(function ($g) use ($userTz) {
+                $convertedDays = array_map(function ($slot) use ($userTz) {
+                    $slot['time'] = TimezoneHelper::scheduleTimeFromUtc($slot['time'], $userTz);
+                    return $slot;
+                }, $g->schedule_days ?? []);
+
+                $formattedParts = array_map(function ($s) {
+                    $label = "{$s['day']} at {$s['time']}";
+                    if (!empty($s['duration'])) {
+                        $label .= " ({$s['duration']}min)";
+                    }
+                    return $label;
+                }, $convertedDays);
+
+                return [
+                    'group_id'           => $g->group_id,
+                    'group_name'         => $g->group_name,
+                    'description'        => $g->description,
+                    'schedule_days'      => $convertedDays,
+                    'formatted_schedule' => implode(', ', $formattedParts) ?: null,
+                    'teacher'            => $g->teacher,
+                ];
+            });
 
         return response()->json([
             'message' => 'Groups retrieved successfully',
@@ -80,14 +98,28 @@ class GroupController extends Controller
             ];
         });
 
+        $userTz = Auth::user()->effective_timezone;
+        $convertedDays = array_map(function ($slot) use ($userTz) {
+            $slot['time'] = TimezoneHelper::scheduleTimeFromUtc($slot['time'], $userTz);
+            return $slot;
+        }, $group->schedule_days ?? []);
+
+        $formattedParts = array_map(function ($s) {
+            $label = "{$s['day']} at {$s['time']}";
+            if (!empty($s['duration'])) {
+                $label .= " ({$s['duration']}min)";
+            }
+            return $label;
+        }, $convertedDays);
+
         return response()->json([
             'message' => 'Group retrieved successfully',
             'group'   => [
                 'group_id'           => $group->group_id,
                 'group_name'         => $group->group_name,
                 'description'        => $group->description,
-                'schedule_days'      => $group->schedule_days,
-                'formatted_schedule' => $group->formatted_schedule,
+                'schedule_days'      => $convertedDays,
+                'formatted_schedule' => implode(', ', $formattedParts) ?: null,
                 'teacher'            => $group->teacher,
                 'homework'           => $homeworkData,
             ],

@@ -4,6 +4,10 @@ Teachers can create, view, update, and delete their own groups, as well as add a
 A teacher can manage groups they **own** or groups where they are an **assistant teacher**.
 Only the main (owner) teacher can invite or remove assistant teachers.
 
+> **Timezone note** — `schedule_days[].time` is always returned in the **requesting user's timezone** (set via `PUT /api/teacher/profile`). When creating or updating a group's schedule, submit times in your own timezone — the API converts them to UTC for storage. Users without a timezone set default to `Europe/Bucharest`.
+>
+> `session_date` and `session_time` in attendance records follow the same convention: submitted in the actor's timezone, stored as UTC, returned in the requesting user's timezone.
+
 ---
 
 ## Group Object
@@ -49,7 +53,7 @@ Only the main (owner) teacher can invite or remove assistant teachers.
 | `class_code` | 8-character alphanumeric code students use to join the group (`null` until generated) |
 | `schedule_days` | Array of `{ day, time, duration }` objects — one entry per session slot |
 | `schedule_days[].day` | Day of the week (e.g. `Monday`) |
-| `schedule_days[].time` | Start time in `HH:MM` 24-hour format |
+| `schedule_days[].time` | Start time in `HH:MM` 24-hour format — in the requesting user's timezone |
 | `schedule_days[].duration` | Session length in minutes (integer) |
 | `formatted_schedule` | Human-readable schedule (e.g. `Monday at 18:00 (90min), Wednesday at 18:00 (90min)`) |
 | `total_weekly_minutes` | Sum of all session durations per week |
@@ -201,7 +205,7 @@ Creates a new group. The group is automatically assigned to the authenticated te
   | `description` | string | No | Free-text |
   | `schedule_days` | array | Yes | At least one entry required |
   | `schedule_days[].day` | string | Yes | Must be a valid day (see Schedule Options) |
-  | `schedule_days[].time` | string | Yes | `HH:MM` 24-hour format (e.g. `18:00`) |
+  | `schedule_days[].time` | string | Yes | `HH:MM` 24-hour format in your timezone (e.g. `18:00`) |
   | `schedule_days[].duration` | integer | Yes | Session length in minutes (e.g. `90`) |
   | `group_members` | array | No | Array of valid student user IDs |
 
@@ -502,8 +506,8 @@ Each student entry must have one of three statuses: `present`, `absent`, or `mot
 
   | Field | Type | Required | Notes |
   |-------|------|----------|-------|
-  | `session_date` | string | Yes | `YYYY-MM-DD` format |
-  | `session_time` | string | Yes | `HH:MM` 24-hour format — should match a slot in `schedule_days` |
+  | `session_date` | string | Yes | `YYYY-MM-DD` in your timezone |
+  | `session_time` | string | Yes | `HH:MM` 24-hour format in your timezone — should match a slot in `schedule_days` |
   | `attendance` | array | Yes | At least one entry |
   | `attendance[].student_id` | integer | Yes | Must be a member of this group |
   | `attendance[].status` | string | Yes | `present`, `absent`, or `motivated_absent` |

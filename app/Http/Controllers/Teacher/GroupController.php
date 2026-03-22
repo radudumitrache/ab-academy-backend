@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Teacher;
 
+use App\Helpers\TimezoneHelper;
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use App\Models\Attendance;
 use App\Models\Group;
 use App\Models\Student;
@@ -13,6 +15,35 @@ use Illuminate\Support\Facades\Validator;
 
 class GroupController extends Controller
 {
+    /**
+     * Convert a group's schedule_days times from UTC to the requesting user's timezone,
+     * rebuild formatted_schedule accordingly, and return the group as an array.
+     */
+    private function formatGroup(Group $group): array
+    {
+        $userTz = Auth::user()->effective_timezone;
+        $rawDays = $group->schedule_days ?? [];
+
+        $convertedDays = array_map(function ($slot) use ($userTz) {
+            $slot['time'] = TimezoneHelper::scheduleTimeFromUtc($slot['time'], $userTz);
+            return $slot;
+        }, $rawDays);
+
+        $formattedParts = array_map(function ($s) {
+            $label = "{$s['day']} at {$s['time']}";
+            if (!empty($s['duration'])) {
+                $label .= " ({$s['duration']}min)";
+            }
+            return $label;
+        }, $convertedDays);
+
+        $data = $group->toArray();
+        $data['schedule_days']      = $convertedDays;
+        $data['formatted_schedule'] = implode(', ', $formattedParts) ?: null;
+
+        return $data;
+    }
+
     /**
      * List all groups that belong to the authenticated teacher.
      */
@@ -25,12 +56,11 @@ class GroupController extends Controller
                 $q->where('group_teacher', $teacherId)
                   ->orWhereHas('assistantTeachers', fn($q2) => $q2->where('teacher_id', $teacherId));
             })
-            ->get()
-            ->each(fn($g) => $g->append('formatted_schedule'));
+            ->get();
 
         return response()->json([
             'message' => 'Groups retrieved successfully',
-            'groups'  => $groups,
+            'groups'  => $groups->map(fn($g) => $this->formatGroup($g)),
         ]);
     }
 
@@ -72,6 +102,15 @@ class GroupController extends Controller
         $payload = $request->only(['group_name', 'description', 'schedule_days']);
         $payload['group_teacher'] = Auth::id();
 
+        // Convert schedule_days times from actor's timezone to UTC before storing
+        if (!empty($payload['schedule_days'])) {
+            $actorTz = Auth::user()->effective_timezone;
+            $payload['schedule_days'] = array_map(function ($slot) use ($actorTz) {
+                $slot['time'] = TimezoneHelper::scheduleTimeToUtc($slot['time'], $actorTz);
+                return $slot;
+            }, $payload['schedule_days']);
+        }
+
         $group = Group::create($payload);
 
         if ($request->filled('group_members')) {
@@ -90,7 +129,7 @@ class GroupController extends Controller
 
         return response()->json([
             'message' => 'Group created successfully',
-            'group'   => $group->load('students'),
+            'group'   => $this->formatGroup($group->load('students')),
         ], 201);
     }
 
@@ -109,11 +148,9 @@ class GroupController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $group->append('formatted_schedule');
-
         return response()->json([
             'message' => 'Group retrieved successfully',
-            'group'   => $group,
+            'group'   => $this->formatGroup($group),
         ]);
     }
 
@@ -151,6 +188,16 @@ class GroupController extends Controller
         }
 
         $payload = $request->only(['group_name', 'description', 'schedule_days']);
+
+        // Convert schedule_days times from actor's timezone to UTC before storing
+        if (!empty($payload['schedule_days'])) {
+            $actorTz = Auth::user()->effective_timezone;
+            $payload['schedule_days'] = array_map(function ($slot) use ($actorTz) {
+                $slot['time'] = TimezoneHelper::scheduleTimeToUtc($slot['time'], $actorTz);
+                return $slot;
+            }, $payload['schedule_days']);
+        }
+
         $group->update($payload);
 
         if ($request->has('group_members')) {
@@ -168,7 +215,7 @@ class GroupController extends Controller
 
         return response()->json([
             'message' => 'Group updated successfully',
-            'group'   => $group->load('students'),
+            'group'   => $this->formatGroup($group->load('students')),
         ]);
     }
 
@@ -234,7 +281,7 @@ class GroupController extends Controller
 
         return response()->json([
             'message' => 'Student added to group successfully',
-            'group'   => $group->load('students'),
+            'group'   => $this->formatGroup($group->load('students')),
         ]);
     }
 
@@ -280,7 +327,7 @@ class GroupController extends Controller
 
         return response()->json([
             'message' => 'Student added to group successfully',
-            'group'   => $group->load('students'),
+            'group'   => $this->formatGroup($group->load('students')),
         ]);
     }
 
@@ -307,7 +354,7 @@ class GroupController extends Controller
 
         return response()->json([
             'message' => 'Student removed from group successfully',
-            'group'   => $group->load('students'),
+            'group'   => $this->formatGroup($group->load('students')),
         ]);
     }
 
@@ -367,6 +414,12 @@ class GroupController extends Controller
             ], 422);
         }
 
+        // Convert session_date + session_time from actor's timezone to UTC before storing
+        $actorTz = Auth::user()->effective_timezone;
+        $utcSession = TimezoneHelper::toUtc($request->session_date, $request->session_time, $actorTz);
+        $sessionDateUtc = $utcSession->format('Y-m-d');
+        $sessionTimeUtc = $utcSession->format('H:i');
+
         $memberIds = $group->students()->pluck('users.id')->toArray();
         $records   = [];
 
@@ -383,8 +436,8 @@ class GroupController extends Controller
                 [
                     'group_id'     => $group->group_id,
                     'student_id'   => $studentId,
-                    'session_date' => $request->session_date,
-                    'session_time' => $request->session_time,
+                    'session_date' => $sessionDateUtc,
+                    'session_time' => $sessionTimeUtc,
                 ],
                 ['status' => $entry['status']]
             );
@@ -438,7 +491,7 @@ class GroupController extends Controller
 
         return response()->json([
             'message' => 'Joined group as assistant teacher successfully',
-            'group'   => $group->load(['students', 'assistantTeachers']),
+            'group'   => $this->formatGroup($group->load(['students', 'assistantTeachers'])),
         ]);
     }
 
@@ -458,24 +511,34 @@ class GroupController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $query = Attendance::where('group_id', $group->group_id);
+        $userTz = Auth::user()->effective_timezone;
+        $query  = Attendance::where('group_id', $group->group_id);
 
         if ($request->filled('session_date')) {
-            $query->where('session_date', $request->input('session_date'));
+            // Filter by the UTC date range that covers the requested local date
+            $startUtc = Carbon::createFromFormat('Y-m-d H:i', $request->input('session_date') . ' 00:00', $userTz)->setTimezone('UTC');
+            $endUtc   = Carbon::createFromFormat('Y-m-d H:i', $request->input('session_date') . ' 23:59', $userTz)->setTimezone('UTC');
+            $query->whereBetween('session_date', [$startUtc->format('Y-m-d'), $endUtc->format('Y-m-d')]);
         }
 
         $records = $query->with('student:id,username,email,role')
             ->orderBy('session_date')
             ->orderBy('session_time')
             ->get()
-            ->map(fn($a) => [
-                'student_id'   => $a->student_id,
-                'username'     => $a->student?->username,
-                'email'        => $a->student?->email,
-                'session_date' => $a->session_date,
-                'session_time' => $a->session_time,
-                'status'       => $a->status,
-            ]);
+            ->map(function ($a) use ($userTz) {
+                $local = TimezoneHelper::fromUtc(
+                    Carbon::createFromFormat('Y-m-d H:i', $a->session_date . ' ' . substr($a->session_time, 0, 5), 'UTC'),
+                    $userTz
+                );
+                return [
+                    'student_id'   => $a->student_id,
+                    'username'     => $a->student?->username,
+                    'email'        => $a->student?->email,
+                    'session_date' => $local['date'],
+                    'session_time' => $local['time'],
+                    'status'       => $a->status,
+                ];
+            });
 
         return response()->json([
             'message'    => 'Attendance retrieved successfully',
@@ -530,7 +593,7 @@ class GroupController extends Controller
 
         return response()->json([
             'message' => 'Assistant teacher added successfully',
-            'group'   => $group->load(['students', 'assistantTeachers']),
+            'group'   => $this->formatGroup($group->load(['students', 'assistantTeachers'])),
         ]);
     }
 
@@ -558,7 +621,7 @@ class GroupController extends Controller
 
         return response()->json([
             'message' => 'Assistant teacher removed successfully',
-            'group'   => $group->load(['students', 'assistantTeachers']),
+            'group'   => $this->formatGroup($group->load(['students', 'assistantTeachers'])),
         ]);
     }
 }

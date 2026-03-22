@@ -76,8 +76,11 @@ UTC values are converted to the requesting user's `effective_timezone` before be
 **Zoom meetings:**
 `ZoomService` sends `start_time` in UTC format and explicitly passes `'timezone' => 'UTC'` to the Zoom API.
 
-**Out of scope:**
-`schedule_days` times in the `Group` model are plain local-time strings and are NOT timezone-converted.
+**Group schedule_days:**
+`schedule_days[].time` values on the `Group` model are also stored as UTC and converted on read/write using `TimezoneHelper::scheduleTimeToUtc()` / `scheduleTimeFromUtc()`. A fixed anchor date (`2026-01-05`) is used for conversion to produce a stable UTC offset unaffected by DST transitions.
+
+**Attendance session times:**
+`attendance.session_date` and `attendance.session_time` are stored as UTC (converted from actor timezone on `takeAttendance`), and converted back to the requesting user's timezone when returned by `getAttendance`.
 
 ### Payment & Product System
 
@@ -118,7 +121,7 @@ Anthropic Claude SDK (`anthropic/anthropic-sdk-php`) is used in `AiAssistantCont
 
 ### Database
 
-MySQL with 89 migrations. Notable patterns:
+MySQL with 91 migrations. Notable patterns:
 - Soft deletes on groups
 - JSON columns for array data (guests, group assignments)
 - Pivot tables: `group_student`, `student_exam`

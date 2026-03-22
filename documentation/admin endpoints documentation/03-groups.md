@@ -2,6 +2,10 @@
 
 Admins have full access to **all groups** — no ownership filter applies. They can create, edit, delete, and manage members of any group, regardless of which teacher owns it.
 
+> **Timezone note** — `schedule_days[].time` is always returned in the **requesting user's timezone** (set via `PUT /api/admin/profile`). When creating or updating a group's schedule, submit times in your own timezone — the API converts them to UTC for storage. Users without a timezone set default to `Europe/Bucharest`.
+>
+> `session_date` and `session_time` in attendance records follow the same convention: submitted in the actor's timezone, stored as UTC, returned in the requesting user's timezone.
+
 ---
 
 ## Group Object
@@ -49,7 +53,7 @@ Admins have full access to **all groups** — no ownership filter applies. They 
 | `class_code` | 8-character alphanumeric code (`null` until generated) |
 | `schedule_days` | Array of `{ day, time, duration }` objects — one per session slot |
 | `schedule_days[].day` | Day of the week (e.g. `Monday`) |
-| `schedule_days[].time` | Start time in `HH:MM` 24-hour format |
+| `schedule_days[].time` | Start time in `HH:MM` 24-hour format — in the requesting user's timezone |
 | `schedule_days[].duration` | Session length in minutes |
 | `formatted_schedule` | Human-readable schedule string |
 | `total_weekly_minutes` | Sum of all session durations per week |
@@ -125,7 +129,7 @@ Unlike teachers (who are auto-assigned as organizer), admins must explicitly pro
 | `description` | string | no | |
 | `schedule_days` | array | yes | at least one entry |
 | `schedule_days[].day` | string | yes | must be a valid day (see Schedule Options) |
-| `schedule_days[].time` | string | yes | `HH:MM` 24-hour format |
+| `schedule_days[].time` | string | yes | `HH:MM` 24-hour format — in your timezone |
 | `schedule_days[].duration` | integer | yes | session length in minutes, min 1 |
 | `group_members` | array of int | no | student user IDs |
 
@@ -376,13 +380,15 @@ Assigns a teacher as an assistant to the group. Admins can assign any teacher re
 
 Returns all recorded attendance for a group, ordered by session date and time. Optionally filter to a single session date.
 
+> `session_date` and `session_time` are returned in the requesting user's timezone. When filtering by `session_date`, provide the date in your own timezone — the API translates it to the appropriate UTC range internally.
+
 `GET /api/admin/groups/{id}/attendance`
 
 **Query Parameters**:
 
 | Parameter | Type | Required | Notes |
 |-----------|------|----------|-------|
-| `session_date` | string | No | Filter to a single session (`YYYY-MM-DD`) |
+| `session_date` | string | No | Filter to a single session (`YYYY-MM-DD`) — in your timezone |
 
 **Response** `200`:
 ```json
@@ -398,3 +404,54 @@ Returns all recorded attendance for a group, ordered by session date and time. O
 ```
 
 **Errors**: `404` if group not found.
+
+---
+
+## Take Group Attendance
+
+Records (or updates) attendance for a group session. Admins can take attendance for any group regardless of ownership.
+
+`POST /api/admin/groups/{id}/attendance`
+
+> `session_date` and `session_time` are interpreted as the admin's local timezone and stored as UTC internally.
+
+**Request body**:
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `session_date` | string | yes | `YYYY-MM-DD` in your timezone |
+| `session_time` | string | yes | `HH:MM` 24-hour format in your timezone |
+| `attendance` | array | yes | At least one entry |
+| `attendance[].student_id` | integer | yes | Must be a member of the group |
+| `attendance[].status` | string | yes | `present`, `absent`, or `motivated_absent` |
+
+```json
+{
+  "session_date": "2026-03-22",
+  "session_time": "09:00",
+  "attendance": [
+    { "student_id": 12, "status": "present" },
+    { "student_id": 15, "status": "absent" },
+    { "student_id": 19, "status": "motivated_absent" }
+  ]
+}
+```
+
+**Response** `200`:
+```json
+{
+  "message": "Attendance recorded successfully",
+  "session_date": "2026-03-22",
+  "session_time": "09:00",
+  "attendance": [
+    { "student_id": 12, "status": "present" },
+    { "student_id": 15, "status": "absent" },
+    { "student_id": 19, "status": "motivated_absent" }
+  ]
+}
+```
+
+**Errors**:
+- `404` — group not found
+- `422` — validation failed
+- `422` — a student ID is not a member of the group: `{ "message": "Student {id} is not a member of this group" }`

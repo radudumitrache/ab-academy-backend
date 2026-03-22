@@ -7,6 +7,8 @@ POST /api/student/groups/join      → join a group via class code
 GET  /api/student/groups/hours     → attendance & course hours summary
 ```
 
+> **Timezone note** — `schedule_days[].time` is always returned in the **student's timezone** (set via `PUT /api/student/profile`, default `Europe/Bucharest`).
+
 ---
 
 ## List Groups
