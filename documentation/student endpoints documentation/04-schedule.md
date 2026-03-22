@@ -6,6 +6,8 @@
 
 Returns the recurring weekly schedule for all groups the student is enrolled in, plus upcoming events the student is invited to.
 
+> **Timezone note** — `event_date` and `event_time` in the `events` array are returned in the student's timezone (set via `PUT /api/student/profile`, default `Europe/Bucharest`). `schedule_days` times (from the group's weekly schedule) are plain local-time strings and are **not** timezone-converted.
+
 **Response** `200`:
 ```json
 {

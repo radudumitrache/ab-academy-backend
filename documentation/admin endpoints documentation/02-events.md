@@ -2,6 +2,8 @@
 
 Admins have full access to **all events** in the database — no ownership filter applies. They can create, edit, delete, create Zoom meetings, schedule recurring events for any organizer, and view attendance for any event.
 
+> **Timezone note** — `event_date` and `event_time` are always returned in the **requesting user's timezone** (set via `PUT /api/admin/profile`). When creating or updating events, submit `event_date` and `event_time` in your own timezone — the API converts them to UTC for storage. Both fields must be submitted together when changing the time. Users without a timezone set default to `Europe/Bucharest`.
+
 ---
 
 ## List All Events
@@ -175,7 +177,7 @@ All fields are optional (`sometimes`). Only include the fields you want to chang
 
 `POST /api/admin/events/{id}/create-zoom-meeting`
 
-Automatically selects a free (non-conflicting) active meeting account and creates a scheduled Zoom meeting. Stores the guest join URL in `event_meet_link`, the host start URL in `event_start_link`, and records the chosen account in `meeting_account_id`.
+Automatically selects a free (non-conflicting) active meeting account and creates a scheduled Zoom meeting. Stores the guest join URL in `event_meet_link`, the host start URL in `event_start_link`, and records the chosen account in `meeting_account_id`. The meeting `start_time` is sent to Zoom in UTC with `timezone: UTC`.
 
 **Body**: none
 

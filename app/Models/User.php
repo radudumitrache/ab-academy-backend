@@ -25,6 +25,7 @@ class User extends Authenticatable
         'city',
         'county',
         'country',
+        'timezone',
         'occupation',
         'password',
         'role',
@@ -50,6 +51,14 @@ class User extends Authenticatable
     protected $casts = [
         'languages_taught' => 'array',
     ];
+
+    /**
+     * Return the user's timezone, defaulting to Europe/Bucharest if not set.
+     */
+    public function getEffectiveTimezoneAttribute(): string
+    {
+        return $this->timezone ?? 'Europe/Bucharest';
+    }
 
     /**
      * Check if user is admin

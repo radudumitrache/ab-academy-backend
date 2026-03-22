@@ -25,6 +25,7 @@ Teachers can view and update their own account details, upload a profile picture
       "country": "Netherlands",
       "occupation": "Mathematics Teacher",
       "languages_taught": ["English", "Dutch"],
+      "timezone": "Europe/Bucharest",
       "role": "teacher",
       "profile_picture_url": "https://storage.googleapis.com/..."
     }
@@ -51,7 +52,8 @@ Teachers can view and update their own account details, upload a profile picture
     "county": "Zuid-Holland",
     "country": "Netherlands",
     "occupation": "Physics Teacher",
-    "languages_taught": ["English", "Romanian"]
+    "languages_taught": ["English", "Romanian"],
+    "timezone": "Europe/Bucharest"
   }
   ```
 - **Validation**:
@@ -62,6 +64,7 @@ Teachers can view and update their own account details, upload a profile picture
   - `house_number`: max 50 chars
   - `city`, `county`, `country`: max 100 chars
   - `languages_taught`: array of strings
+  - `timezone`: valid IANA timezone string (e.g. `Europe/Bucharest`, `America/New_York`). `null` clears the setting and defaults to `Europe/Bucharest`.
 - **Success Response**:
   ```json
   {

@@ -63,6 +63,7 @@ class ProfileController extends Controller
                 'country'             => $user->country,
                 'occupation'          => $user->occupation,
                 'languages_taught'    => $user->languages_taught,
+                'timezone'            => $user->timezone,
                 'role'                => $user->role,
                 'profile_picture_url' => $profilePictureUrl,
             ],
@@ -89,6 +90,7 @@ class ProfileController extends Controller
             'occupation'        => 'nullable|string|max:255',
             'languages_taught'  => 'nullable|array',
             'languages_taught.*' => 'string|max:100',
+            'timezone'          => 'nullable|string|timezone',
         ]);
 
         $user->update($validated);
@@ -109,6 +111,7 @@ class ProfileController extends Controller
                 'country'          => $user->country,
                 'occupation'       => $user->occupation,
                 'languages_taught' => $user->languages_taught,
+                'timezone'         => $user->timezone,
             ],
         ]);
     }

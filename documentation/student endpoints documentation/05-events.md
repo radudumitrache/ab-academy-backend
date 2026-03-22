@@ -2,6 +2,8 @@
 
 Events are meetings, lessons, or other sessions the teacher/admin has created and invited the student to attend.
 
+> **Timezone note** — `event_date` and `event_time` are always returned in the **student's timezone** (set via `PUT /api/student/profile`). Students without a timezone set default to `Europe/Bucharest`.
+
 ---
 
 ## List Events

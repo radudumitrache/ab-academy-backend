@@ -46,12 +46,38 @@ All controllers use the `ApiResponder` trait (`app/Http/Traits/ApiResponder.php`
 ### Services Layer
 
 Business logic lives in `app/Services/`:
-- **ZoomService** — Server-to-Server OAuth for creating Zoom meetings; credentials stored per `MeetingAccount` model
+- **ZoomService** — Server-to-Server OAuth for creating Zoom meetings; credentials stored per `MeetingAccount` model. Meeting `start_time` is always sent as UTC with `timezone: UTC` in the Zoom API payload.
 - **EuPlatescService** — Romanian payment gateway; handles EUR→RON conversion and payment form generation
 - **SmartBillService** — Romanian invoicing/accounting sync
 - **NotificationService** — Sends notifications via Pusher to users
 - **AchievementService** — Student streaks and gamification
 - **GcsService** — Google Cloud Storage file management
+
+### Timezone Convention
+
+All `event_date` and `event_time` values on the `Event` model are **stored in UTC** in the database.
+
+**Write path (admin/teacher creating or updating events):**
+Input `event_date` + `event_time` are interpreted as the acting user's local timezone and converted to UTC before persisting. Both fields must be submitted together for the conversion to apply.
+
+**Read path (any role retrieving events):**
+UTC values are converted to the requesting user's `effective_timezone` before being returned in API responses. This applies in all event endpoints, the student schedule, and the student dashboard.
+
+**User timezone setting:**
+- All users (admin, teacher, student) have an optional `timezone` VARCHAR(50) field on the `users` table.
+- `NULL` defaults to `Europe/Bucharest` via the `getEffectiveTimezoneAttribute()` accessor on the `User` model.
+- Users set their timezone via `PUT /api/{role}/profile` with a valid IANA timezone string (e.g. `Europe/Bucharest`, `America/New_York`).
+
+**Conversion utility:**
+`app/Helpers/TimezoneHelper.php` is the sole conversion point:
+- `TimezoneHelper::toUtc(string $date, string $time, string $timezone): Carbon`
+- `TimezoneHelper::fromUtc(Carbon $utc, string $timezone): array` — returns `['date' => 'Y-m-d', 'time' => 'H:i']`
+
+**Zoom meetings:**
+`ZoomService` sends `start_time` in UTC format and explicitly passes `'timezone' => 'UTC'` to the Zoom API.
+
+**Out of scope:**
+`schedule_days` times in the `Group` model are plain local-time strings and are NOT timezone-converted.
 
 ### Payment & Product System
 
@@ -92,7 +118,7 @@ Anthropic Claude SDK (`anthropic/anthropic-sdk-php`) is used in `AiAssistantCont
 
 ### Database
 
-MySQL with 87 migrations. Notable patterns:
+MySQL with 89 migrations. Notable patterns:
 - Soft deletes on groups
 - JSON columns for array data (guests, group assignments)
 - Pivot tables: `group_student`, `student_exam`

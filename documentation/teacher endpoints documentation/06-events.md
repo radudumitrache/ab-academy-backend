@@ -2,6 +2,8 @@
 
 Teachers can view events they are involved in (as organizer, guest, or assistant teacher of an invited group), create new events with themselves as organizer, and edit or delete events they are authorized to manage.
 
+> **Timezone note** — `event_date` and `event_time` are always returned in the **requesting user's timezone** (set via `PUT /api/teacher/profile`). When creating or updating events, submit `event_date` and `event_time` in your own timezone — the API converts them to UTC for storage. Both fields must be submitted together when changing the time. Users without a timezone set default to `Europe/Bucharest`.
+
 **Management access** applies to the organizer **and** to any teacher who is an assistant of a group listed in the event's `guest_groups`. Managers can edit, delete, mark attendance, add guests, and create Zoom meetings. The `event_start_link` (host URL) is visible only to managers.
 
 Plain guests (directly invited but not a manager) can view events but cannot modify them and do not receive `event_start_link`.
@@ -41,8 +43,8 @@ Plain guests (directly invited but not a manager) can view events but cannot mod
 | `id` | Unique event identifier |
 | `title` | Event title |
 | `type` | `class`, `meeting`, or `other` |
-| `event_date` | Date of the event (`YYYY-MM-DD`) |
-| `event_time` | Start time (`HH:MM:SS`) |
+| `event_date` | Date of the event (`YYYY-MM-DD`) — in the requesting user's timezone |
+| `event_time` | Start time (`HH:MM`) — in the requesting user's timezone |
 | `event_duration` | Duration in minutes |
 | `event_organizer` | User ID of the organizer |
 | `guests` | Array of individual user IDs invited directly |

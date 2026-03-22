@@ -28,6 +28,7 @@ Admin files are stored under the shared `admin/` folder in the bucket:
       "county": "Noord-Holland",
       "country": "Netherlands",
       "occupation": "Platform Administrator",
+      "timezone": "Europe/Bucharest",
       "role": "admin",
       "profile_picture_url": "https://storage.googleapis.com/..."
     }
@@ -53,7 +54,8 @@ Admin files are stored under the shared `admin/` folder in the bucket:
     "city": "Rotterdam",
     "county": "Zuid-Holland",
     "country": "Netherlands",
-    "occupation": "Head Administrator"
+    "occupation": "Head Administrator",
+    "timezone": "America/New_York"
   }
   ```
 - **Validation**:
@@ -63,6 +65,7 @@ Admin files are stored under the shared `admin/` folder in the bucket:
   - `address`, `street`, `occupation`: max 255 chars
   - `house_number`: max 50 chars
   - `city`, `county`, `country`: max 100 chars
+  - `timezone`: valid IANA timezone string (e.g. `Europe/Bucharest`, `America/New_York`). `null` clears the setting and defaults to `Europe/Bucharest`.
 - **Success Response**:
   ```json
   {

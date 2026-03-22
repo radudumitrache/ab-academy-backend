@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Student;
 
+use App\Helpers\TimezoneHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\Group;
@@ -21,8 +22,9 @@ class DashboardController extends Controller
 
     public function index()
     {
-        $studentId = Auth::id();
-        $now       = Carbon::now();
+        $studentId    = Auth::id();
+        $now          = Carbon::now();
+        $userTimezone = Auth::user()->effective_timezone;
 
         // ── Groups ─────────────────────────────────────────────────────────────
         $groups = Group::whereHas('students', fn($q) => $q->where('student_id', $studentId))
@@ -50,19 +52,28 @@ class DashboardController extends Controller
             ->orderBy('event_time')
             ->get()
             ->unique('id')
-            ->map(fn($e) => [
-                'id'              => $e->id,
-                'title'           => $e->title,
-                'type'            => $e->type,
-                'event_date'      => $e->event_date?->toDateString(),
-                'event_time'      => $e->event_time,
-                'event_duration'  => $e->event_duration,
-                'event_meet_link' => $e->event_meet_link,
-                'organizer'       => $e->organizer ? [
-                    'id'       => $e->organizer->id,
-                    'username' => $e->organizer->username,
-                ] : null,
-            ])
+            ->map(function ($e) use ($userTimezone) {
+                $utcCarbon = Carbon::createFromFormat(
+                    'Y-m-d H:i',
+                    $e->event_date->format('Y-m-d') . ' ' . substr($e->event_time, 0, 5),
+                    'UTC'
+                );
+                $local = TimezoneHelper::fromUtc($utcCarbon, $userTimezone);
+
+                return [
+                    'id'              => $e->id,
+                    'title'           => $e->title,
+                    'type'            => $e->type,
+                    'event_date'      => $local['date'],
+                    'event_time'      => $local['time'],
+                    'event_duration'  => $e->event_duration,
+                    'event_meet_link' => $e->event_meet_link,
+                    'organizer'       => $e->organizer ? [
+                        'id'       => $e->organizer->id,
+                        'username' => $e->organizer->username,
+                    ] : null,
+                ];
+            })
             ->values();
 
         // ── Pending homework ───────────────────────────────────────────────────

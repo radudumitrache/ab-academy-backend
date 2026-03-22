@@ -61,6 +61,7 @@ class ProfileController extends Controller
                 'county'              => $user->county,
                 'country'             => $user->country,
                 'occupation'          => $user->occupation,
+                'timezone'            => $user->timezone,
                 'role'                => $user->role,
                 'profile_picture_url' => $profilePictureUrl,
             ],
@@ -85,6 +86,7 @@ class ProfileController extends Controller
             'county'       => 'nullable|string|max:100',
             'country'      => 'nullable|string|max:100',
             'occupation'   => 'nullable|string|max:255',
+            'timezone'     => 'nullable|string|timezone',
         ]);
 
         $user->update($validated);
@@ -106,6 +108,7 @@ class ProfileController extends Controller
                 'county'       => $user->county,
                 'country'      => $user->country,
                 'occupation'   => $user->occupation,
+                'timezone'     => $user->timezone,
             ],
         ]);
     }

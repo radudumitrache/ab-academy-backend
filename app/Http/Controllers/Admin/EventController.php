@@ -7,12 +7,14 @@ use App\Models\Attendance;
 use App\Models\DatabaseLog;
 use App\Models\Event;
 use App\Models\Group;
+use App\Helpers\TimezoneHelper;
 use App\Models\MeetingAccount;
 use App\Models\User;
 use App\Services\ZoomService;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class EventController extends Controller
 {
@@ -24,9 +26,11 @@ class EventController extends Controller
             $query->where('event_organizer', $request->integer('organizer_id'));
         }
 
+        $userTimezone = Auth::user()->effective_timezone;
+
         return response()->json([
             'message' => 'Events retrieved successfully',
-            'events' => $query->get(),
+            'events'  => $query->get()->map(fn($e) => $this->formatEvent($e, $userTimezone)),
         ]);
     }
 
@@ -52,13 +56,20 @@ class EventController extends Controller
             'event_notes' => 'nullable|string',
         ]);
 
+        // Convert event_date + event_time from actor's timezone to UTC before storing
+        if (isset($validated['event_date']) && isset($validated['event_time'])) {
+            $utc = TimezoneHelper::toUtc($validated['event_date'], $validated['event_time'], Auth::user()->effective_timezone);
+            $validated['event_date'] = $utc->format('Y-m-d');
+            $validated['event_time'] = $utc->format('H:i');
+        }
+
         $event = Event::create($validated);
 
         DatabaseLog::logAction('create', Event::class, $event->id, "Event '{$event->title}' created");
 
         return response()->json([
             'message' => 'Event created successfully',
-            'event' => $event->load('organizer'),
+            'event'   => $this->formatEvent($event->load('organizer'), Auth::user()->effective_timezone),
         ], 201);
     }
 
@@ -74,7 +85,7 @@ class EventController extends Controller
 
         return response()->json([
             'message' => 'Event retrieved successfully',
-            'event' => $event,
+            'event'   => $this->formatEvent($event, Auth::user()->effective_timezone),
         ]);
     }
 
@@ -108,13 +119,20 @@ class EventController extends Controller
             'event_notes' => 'nullable|string',
         ]);
 
+        // Convert event_date + event_time from actor's timezone to UTC before storing
+        if (isset($validated['event_date']) && isset($validated['event_time'])) {
+            $utc = TimezoneHelper::toUtc($validated['event_date'], $validated['event_time'], Auth::user()->effective_timezone);
+            $validated['event_date'] = $utc->format('Y-m-d');
+            $validated['event_time'] = $utc->format('H:i');
+        }
+
         $event->update($validated);
 
         DatabaseLog::logAction('update', Event::class, $event->id, "Event '{$event->title}' updated");
 
         return response()->json([
             'message' => 'Event updated successfully',
-            'event' => $event->load('organizer'),
+            'event'   => $this->formatEvent($event->load('organizer'), Auth::user()->effective_timezone),
         ]);
     }
 
@@ -243,7 +261,7 @@ class EventController extends Controller
 
         return response()->json([
             'message'      => 'Zoom meeting created successfully',
-            'event'        => $event->load('organizer'),
+            'event'        => $this->formatEvent($event->load('organizer'), Auth::user()->effective_timezone),
             'meeting_link' => $urls['join_url'],
             'start_link'   => $urls['start_url'],
         ]);
@@ -312,6 +330,42 @@ class EventController extends Controller
             'message' => count($created) . ' recurring event(s) created',
             'events'  => $created,
         ], 201);
+    }
+
+    /**
+     * Format an event for API output, converting UTC date/time to the given timezone.
+     */
+    private function formatEvent(Event $event, string $timezone): array
+    {
+        $utcCarbon = Carbon::createFromFormat(
+            'Y-m-d H:i',
+            $event->event_date->format('Y-m-d') . ' ' . substr($event->event_time, 0, 5),
+            'UTC'
+        );
+        $local = TimezoneHelper::fromUtc($utcCarbon, $timezone);
+
+        return [
+            'id'                 => $event->id,
+            'title'              => $event->title,
+            'type'               => $event->type,
+            'event_date'         => $local['date'],
+            'event_time'         => $local['time'],
+            'event_duration'     => $event->event_duration,
+            'event_organizer'    => $event->event_organizer,
+            'guests'             => $event->guests,
+            'guest_groups'       => $event->guest_groups,
+            'event_meet_link'    => $event->event_meet_link,
+            'event_start_link'   => $event->event_start_link,
+            'event_notes'        => $event->event_notes,
+            'meeting_account_id' => $event->meeting_account_id,
+            'recurrence_parent_id' => $event->recurrence_parent_id,
+            'organizer'          => $event->organizer ? [
+                'id'       => $event->organizer->id,
+                'username' => $event->organizer->username,
+            ] : null,
+            'created_at'         => $event->created_at,
+            'updated_at'         => $event->updated_at,
+        ];
     }
 
     /**

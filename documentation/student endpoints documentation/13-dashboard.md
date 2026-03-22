@@ -6,6 +6,8 @@
 
 Returns a full overview for the student's home screen: groups, upcoming events, pending work, unpaid invoices, streak, and achievements.
 
+> **Timezone note** — `event_date` and `event_time` in `upcoming_events` are returned in the student's timezone (set via `PUT /api/student/profile`, default `Europe/Bucharest`).
+
 **Response** `200`:
 ```json
 {

@@ -6,15 +6,59 @@ use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Event;
 use App\Models\Group;
+use App\Helpers\TimezoneHelper;
 use App\Models\MeetingAccount;
 use App\Models\User;
 use App\Services\ZoomService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
 class EventController extends Controller
 {
+    /**
+     * Format an event for API output, converting UTC date/time to the given timezone.
+     * Pass $showStartLink = false to omit event_start_link for non-managers.
+     */
+    private function formatEvent(Event $event, string $timezone, bool $showStartLink = true): array
+    {
+        $utcCarbon = Carbon::createFromFormat(
+            'Y-m-d H:i',
+            $event->event_date->format('Y-m-d') . ' ' . substr($event->event_time, 0, 5),
+            'UTC'
+        );
+        $local = TimezoneHelper::fromUtc($utcCarbon, $timezone);
+
+        $data = [
+            'id'                   => $event->id,
+            'title'                => $event->title,
+            'type'                 => $event->type,
+            'event_date'           => $local['date'],
+            'event_time'           => $local['time'],
+            'event_duration'       => $event->event_duration,
+            'event_organizer'      => $event->event_organizer,
+            'guests'               => $event->guests,
+            'guest_groups'         => $event->guest_groups,
+            'event_meet_link'      => $event->event_meet_link,
+            'event_notes'          => $event->event_notes,
+            'meeting_account_id'   => $event->meeting_account_id,
+            'recurrence_parent_id' => $event->recurrence_parent_id,
+            'organizer'            => $event->organizer ? [
+                'id'       => $event->organizer->id,
+                'username' => $event->organizer->username,
+            ] : null,
+            'created_at'           => $event->created_at,
+            'updated_at'           => $event->updated_at,
+        ];
+
+        if ($showStartLink) {
+            $data['event_start_link'] = $event->event_start_link;
+        }
+
+        return $data;
+    }
+
     /**
      * Returns true if the given teacher can manage (edit/delete/zoom) an event.
      * This is the case when they are the organizer, or when they are an assistant
@@ -48,6 +92,8 @@ class EventController extends Controller
             ->pluck('group_id')
             ->toArray();
 
+        $userTimezone = Auth::user()->effective_timezone;
+
         $events = Event::with('organizer')
             ->where(function ($query) use ($teacherId, $assistantGroupIds) {
                 $query->where('event_organizer', $teacherId)
@@ -60,11 +106,11 @@ class EventController extends Controller
             ->orderBy('event_date')
             ->orderBy('event_time')
             ->get()
-            ->map(function ($event) use ($teacherId, $assistantGroupIds) {
+            ->map(function ($event) use ($teacherId, $assistantGroupIds, $userTimezone) {
                 $isManager = (int) $event->event_organizer === $teacherId
                     || collect($event->guest_groups ?? [])->map(fn($g) => (int) $g)->intersect($assistantGroupIds)->isNotEmpty();
 
-                return $isManager ? $event : $event->makeHidden('event_start_link');
+                return $this->formatEvent($event, $userTimezone, $isManager);
             });
 
         return response()->json([
@@ -93,13 +139,11 @@ class EventController extends Controller
             ->select('id', 'username', 'email', 'role')
             ->get();
 
-        if (!$this->canManageEvent($event, Auth::id())) {
-            $event->makeHidden('event_start_link');
-        }
+        $isManager = $this->canManageEvent($event, Auth::id());
 
         return response()->json([
             'message'     => 'Event retrieved successfully',
-            'event'       => $event,
+            'event'       => $this->formatEvent($event, Auth::user()->effective_timezone, $isManager),
             'guest_users' => $guestUsers,
         ]);
     }
@@ -125,11 +169,18 @@ class EventController extends Controller
 
         $validated['event_organizer'] = Auth::id();
 
+        // Convert event_date + event_time from actor's timezone to UTC before storing
+        if (isset($validated['event_date']) && isset($validated['event_time'])) {
+            $utc = TimezoneHelper::toUtc($validated['event_date'], $validated['event_time'], Auth::user()->effective_timezone);
+            $validated['event_date'] = $utc->format('Y-m-d');
+            $validated['event_time'] = $utc->format('H:i');
+        }
+
         $event = Event::create($validated);
 
         return response()->json([
             'message' => 'Event created successfully',
-            'event'   => $event->load('organizer'),
+            'event'   => $this->formatEvent($event->load('organizer'), Auth::user()->effective_timezone, true),
         ], 201);
     }
 
@@ -162,11 +213,18 @@ class EventController extends Controller
             'event_notes'     => 'nullable|string',
         ]);
 
+        // Convert event_date + event_time from actor's timezone to UTC before storing
+        if (isset($validated['event_date']) && isset($validated['event_time'])) {
+            $utc = TimezoneHelper::toUtc($validated['event_date'], $validated['event_time'], Auth::user()->effective_timezone);
+            $validated['event_date'] = $utc->format('Y-m-d');
+            $validated['event_time'] = $utc->format('H:i');
+        }
+
         $event->update($validated);
 
         return response()->json([
             'message' => 'Event updated successfully',
-            'event'   => $event->load('organizer'),
+            'event'   => $this->formatEvent($event->load('organizer'), Auth::user()->effective_timezone, true),
         ]);
     }
 
@@ -354,7 +412,7 @@ class EventController extends Controller
 
         return response()->json([
             'message'      => 'Zoom meeting created successfully',
-            'event'        => $event->fresh('organizer'),
+            'event'        => $this->formatEvent($event->fresh('organizer'), Auth::user()->effective_timezone, true),
             'meeting_link' => $urls['join_url'],
             'start_link'   => $urls['start_url'],
         ]);

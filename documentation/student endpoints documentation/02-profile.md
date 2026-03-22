@@ -22,6 +22,7 @@ Returns the authenticated student's profile.
     "county": "Ilfov",
     "country": "Romania",
     "occupation": "Student",
+    "timezone": "Europe/Bucharest",
     "role": "student",
     "profile_picture_url": "https://storage.googleapis.com/...signed-url..."
   }
@@ -50,6 +51,7 @@ All fields are optional. Send only the fields you want to change.
 | `county` | string | Used as billing region/county on invoices |
 | `country` | string | Used as billing country on invoices |
 | `occupation` | string | |
+| `timezone` | string | IANA timezone (e.g. `Europe/Bucharest`). `null` resets to default. |
 
 > **Invoicing note** — `street`, `house_number`, `city`, `county`, `country`, `telephone`, and `email` are passed to EuPlatesc as billing details when a payment is initiated. Keep them accurate before paying an invoice.
 
@@ -68,7 +70,8 @@ All fields are optional. Send only the fields you want to change.
     "city": "Bucharest",
     "county": "Ilfov",
     "country": "Romania",
-    "occupation": "Student"
+    "occupation": "Student",
+    "timezone": "Europe/Bucharest"
   }
 }
 ```

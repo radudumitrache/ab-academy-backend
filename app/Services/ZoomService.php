@@ -45,6 +45,7 @@ class ZoomService
                 'topic'      => $event->title,
                 'type'       => 2, // scheduled
                 'start_time' => $startTime,
+                'timezone'   => 'UTC', // start_time is always stored and sent as UTC
                 'duration'   => $event->event_duration,
                 'settings'   => [
                     'join_before_host' => true,

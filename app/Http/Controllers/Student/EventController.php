@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Student;
 
+use App\Helpers\TimezoneHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Student\Concerns\ResolveStudentGroups;
 use App\Models\Attendance;
 use App\Models\Event;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -101,12 +103,19 @@ class EventController extends Controller
 
     private function format(Event $event, ?string $attendanceStatus = null): array
     {
+        $utcCarbon = Carbon::createFromFormat(
+            'Y-m-d H:i',
+            $event->event_date->format('Y-m-d') . ' ' . substr($event->event_time, 0, 5),
+            'UTC'
+        );
+        $local = TimezoneHelper::fromUtc($utcCarbon, Auth::user()->effective_timezone);
+
         return [
             'id'                 => $event->id,
             'title'              => $event->title,
             'type'               => $event->type,
-            'event_date'         => $event->event_date,
-            'event_time'         => $event->event_time,
+            'event_date'         => $local['date'],
+            'event_time'         => $local['time'],
             'event_duration'     => $event->event_duration,
             'event_meet_link'    => $event->event_meet_link,
             'event_notes'        => $event->event_notes,
