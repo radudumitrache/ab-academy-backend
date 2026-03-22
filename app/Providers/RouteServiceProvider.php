@@ -51,6 +51,7 @@ class RouteServiceProvider extends ServiceProvider
                     require base_path('routes/admin/profile.php');
                     require base_path('routes/admin/products.php');
                     require base_path('routes/admin/anaf.php');
+                    require base_path('routes/admin/student_performance.php');
                 });
 
             // Teacher routes
@@ -68,6 +69,7 @@ class RouteServiceProvider extends ServiceProvider
                     require base_path('routes/teacher/tests.php');
                     require base_path('routes/teacher/materials.php');
                     require base_path('routes/teacher/profile.php');
+                    require base_path('routes/teacher/student_performance.php');
                 });
 
             // Student routes
