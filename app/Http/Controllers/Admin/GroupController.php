@@ -464,7 +464,7 @@ class GroupController extends Controller
             ->get()
             ->map(function ($a) use ($userTz) {
                 $local = TimezoneHelper::fromUtc(
-                    Carbon::createFromFormat('Y-m-d H:i', $a->session_date->format('Y-m-d') . ' ' . $a->session_time, 'UTC'),
+                    Carbon::createFromFormat('Y-m-d H:i:s', $a->session_date->format('Y-m-d') . ' ' . $a->session_time, 'UTC'),
                     $userTz
                 );
                 return [
