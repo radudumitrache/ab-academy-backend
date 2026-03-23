@@ -106,8 +106,8 @@ class StudentPerformanceController extends Controller
             ->with('test:id,title')
             ->get(['id', 'test_id', 'status', 'grade', 'observation', 'submitted_at']);
 
-        $homeworkGrades = $homeworkSubmissions->whereNotNull('grade')->pluck('grade');
-        $testGrades     = $testSubmissions->whereNotNull('grade')->pluck('grade');
+        $homeworkGrades = $homeworkSubmissions->whereNotNull('grade')->pluck('grade')->map(fn($g) => (float) $g);
+        $testGrades     = $testSubmissions->whereNotNull('grade')->pluck('grade')->map(fn($g) => (float) $g);
         $allGrades      = $homeworkGrades->merge($testGrades);
 
         return [

@@ -16,6 +16,7 @@ This documentation covers all teacher-facing API endpoints for the AB Academy pl
 10. [Test Management](10-tests.md)
 11. [Profile](11-profile.md)
 12. [Attendance](12-attendance.md)
+13. [Student Performance](13-student-performance.md)
 
 ## Base URL
 
@@ -124,6 +125,8 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | POST | `/api/teacher/profile/change-password` | Yes | Change own password |
 | POST | `/api/teacher/profile/picture` | Yes | Upload or replace the teacher's profile picture |
 | GET | `/api/teacher/profile/picture` | Yes | Get a signed URL for the teacher's profile picture |
+| GET | `/api/teacher/students/performance` | Yes | Get performance data for all students in teacher's groups |
+| GET | `/api/teacher/students/{id}/performance` | Yes | Get performance data for a single student (must be in teacher's groups) |
 
 ## Teacher User Object
 

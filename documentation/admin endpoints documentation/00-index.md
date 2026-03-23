@@ -29,6 +29,7 @@ This documentation provides comprehensive details about the AB Academy admin API
 23. [Payment Profiles (Admin)](23-payment-profiles.md) — view all student profiles, set invoice_text, confirm profiles
 24. [Acquisitions & Invoicing Flow](24-acquisitions-invoicing.md) — full admin flow: grant access → create SmartBill invoice → mark paid
 25. [EuPlatesc Transactions](25-euplatesc-transactions.md) — view all EuPlatesc payments, check live status
+26. [Student Performance](26-student-performance.md) — homework/test grades, observations, and admin notes per student
 
 ## Base URL
 
@@ -202,6 +203,8 @@ Authorization: Bearer {access_token}
 | POST | `/api/admin/payment-profiles/{id}/confirm` | Yes | Confirm profile without changing invoice_text |
 | GET | `/api/admin/euplatesc-transactions` | Yes | List all EuPlatesc payment transactions (filterable) |
 | GET | `/api/admin/euplatesc-transactions/{id}/check-status` | Yes | Check live status of a transaction from EuPlatesc API |
+| GET | `/api/admin/students/performance` | Yes | Get performance data (grades, observations, notes) for all students |
+| GET | `/api/admin/students/{id}/performance` | Yes | Get performance data for a single student |
 | POST | `/broadcasting/auth` | Yes | Pusher channel authorization (called by Laravel Echo) |
 
 ## Error Format
