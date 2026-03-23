@@ -19,7 +19,7 @@ class AnafController extends Controller
 
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
-        ])->post('https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva', [
+        ])->post('https://andreeaberkhout.oph.st/webhook-test/a1c92927-b2b9-48e6-864b-86a7a2022ed3', [
             [
                 'cui'  => (int) $data['cui'],
                 'data' => $data['data'],
