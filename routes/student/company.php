@@ -4,5 +4,5 @@ use App\Http\Controllers\AnafController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:api')->group(function () {
-    Route::post('/company/get-company', [AnafController::class, 'lookupCompany']);
+    Route::match(['get', 'post'], '/company', [AnafController::class, 'lookupCompany']);
 });
