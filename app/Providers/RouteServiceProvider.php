@@ -92,6 +92,7 @@ class RouteServiceProvider extends ServiceProvider
                     require base_path('routes/student/payment_profiles.php');
                     require base_path('routes/student/products.php');
                     require base_path('routes/student/anaf.php');
+                    require base_path('routes/student/company.php');
                 });
 
             // EuPlatesc webhook routes (no auth — called directly by EuPlatesc servers)
