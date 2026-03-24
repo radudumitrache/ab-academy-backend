@@ -9,6 +9,7 @@ use App\Models\Material;
 use App\Models\QuestionResponse;
 use App\Services\AchievementService;
 use App\Services\GcsService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -301,6 +302,17 @@ class HomeworkController extends Controller
             'homework',
             (int) $id
         );
+
+        // Notify the homework's teacher
+        if ($homework->homework_teacher) {
+            $student = Auth::user();
+            NotificationService::notify(
+                $homework->homework_teacher,
+                "Student {$student->username} submitted homework '{$homework->homework_title}'.",
+                'Student',
+                'Homework'
+            );
+        }
 
         return response()->json([
             'message'          => 'Homework submitted successfully',

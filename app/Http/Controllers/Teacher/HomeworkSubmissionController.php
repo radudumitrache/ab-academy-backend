@@ -7,6 +7,7 @@ use App\Models\Homework;
 use App\Models\HomeworkSubmission;
 use App\Models\QuestionResponse;
 use App\Services\GcsService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -124,6 +125,14 @@ class HomeworkSubmissionController extends Controller
                 'responses.question.rephraseDetails',
                 'responses.question.replaceDetails',
                 'responses.question.wordDerivationDetails']);
+
+        // Notify the student that their homework has been graded
+        NotificationService::notify(
+            $submission->student_id,
+            "Your homework '{$homework->homework_title}' has been graded.",
+            'Teacher',
+            'Homework'
+        );
 
         return response()->json([
             'message'    => 'Submission graded successfully',
@@ -327,6 +336,14 @@ class HomeworkSubmissionController extends Controller
                 'responses.question.replaceDetails',
                 'responses.question.wordDerivationDetails']);
 
+        // Notify the student that their homework responses have been graded
+        NotificationService::notify(
+            $submission->student_id,
+            "Your homework '{$homework->homework_title}' has been graded.",
+            'Teacher',
+            'Homework'
+        );
+
         return response()->json([
             'message'    => 'Responses graded successfully',
             'submission' => $this->formatSubmission($fresh),
@@ -348,6 +365,9 @@ class HomeworkSubmissionController extends Controller
 
             $row['answer_text']         = null;
             $row['correct_answer']      = null;
+            $row['file_url']            = $response->file_path
+                ? $this->gcs->signedUrl($response->file_path, 60)
+                : null;
             $row['correction_file_url'] = $response->correction_file_path
                 ? $this->gcs->signedUrl($response->correction_file_path, 60)
                 : null;

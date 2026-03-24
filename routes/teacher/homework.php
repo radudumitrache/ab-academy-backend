@@ -35,10 +35,11 @@ Route::middleware('auth:api')->group(function () {
     Route::patch('/homework/{homeworkId}/submissions/{submissionId}/grade-responses',      [HomeworkSubmissionController::class, 'gradeResponses']);
 
     // ── Sections CRUD ─────────────────────────────────────────────────────────
-    Route::get('/homework/{homeworkId}/sections',               [SectionController::class, 'index']);
-    Route::post('/homework/{homeworkId}/sections',              [SectionController::class, 'store']);
-    Route::put('/homework/{homeworkId}/sections/{sectionId}',   [SectionController::class, 'update']);
-    Route::delete('/homework/{homeworkId}/sections/{sectionId}',[SectionController::class, 'destroy']);
+    Route::get('/homework/{homeworkId}/sections',                      [SectionController::class, 'index']);
+    Route::post('/homework/{homeworkId}/sections',                     [SectionController::class, 'store']);
+    Route::post('/homework/{homeworkId}/sections/batch',               [SectionController::class, 'batchStore']);
+    Route::put('/homework/{homeworkId}/sections/{sectionId}',          [SectionController::class, 'update']);
+    Route::delete('/homework/{homeworkId}/sections/{sectionId}',       [SectionController::class, 'destroy']);
 
     // ── Questions CRUD ────────────────────────────────────────────────────────
     Route::post('/homework/{homeworkId}/questions',                [QuestionController::class, 'store']);
