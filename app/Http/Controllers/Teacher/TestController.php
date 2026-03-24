@@ -118,7 +118,7 @@ class TestController extends Controller
         $validated = $request->validate([
             'test_title'       => 'required|string|max:255',
             'test_description' => 'nullable|string',
-            'due_date'         => 'required|date_format:Y-m-d',
+            'due_date'         => 'nullable|date_format:Y-m-d',
             'people_assigned'  => 'nullable|array',
             'people_assigned.*' => 'integer|exists:users,id',
             'groups_assigned'  => 'nullable|array',

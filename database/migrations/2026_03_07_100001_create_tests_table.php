@@ -13,7 +13,7 @@ return new class extends Migration
             $table->unsignedBigInteger('test_teacher')->nullable();
             $table->string('test_title');
             $table->text('test_description')->nullable();
-            $table->date('due_date');
+            $table->date('due_date')->nullable();
             $table->json('people_assigned')->nullable();
             $table->json('groups_assigned')->nullable();
             $table->timestamp('date_created')->useCurrent();
