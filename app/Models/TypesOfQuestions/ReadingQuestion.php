@@ -13,6 +13,11 @@ class ReadingQuestion extends Model
     protected $fillable = [
         'question_id',
         'sample_answer',
+        'correct_answers',
+    ];
+
+    protected $casts = [
+        'correct_answers' => 'array',
     ];
 
     public function question()

@@ -19,7 +19,8 @@ class MultipleChoiceQuestion extends Model
     ];
 
     protected $casts = [
-        'variants' => 'array',
+        'variants'        => 'array',
+        'correct_variant' => 'array',
     ];
 
     public function question()

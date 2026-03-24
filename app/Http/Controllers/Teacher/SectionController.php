@@ -265,7 +265,9 @@ class SectionController extends Controller
                 => MultipleChoiceQuestion::create([
                     'question_id'     => $qId,
                     'variants'        => $data['variants'] ?? [],
-                    'correct_variant' => $data['correct_variant'] ?? 0,
+                    'correct_variant' => is_array($data['correct_variant'] ?? null)
+                        ? $data['correct_variant']
+                        : (isset($data['correct_variant']) ? [$data['correct_variant']] : []),
                 ]),
 
             $type === 'gap_fill'
@@ -327,8 +329,9 @@ class SectionController extends Controller
 
             $type === 'reading_question'
                 => ReadingQuestion::create([
-                    'question_id'   => $qId,
-                    'sample_answer' => $data['sample_answer'] ?? null,
+                    'question_id'    => $qId,
+                    'sample_answer'  => $data['sample_answer'] ?? null,
+                    'correct_answers' => $data['correct_answers'] ?? null,
                 ]),
 
             $type === 'writing_question'

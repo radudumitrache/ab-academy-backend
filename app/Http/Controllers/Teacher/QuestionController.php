@@ -78,7 +78,7 @@ class QuestionController extends Controller
             'instruction_files.*'             => 'integer|exists:materials,material_id',
             'variants'                        => 'nullable|array',
             'variants.*'                      => 'string',
-            'correct_variant'                 => 'nullable|integer',
+            'correct_variant'                 => 'nullable',
             'with_variants'                   => 'nullable|boolean',
             'correct_answers'                 => 'nullable|array',
             'correct_answers.*'               => 'string',
@@ -149,7 +149,7 @@ class QuestionController extends Controller
             'instruction_files.*'             => 'integer|exists:materials,material_id',
             'variants'                        => 'nullable|array',
             'variants.*'                      => 'string',
-            'correct_variant'                 => 'nullable|integer',
+            'correct_variant'                 => 'nullable',
             'with_variants'                   => 'nullable|boolean',
             'correct_answers'                 => 'nullable|array',
             'correct_answers.*'               => 'string',
@@ -215,7 +215,9 @@ class QuestionController extends Controller
                 => MultipleChoiceQuestion::create([
                     'question_id'     => $qId,
                     'variants'        => $data['variants'] ?? [],
-                    'correct_variant' => $data['correct_variant'] ?? 0,
+                    'correct_variant' => is_array($data['correct_variant'] ?? null)
+                        ? $data['correct_variant']
+                        : (isset($data['correct_variant']) ? [$data['correct_variant']] : []),
                 ]),
 
             $type === 'gap_fill'
@@ -277,8 +279,9 @@ class QuestionController extends Controller
 
             $type === 'reading_question'
                 => ReadingQuestion::create([
-                    'question_id'   => $qId,
-                    'sample_answer' => $data['sample_answer'] ?? null,
+                    'question_id'    => $qId,
+                    'sample_answer'  => $data['sample_answer'] ?? null,
+                    'correct_answers' => $data['correct_answers'] ?? null,
                 ]),
 
             $type === 'writing_question'
@@ -306,10 +309,17 @@ class QuestionController extends Controller
             in_array($type, ['multiple_choice', 'reading_multiple_choice', 'listening_multiple_choice']) => (function () use ($qId, $data) {
                 $detail = MultipleChoiceQuestion::where('question_id', $qId)->first();
                 if ($detail) {
-                    $detail->update(array_filter([
-                        'variants'        => $data['variants'] ?? null,
-                        'correct_variant' => $data['correct_variant'] ?? null,
-                    ], fn ($v) => !is_null($v)));
+                    $updates = array_filter([
+                        'variants' => $data['variants'] ?? null,
+                    ], fn ($v) => !is_null($v));
+                    if (isset($data['correct_variant'])) {
+                        $updates['correct_variant'] = is_array($data['correct_variant'])
+                            ? $data['correct_variant']
+                            : [$data['correct_variant']];
+                    }
+                    if ($updates) {
+                        $detail->update($updates);
+                    }
                 }
             })(),
 
@@ -394,8 +404,14 @@ class QuestionController extends Controller
 
             $type === 'reading_question' => (function () use ($qId, $data) {
                 $detail = ReadingQuestion::where('question_id', $qId)->first();
-                if ($detail && isset($data['sample_answer'])) {
-                    $detail->update(['sample_answer' => $data['sample_answer']]);
+                if ($detail) {
+                    $updates = array_filter([
+                        'sample_answer'  => $data['sample_answer'] ?? null,
+                        'correct_answers' => $data['correct_answers'] ?? null,
+                    ], fn ($v) => !is_null($v));
+                    if ($updates) {
+                        $detail->update($updates);
+                    }
                 }
             })(),
 
