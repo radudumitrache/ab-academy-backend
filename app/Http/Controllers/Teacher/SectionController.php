@@ -179,7 +179,7 @@ class SectionController extends Controller
             // multiple_choice / reading_multiple_choice / listening_multiple_choice
             'questions.*.variants'                         => 'nullable|array',
             'questions.*.variants.*'                       => 'string',
-            'questions.*.correct_variant'                  => 'nullable|integer',
+            'questions.*.correct_variant'                  => 'nullable',
             // gap_fill
             'questions.*.with_variants'                    => 'nullable|boolean',
             'questions.*.correct_answers'                  => 'nullable|array',

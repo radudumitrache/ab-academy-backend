@@ -26,7 +26,7 @@ POST /api/teacher/homework/{id}/questions         → add questions to a section
 |----------------|----------------------|
 | `GrammarAndVocabulary` | `multiple_choice`, `gap_fill`, `rephrase`, `word_formation`, `replace`, `correct`, `word_derivation`, `text_completion`, `correlation` |
 | `Writing` | `rephrase`, `word_formation`, `replace`, `correct`, `word_derivation`, `writing_question` |
-| `Reading` | `reading_multiple_choice`, `reading_question` |
+| `Reading` | `reading_multiple_choice`, `reading_question`, `gap_fill`, `text_completion`, `correlation` |
 | `Listening` | `listening_multiple_choice`, `text_completion` |
 | `Speaking` | `speaking_question` |
 
@@ -225,6 +225,66 @@ Returns all sections of a homework with question counts.
 
 ---
 
+### Create Section + Questions in One Request (Batch)
+
+`POST /api/teacher/homework/{homeworkId}/sections/batch`
+
+Creates a section and all its questions in a single atomic transaction. Used by the n8n AI parsing flow to turn a PDF into structured homework in one HTTP call. If any question fails validation, nothing is saved.
+
+Accepts the same section fields as **Create Section**, plus a `questions` array:
+
+```json
+{
+  "section_type": "Reading",
+  "title": "Reading Passage 1 – Bats to the rescue",
+  "instruction_text": "You should spend about 20 minutes on Questions 1–13.",
+  "passage": "There are few places in the world...",
+  "order": 1,
+  "questions": [
+    {
+      "question_type": "reading_question",
+      "question_text": "1. Many Madagascan forests are being destroyed by attacks from insects.",
+      "order": 1,
+      "correct_answers": ["FALSE"]
+    },
+    {
+      "question_type": "gap_fill",
+      "question_text": "7. DNA analysis of bat _______",
+      "order": 7,
+      "with_variants": false,
+      "correct_answers": ["droppings"]
+    },
+    {
+      "question_type": "reading_multiple_choice",
+      "question_text": "23-24. Which TWO statements does the writer make about literacy rates?",
+      "order": 10,
+      "variants": ["A. ...", "B. ...", "C. ...", "D. ...", "E. ..."],
+      "correct_variant": [1, 4]
+    }
+  ]
+}
+```
+
+Each question object accepts the same fields as the individual question create endpoint. The question type must be allowed for the section type — if not, the API returns `422` with `allowed_types` before touching the database.
+
+**Response** `201`:
+```json
+{
+  "message": "Section created successfully with questions",
+  "section": {
+    "id": 3,
+    "section_type": "Reading",
+    "questions": [ { ... }, { ... } ]
+  }
+}
+```
+
+**Errors**:
+- `404` — homework not found or not owned by this teacher
+- `422` — invalid section type, invalid question type for section, or validation failure
+
+---
+
 ### Update Section
 
 `PUT /api/teacher/homework/{homeworkId}/sections/{sectionId}` — all fields optional, cannot change `section_type`.
@@ -259,9 +319,10 @@ Questions **must** belong to a section (`section_id` is required). The question 
 
 | Type | Extra fields |
 |------|-------------|
-| `multiple_choice` / `reading_multiple_choice` / `listening_multiple_choice` | `variants` (array of strings), `correct_variant` (0-based index) |
+| `multiple_choice` / `reading_multiple_choice` / `listening_multiple_choice` | `variants` (array of strings), `correct_variant` (array of 0-based indices — single answer: `[0]`, multiple answers: `[1, 4]`) |
 | `gap_fill` | `with_variants` (bool), `variants` (array, optional), `correct_answers` (array of strings) |
-| `rephrase` / `reading_question` / `writing_question` | `sample_answer` (string) |
+| `rephrase` / `writing_question` | `sample_answer` (string) |
+| `reading_question` | `sample_answer` (string, optional), `correct_answers` (array of strings, optional — use for TRUE/FALSE/NOT GIVEN or paragraph-matching answers e.g. `["FALSE"]`, `["E"]`) |
 | `word_formation` | `base_word`, `sample_answer` |
 | `replace` | `original_text`, `sample_answer` |
 | `correct` | `incorrect_text`, `sample_answer` |
@@ -392,7 +453,8 @@ Each response object includes these resolved fields:
 
 | Question type | Value |
 |---|---|
-| `multiple_choice` | String — the correct variant text |
+| `multiple_choice` / `reading_multiple_choice` / `listening_multiple_choice` | Array of correct variant indices e.g. `[1]` or `[1, 4]` |
+| `reading_question` | Array of strings if `correct_answers` was set (e.g. `["FALSE"]`, `["E"]`), otherwise `null` |
 | `gap_fill` / `text_completion` | Array of accepted strings |
 | `correlation` | Array of correct pairs |
 | `correct` / `word_formation` / `rephrase` / `replace` / `word_derivation` | String — sample answer |

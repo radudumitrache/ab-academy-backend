@@ -29,7 +29,7 @@ Identical to teacher homework — see teacher [08-homework.md](../teacher%20endp
 |----------------|----------------------|
 | `GrammarAndVocabulary` | `multiple_choice`, `gap_fill`, `rephrase`, `word_formation`, `replace`, `correct`, `word_derivation`, `text_completion`, `correlation` |
 | `Writing` | `rephrase`, `word_formation`, `replace`, `correct`, `word_derivation`, `writing_question` |
-| `Reading` | `reading_multiple_choice`, `reading_question` |
+| `Reading` | `reading_multiple_choice`, `reading_question`, `gap_fill`, `text_completion`, `correlation` |
 | `Listening` | `listening_multiple_choice`, `text_completion` |
 | `Speaking` | `speaking_question` |
 
@@ -152,6 +152,12 @@ Returns all student submissions for this homework, including responses.
 `POST /api/admin/homework/{homeworkId}/sections`
 
 Same fields as teacher section creation. See teacher docs for field reference.
+
+### Create Section + Questions in One Request (Batch)
+
+`POST /api/admin/homework/{homeworkId}/sections/batch`
+
+Same as teacher batch endpoint — creates a section and all its questions atomically. See teacher [08-homework.md](../teacher%20endpoints%20documentation/08-homework.md) for full field reference and example.
 
 ### Update Section
 
