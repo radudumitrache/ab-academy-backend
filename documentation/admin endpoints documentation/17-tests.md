@@ -13,11 +13,12 @@ Key differences from teacher tests:
 ## Creation Flow
 
 ```
-POST /api/admin/tests                            → create test
-POST /api/admin/tests/{id}/assign                → assign students/groups
-POST /api/admin/tests/{id}/sections              → add sections
-POST /api/admin/tests/{id}/questions             → add questions to a section
-GET  /api/admin/tests/{id}/submissions           → view all submissions
+POST /api/admin/tests                                → create test
+POST /api/admin/tests/{id}/assign                    → assign students/groups
+POST /api/admin/tests/{id}/sections                  → add a section
+POST /api/admin/tests/{id}/sections/batch            → add a section + all its questions in one call
+POST /api/admin/tests/{id}/questions                 → add a question to an existing section
+GET  /api/admin/tests/{id}/submissions               → view all submissions
 ```
 
 ---
@@ -28,8 +29,8 @@ GET  /api/admin/tests/{id}/submissions           → view all submissions
 |----------------|----------------------|
 | `GrammarAndVocabulary` | `multiple_choice`, `gap_fill`, `rephrase`, `word_formation`, `replace`, `correct`, `word_derivation`, `text_completion`, `correlation` |
 | `Writing` | `rephrase`, `word_formation`, `replace`, `correct`, `word_derivation`, `writing_question` |
-| `Reading` | `reading_multiple_choice`, `reading_question` |
-| `Listening` | `listening_multiple_choice`, `text_completion` |
+| `Reading` | `reading_multiple_choice`, `reading_question`, `gap_fill`, `text_completion`, `correlation` |
+| `Listening` | `listening_multiple_choice`, `text_completion`, `gap_fill` |
 | `Speaking` | `speaking_question` |
 
 ---
@@ -145,6 +146,48 @@ Returns full test with sections, questions, detail records, and signed GCS URLs.
 
 ### Create Section
 `POST /api/admin/tests/{testId}/sections` — same fields as teacher section.
+
+### Create Section + Questions in One Request (Batch)
+
+`POST /api/admin/tests/{testId}/sections/batch`
+
+Creates a section and all its questions in a single atomic transaction. No ownership check — admin can batch-create sections on any test. Logs the action to `DatabaseLog`.
+
+Accepts the same section fields as **Create Section**, plus a `questions` array. Identical request/response shape to the teacher batch endpoint:
+
+```json
+{
+  "section_type": "Reading",
+  "title": "Reading Passage 1",
+  "passage": "There are few places in the world...",
+  "order": 1,
+  "questions": [
+    {
+      "question_type": "reading_multiple_choice",
+      "question_text": "What triggered the industrial revolution?",
+      "order": 1,
+      "variants": ["Steam power", "Electricity", "Wind power"],
+      "correct_variant": 0
+    }
+  ]
+}
+```
+
+**Response** `201`:
+```json
+{
+  "message": "Section created successfully with questions",
+  "section": {
+    "id": 2,
+    "section_type": "Reading",
+    "questions": [ { ... } ]
+  }
+}
+```
+
+**Errors**:
+- `404` — test not found
+- `422` — invalid section type, invalid question type for section, or validation failure
 
 ### Update Section
 `PUT /api/admin/tests/{testId}/sections/{sectionId}`

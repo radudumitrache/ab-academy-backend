@@ -24,9 +24,10 @@ class TestSection extends Model
         ],
         'Reading' => [
             'reading_multiple_choice', 'reading_question',
+            'gap_fill', 'text_completion', 'correlation',
         ],
         'Listening' => [
-            'listening_multiple_choice', 'text_completion',
+            'listening_multiple_choice', 'text_completion', 'gap_fill',
         ],
         'Speaking' => [
             'speaking_question',

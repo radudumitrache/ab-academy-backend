@@ -12,10 +12,11 @@ Tests follow the same structure as homework. The creation flow is identical:
 ## Creation Flow
 
 ```
-POST /api/teacher/tests                         → create test
-POST /api/teacher/tests/{id}/assign             → assign students/groups
-POST /api/teacher/tests/{id}/sections           → add sections
-POST /api/teacher/tests/{id}/questions          → add questions to a section
+POST /api/teacher/tests                              → create test
+POST /api/teacher/tests/{id}/assign                  → assign students/groups
+POST /api/teacher/tests/{id}/sections                → add a section
+POST /api/teacher/tests/{id}/sections/batch          → add a section + all its questions in one call
+POST /api/teacher/tests/{id}/questions               → add a question to an existing section
 ```
 
 ---
@@ -26,8 +27,8 @@ POST /api/teacher/tests/{id}/questions          → add questions to a section
 |----------------|----------------------|
 | `GrammarAndVocabulary` | `multiple_choice`, `gap_fill`, `rephrase`, `word_formation`, `replace`, `correct`, `word_derivation`, `text_completion`, `correlation` |
 | `Writing` | `rephrase`, `word_formation`, `replace`, `correct`, `word_derivation`, `writing_question` |
-| `Reading` | `reading_multiple_choice`, `reading_question` |
-| `Listening` | `listening_multiple_choice`, `text_completion` |
+| `Reading` | `reading_multiple_choice`, `reading_question`, `gap_fill`, `text_completion`, `correlation` |
+| `Listening` | `listening_multiple_choice`, `text_completion`, `gap_fill` |
 | `Speaking` | `speaking_question` |
 
 Sections support:
@@ -199,6 +200,58 @@ Returns all sections with question counts.
 | `transcript` | string | No (`Listening` only) | |
 
 **Response** `201` with created section object.
+
+---
+
+### Create Section + Questions in One Request (Batch)
+
+`POST /api/teacher/tests/{testId}/sections/batch`
+
+Creates a section and all its questions in a single atomic transaction. Used by the n8n AI parsing flow to turn a PDF into structured test content in one HTTP call. If any question fails validation, nothing is saved.
+
+Accepts the same section fields as **Create Section**, plus a `questions` array:
+
+```json
+{
+  "section_type": "Reading",
+  "title": "Reading Passage 1",
+  "passage": "There are few places in the world...",
+  "order": 1,
+  "questions": [
+    {
+      "question_type": "reading_multiple_choice",
+      "question_text": "What triggered the industrial revolution?",
+      "order": 1,
+      "variants": ["Steam power", "Electricity", "Wind power"],
+      "correct_variant": 0
+    },
+    {
+      "question_type": "reading_question",
+      "question_text": "What is the main theme of the passage?",
+      "order": 2,
+      "sample_answer": "The main theme is..."
+    }
+  ]
+}
+```
+
+Each question object accepts the same fields as the individual question create endpoint. The question type must be allowed for the section type — if not, the API returns `422` with `allowed_types` before touching the database.
+
+**Response** `201`:
+```json
+{
+  "message": "Section created successfully with questions",
+  "section": {
+    "id": 2,
+    "section_type": "Reading",
+    "questions": [ { ... }, { ... } ]
+  }
+}
+```
+
+**Errors**:
+- `404` — test not found or not owned by this teacher
+- `422` — invalid section type, invalid question type for section, or validation failure
 
 ---
 
