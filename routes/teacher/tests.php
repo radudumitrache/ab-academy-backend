@@ -37,6 +37,7 @@ Route::middleware('auth:api')->group(function () {
     // ── Sections CRUD ─────────────────────────────────────────────────────────
     Route::get('/tests/{testId}/sections',                 [TestSectionController::class, 'index']);
     Route::post('/tests/{testId}/sections',                [TestSectionController::class, 'store']);
+    Route::post('/tests/{testId}/sections/batch',          [TestSectionController::class, 'batchStore']);
     Route::put('/tests/{testId}/sections/{sectionId}',     [TestSectionController::class, 'update']);
     Route::delete('/tests/{testId}/sections/{sectionId}',  [TestSectionController::class, 'destroy']);
 
