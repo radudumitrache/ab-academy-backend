@@ -69,11 +69,13 @@ class MaterialController extends Controller
     public function upload(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'file'            => 'required|file|max:102400',
-            'material_name'   => 'nullable|string|max:255',
-            'folder'          => 'required|string|max:200',
-            'allowed_users'   => 'nullable|array',
-            'allowed_users.*' => 'integer|exists:users,id',
+            'file'             => 'required|file|max:102400',
+            'material_name'    => 'nullable|string|max:255',
+            'folder'           => 'required|string|max:200',
+            'allowed_users'    => 'nullable|array',
+            'allowed_users.*'  => 'integer|exists:users,id',
+            'allowed_groups'   => 'nullable|array',
+            'allowed_groups.*' => 'integer|exists:groups,group_id',
         ]);
 
         if ($validator->fails()) {
@@ -114,20 +116,44 @@ class MaterialController extends Controller
         $this->gcs->upload($file, $gcsPath);
 
         $material = Material::create([
-            'material_name' => $request->input('material_name') ?? $file->getClientOriginalName(),
-            'file_type'     => $file->getClientMimeType(),
-            'date_created'  => now(),
-            'authors'       => [$user->id],
-            'allowed_users' => $request->input('allowed_users') ?? [],
-            'gcs_path'      => $gcsPath,
-            'uploader_id'   => $user->id,
-            'folder'        => $folder,
+            'material_name'  => $request->input('material_name') ?? $file->getClientOriginalName(),
+            'file_type'      => $file->getClientMimeType(),
+            'date_created'   => now(),
+            'authors'        => [$user->id],
+            'allowed_users'  => $request->input('allowed_users') ?? [],
+            'allowed_groups' => $request->input('allowed_groups') ?? [],
+            'gcs_path'       => $gcsPath,
+            'uploader_id'    => $user->id,
+            'folder'         => $folder,
         ]);
 
         return response()->json([
             'message'  => 'Material uploaded successfully',
             'material' => $material,
         ], 201);
+    }
+
+    /**
+     * List all common-folder materials with their current access settings.
+     * Stale DB records (file deleted from GCS) are auto-removed.
+     * GET /api/teacher/common-materials
+     */
+    public function listCommonMaterials()
+    {
+        $materials = Material::where('folder', 'common')->latest()->get();
+
+        $live = $materials->filter(function ($material) {
+            if (!$this->gcs->objectExists($material->gcs_path)) {
+                $material->delete();
+                return false;
+            }
+            return true;
+        })->values();
+
+        return response()->json([
+            'message'   => 'Common materials retrieved successfully',
+            'materials' => $live,
+        ]);
     }
 
     /**
@@ -158,7 +184,7 @@ class MaterialController extends Controller
     }
 
     /**
-     * Update allowed_users and/or allowed_groups on a material the teacher owns.
+     * Update allowed_users and/or allowed_groups on a material the teacher owns or any common-folder material.
      * Students in allowed_groups are automatically granted access alongside allowed_users.
      */
     public function updateAccess(Request $request, $id)
@@ -166,7 +192,7 @@ class MaterialController extends Controller
         $teacherId = Auth::id();
         $material  = Material::findOrFail($id);
 
-        if ($material->uploader_id !== $teacherId) {
+        if ($material->uploader_id !== $teacherId && $material->folder !== 'common') {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:api')->group(function () {
     Route::post('/materials/setup',            [MaterialController::class, 'setupStorage']);
     Route::get('/materials',                   [MaterialController::class, 'index']);
+    Route::get('/common-materials',            [MaterialController::class, 'listCommonMaterials']);
     Route::post('/materials/upload',           [MaterialController::class, 'upload']);
     Route::get('/materials/{id}',              [MaterialController::class, 'show']);
     Route::put('/materials/{id}/access',       [MaterialController::class, 'updateAccess']);

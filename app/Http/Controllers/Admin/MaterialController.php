@@ -105,15 +105,17 @@ class MaterialController extends Controller
     }
 
     /**
-     * Update allowed_users on any material.
+     * Update allowed_users and/or allowed_groups on any material.
      */
     public function updateAccess(Request $request, $id)
     {
         $material = Material::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'allowed_users'   => 'required|array',
-            'allowed_users.*' => 'integer|exists:users,id',
+            'allowed_users'    => 'nullable|array',
+            'allowed_users.*'  => 'integer|exists:users,id',
+            'allowed_groups'   => 'nullable|array',
+            'allowed_groups.*' => 'integer|exists:groups,group_id',
         ]);
 
         if ($validator->fails()) {
@@ -123,7 +125,13 @@ class MaterialController extends Controller
             ], 422);
         }
 
-        $material->update(['allowed_users' => $request->input('allowed_users')]);
+        $allowedUsers  = $request->input('allowed_users', $material->allowed_users ?? []);
+        $allowedGroups = $request->input('allowed_groups', $material->allowed_groups ?? []);
+
+        $material->update([
+            'allowed_users'  => array_values(array_unique(array_map('intval', $allowedUsers))),
+            'allowed_groups' => array_values(array_unique(array_map('intval', $allowedGroups))),
+        ]);
 
         DatabaseLog::logAction('update', Material::class, $material->material_id, "Access updated for material '{$material->material_name}'");
 
