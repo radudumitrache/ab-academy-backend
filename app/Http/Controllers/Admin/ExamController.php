@@ -124,14 +124,15 @@ class ExamController extends Controller
             $exam->updateStatus($request->status, Auth::id());
         }
 
-        if ($request->has('name')) {
-            $exam->name = $request->input('name');
+        $data = $request->all();
+        if (array_key_exists('name', $data)) {
+            $exam->name = $data['name'];
         }
-        if ($request->has('exam_type')) {
-            $exam->exam_type = $request->input('exam_type');
+        if (array_key_exists('exam_type', $data)) {
+            $exam->exam_type = $data['exam_type'];
         }
-        if ($request->has('date')) {
-            $exam->date = $request->input('date');
+        if (array_key_exists('date', $data)) {
+            $exam->date = $data['date'];
         }
         $exam->save();
 
