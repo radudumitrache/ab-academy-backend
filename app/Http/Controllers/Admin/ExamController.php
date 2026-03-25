@@ -124,7 +124,15 @@ class ExamController extends Controller
             $exam->updateStatus($request->status, Auth::id());
         }
 
-        $exam->fill($request->only(['name', 'exam_type', 'date']));
+        if ($request->has('name')) {
+            $exam->name = $request->input('name');
+        }
+        if ($request->has('exam_type')) {
+            $exam->exam_type = $request->input('exam_type');
+        }
+        if ($request->has('date')) {
+            $exam->date = $request->input('date');
+        }
         $exam->save();
 
         DatabaseLog::logAction('update', Exam::class, $exam->id, "Exam '{$exam->name}' updated");
