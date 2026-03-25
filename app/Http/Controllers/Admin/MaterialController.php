@@ -37,7 +37,7 @@ class MaterialController extends Controller
             'file'            => 'required|file|max:102400',
             'material_name'   => 'nullable|string|max:255',
             // folder_path: any valid bucket path, e.g. 'common', 'common/sub', 'admin/files/sub', 'teachers/user/private/sub'
-            'folder_path'     => ['required', 'string', 'regex:/^[a-zA-Z0-9_\-]+(\/[a-zA-Z0-9_\-]+)*$/'],
+            'folder_path'     => ['required', 'string', 'max:500', 'not_regex:/(\.\.|\/\/|[\x00-\x1f\\\\])/'],
             'uploader_id'     => 'nullable|integer|exists:users,id',
             'allowed_users'   => 'nullable|array',
             'allowed_users.*' => 'integer|exists:users,id',
@@ -189,7 +189,7 @@ class MaterialController extends Controller
     public function createFolder(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'path' => ['required', 'string', 'max:500', 'regex:/^[a-zA-Z0-9_\-\/\.]+$/'],
+            'path' => ['required', 'string', 'max:500', 'not_regex:/(\.\.|\/\/|[\x00-\x1f\\\\])/'],
         ]);
 
         if ($validator->fails()) {
@@ -221,7 +221,7 @@ class MaterialController extends Controller
     public function deleteFolder(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'path' => ['required', 'string', 'max:500', 'regex:/^[a-zA-Z0-9_\-\/\.]+$/'],
+            'path' => ['required', 'string', 'max:500', 'not_regex:/(\.\.|\/\/|[\x00-\x1f\\\\])/'],
         ]);
 
         if ($validator->fails()) {
