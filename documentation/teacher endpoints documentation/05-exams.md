@@ -1,6 +1,6 @@
 # Exam Management
 
-Teachers can view exams that students in their groups are enrolled in, create new exams, and manage student enrollment in those exams.
+Teachers can view exams that students in their groups are enrolled in, create and delete exams, and manage student enrollment in those exams.
 
 All enrollment operations are scoped to the teacher's own groups — a teacher cannot enroll students who do not belong to any of their groups.
 
@@ -160,6 +160,27 @@ Creates a new exam. Optionally enroll students from the teacher's groups at crea
   - **422** — one or more `student_ids` are not students from the teacher's groups:
     ```json
     { "message": "All student_ids must be valid students belonging to your groups" }
+    ```
+
+---
+
+## Delete Exam
+
+Permanently deletes an exam, detaching all enrolled students and removing its status history.
+
+- **URL**: `/api/teacher/exams/{id}`
+- **Method**: `DELETE`
+- **Auth Required**: Yes
+
+- **Success Response** `200`:
+  ```json
+  { "message": "Exam deleted successfully" }
+  ```
+
+- **Error Responses**:
+  - **404** — exam not found:
+    ```json
+    { "message": "Exam not found" }
     ```
 
 ---

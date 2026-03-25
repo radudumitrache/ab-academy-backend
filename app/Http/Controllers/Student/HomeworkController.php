@@ -277,6 +277,10 @@ class HomeworkController extends Controller
 
     /**
      * Submit the homework — marks status as 'submitted'.
+     *
+     * Students may resubmit a homework as long as it has not been graded yet.
+     * Once a grade has been assigned by the teacher, resubmission is blocked
+     * and a 409 response is returned.
      */
     public function submit($id)
     {

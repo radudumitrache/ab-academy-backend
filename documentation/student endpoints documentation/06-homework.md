@@ -279,7 +279,7 @@ The `submissions` folder is created automatically if it does not exist.
 
 `POST /api/student/homework/{id}/submit`
 
-Finalizes the submission. After submitting, answers can still be changed via `POST /answers` until the teacher grades at least one response.
+Finalizes the submission. Students may resubmit as many times as needed until the teacher assigns a grade. Once a grade has been set on the submission, resubmission is blocked. After submitting, answers can still be edited via `POST /answers` until the teacher grades at least one individual response.
 
 No request body required.
 
@@ -299,4 +299,4 @@ No request body required.
 
 **Errors**:
 - `404` — homework not found or not assigned
-- `409` — already submitted
+- `409` — submission has already been graded (`"Homework already submitted and graded"`)

@@ -160,6 +160,24 @@ class ExamController extends Controller
     }
 
     /**
+     * Delete an exam and detach all enrolled students.
+     */
+    public function destroy($id)
+    {
+        $exam = Exam::find($id);
+
+        if (!$exam) {
+            return response()->json(['message' => 'Exam not found'], 404);
+        }
+
+        $exam->students()->detach();
+        $exam->statusHistory()->delete();
+        $exam->delete();
+
+        return response()->json(['message' => 'Exam deleted successfully']);
+    }
+
+    /**
      * Remove a student from an exam — student must belong to one of the teacher's groups.
      */
     public function removeStudent($examId, $studentId)

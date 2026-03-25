@@ -13,6 +13,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/exams',                                         [ExamController::class, 'index']);
     Route::post('/exams',                                        [ExamController::class, 'store']);
     Route::get('/exams/{id}',                                    [ExamController::class, 'show']);
+    Route::delete('/exams/{id}',                                 [ExamController::class, 'destroy']);
     Route::post('/exams/{id}/students',                          [ExamController::class, 'enrollStudents']);
     Route::delete('/exams/{examId}/students/{studentId}',        [ExamController::class, 'removeStudent']);
 });
