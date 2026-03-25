@@ -71,7 +71,7 @@ class MaterialController extends Controller
         $validator = Validator::make($request->all(), [
             'file'            => 'required|file|max:102400',
             'material_name'   => 'nullable|string|max:255',
-            'folder'          => ['required', 'string', 'regex:/^(common|private(\/[^\/\\\\]+)?)$/u'],
+            'folder'          => 'required|string|max:200',
             'allowed_users'   => 'nullable|array',
             'allowed_users.*' => 'integer|exists:users,id',
         ]);
@@ -83,9 +83,20 @@ class MaterialController extends Controller
             ], 422);
         }
 
+        $folder = $request->input('folder');
+        $folderValid = $folder === 'common'
+            || $folder === 'private'
+            || (str_starts_with($folder, 'private/') && !str_contains($folder, '..') && substr_count($folder, '/') === 1);
+
+        if (!$folderValid) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors'  => ['folder' => ['The folder must be common, private, or private/{subfolder-name}.']],
+            ], 422);
+        }
+
         $user   = Auth::user();
         $file   = $request->allFiles()['file'];
-        $folder = $request->input('folder');
 
         if ($folder === 'common') {
             $gcsPath = 'common/' . $file->getClientOriginalName();
