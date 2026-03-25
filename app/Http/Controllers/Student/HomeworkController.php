@@ -292,8 +292,8 @@ class HomeworkController extends Controller
             ['status' => 'in_progress']
         );
 
-        if ($submission->status === 'submitted') {
-            return response()->json(['message' => 'Homework already submitted'], 409);
+        if ($submission->status === 'submitted' && !is_null($submission->grade)) {
+            return response()->json(['message' => 'Homework already submitted and graded'], 409);
         }
 
         $submittedAt = now();
