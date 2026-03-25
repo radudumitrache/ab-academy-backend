@@ -92,6 +92,10 @@ class MaterialController extends Controller
             return response()->json([
                 'message' => 'Validation failed',
                 'errors'  => ['folder' => ['The folder must be common, private, or private/{subfolder-name}.']],
+                'debug_folder_received' => $folder,
+                'debug_folder_length'   => strlen($folder),
+                'debug_slash_count'     => substr_count($folder, '/'),
+                'debug_starts_with'     => str_starts_with($folder, 'private/'),
             ], 422);
         }
 
