@@ -71,7 +71,7 @@ class MaterialController extends Controller
         $validator = Validator::make($request->all(), [
             'file'            => 'required|file|max:102400',
             'material_name'   => 'nullable|string|max:255',
-            'folder'          => ['required', 'string', 'regex:/^(common|private(\/[^\/\\\x00-\x1f]+)?)$/u'],
+            'folder'          => ['required', 'string', 'regex:/^(common|private(\/[^\/\\\\]+)?)$/u'],
             'allowed_users'   => 'nullable|array',
             'allowed_users.*' => 'integer|exists:users,id',
         ]);
@@ -224,7 +224,7 @@ class MaterialController extends Controller
     public function createFolder(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => ['required', 'string', 'max:100', 'not_regex:/(\/|\\\\|[\x00-\x1f])/'],
+            'name' => ['required', 'string', 'max:100', 'not_regex:/(\/|\\\\)/'],
         ]);
 
         if ($validator->fails()) {
@@ -256,7 +256,7 @@ class MaterialController extends Controller
     public function deleteFolder(string $name)
     {
         // Validate name to prevent path traversal
-        if (preg_match('/(\/|\\\\|[\x00-\x1f])/', $name)) {
+        if (preg_match('/(\/|\\\\)/', $name)) {
             return response()->json(['message' => 'Invalid folder name'], 422);
         }
 
