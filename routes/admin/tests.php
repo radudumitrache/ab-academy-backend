@@ -23,6 +23,7 @@ Route::post('/tests/{id}/assign', [TestController::class, 'assignStudents']);
 // ── Sections ──────────────────────────────────────────────────────────────────
 Route::get('/tests/{testId}/sections',                [TestController::class, 'sectionIndex']);
 Route::post('/tests/{testId}/sections',               [TestController::class, 'sectionStore']);
+Route::post('/tests/{testId}/sections/batch',         [TestController::class, 'sectionBatchStore']);
 Route::put('/tests/{testId}/sections/{sectionId}',    [TestController::class, 'sectionUpdate']);
 Route::delete('/tests/{testId}/sections/{sectionId}', [TestController::class, 'sectionDestroy']);
 
