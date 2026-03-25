@@ -37,7 +37,7 @@ class MaterialController extends Controller
             'file'            => 'required|file|max:102400',
             'material_name'   => 'nullable|string|max:255',
             // folder_path: any valid bucket path, e.g. 'common', 'common/sub', 'admin/files/sub', 'teachers/user/private/sub'
-            'folder_path'     => ['required', 'string', 'max:500', 'not_regex:/(\.\.|\/\/|\\\\)/'],
+            'folder_path'     => 'required|string|max:500',
             'uploader_id'     => 'nullable|integer|exists:users,id',
             'allowed_users'   => 'nullable|array',
             'allowed_users.*' => 'integer|exists:users,id',
@@ -50,11 +50,18 @@ class MaterialController extends Controller
             ], 422);
         }
 
+        $folder = $request->input('folder_path');
+        if (str_contains($folder, '..') || str_contains($folder, '//') || str_contains($folder, '\\')) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors'  => ['folder_path' => ['The folder path must not contain path traversal sequences.']],
+            ], 422);
+        }
+
         $uploaderId = $request->input('uploader_id') ?? Auth::id();
         $uploader   = User::findOrFail($uploaderId);
         $files      = $request->allFiles();
         $file       = is_array($files['file']) ? $files['file'][0] : $files['file'];
-        $folder     = $request->input('folder_path');
 
         // Upload directly to the specified path
         $gcsPath = rtrim($folder, '/') . '/' . $file->getClientOriginalName();
@@ -189,7 +196,7 @@ class MaterialController extends Controller
     public function createFolder(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'path' => ['required', 'string', 'max:500', 'not_regex:/(\.\.|\/\/|\\\\)/'],
+            'path' => 'required|string|max:500',
         ]);
 
         if ($validator->fails()) {
@@ -199,7 +206,13 @@ class MaterialController extends Controller
             ], 422);
         }
 
-        $path    = trim($request->input('path'), '/');
+        $path = trim($request->input('path'), '/');
+        if (str_contains($path, '..') || str_contains($path, '//') || str_contains($path, '\\')) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors'  => ['path' => ['The path must not contain path traversal sequences.']],
+            ], 422);
+        }
         $created = $this->gcs->createFolder($path);
 
         if (!$created) {
@@ -221,7 +234,7 @@ class MaterialController extends Controller
     public function deleteFolder(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'path' => ['required', 'string', 'max:500', 'not_regex:/(\.\.|\/\/|\\\\)/'],
+            'path' => 'required|string|max:500',
         ]);
 
         if ($validator->fails()) {
@@ -231,7 +244,13 @@ class MaterialController extends Controller
             ], 422);
         }
 
-        $path    = trim($request->input('path'), '/');
+        $path = trim($request->input('path'), '/');
+        if (str_contains($path, '..') || str_contains($path, '//') || str_contains($path, '\\')) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors'  => ['path' => ['The path must not contain path traversal sequences.']],
+            ], 422);
+        }
         $deleted = $this->gcs->deleteFolder($path);
 
         if ($deleted === 0) {

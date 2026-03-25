@@ -235,7 +235,7 @@ class MaterialController extends Controller
     public function createFolder(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => ['required', 'string', 'max:100', 'not_regex:/(\/|\\\\)/'],
+            'name' => 'required|string|max:100',
         ]);
 
         if ($validator->fails()) {
@@ -245,8 +245,16 @@ class MaterialController extends Controller
             ], 422);
         }
 
+        $name = $request->input('name');
+        if (str_contains($name, '/') || str_contains($name, '\\') || str_contains($name, '..')) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors'  => ['name' => ['The folder name must not contain slashes or path traversal sequences.']],
+            ], 422);
+        }
+
         $user       = Auth::user();
-        $folderPath = "teachers/{$user->username}/private/{$request->input('name')}";
+        $folderPath = "teachers/{$user->username}/private/{$name}";
         $created    = $this->gcs->createFolder($folderPath);
 
         if (!$created) {
@@ -255,7 +263,7 @@ class MaterialController extends Controller
 
         return response()->json([
             'message' => 'Folder created successfully',
-            'folder'  => $request->input('name'),
+            'folder'  => $name,
             'path'    => $folderPath . '/',
         ], 201);
     }
