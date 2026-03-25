@@ -27,7 +27,7 @@ class HomeworkSection extends Model
             'gap_fill', 'text_completion', 'correlation',
         ],
         'Listening' => [
-            'listening_multiple_choice', 'text_completion',
+            'listening_multiple_choice', 'text_completion', 'gap_fill',
         ],
         'Speaking' => [
             'speaking_question',

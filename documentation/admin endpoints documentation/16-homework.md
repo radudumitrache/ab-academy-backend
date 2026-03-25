@@ -30,7 +30,7 @@ Identical to teacher homework — see teacher [08-homework.md](../teacher%20endp
 | `GrammarAndVocabulary` | `multiple_choice`, `gap_fill`, `rephrase`, `word_formation`, `replace`, `correct`, `word_derivation`, `text_completion`, `correlation` |
 | `Writing` | `rephrase`, `word_formation`, `replace`, `correct`, `word_derivation`, `writing_question` |
 | `Reading` | `reading_multiple_choice`, `reading_question`, `gap_fill`, `text_completion`, `correlation` |
-| `Listening` | `listening_multiple_choice`, `text_completion` |
+| `Listening` | `listening_multiple_choice`, `text_completion`, `gap_fill` |
 | `Speaking` | `speaking_question` |
 
 ---
