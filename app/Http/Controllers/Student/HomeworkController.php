@@ -179,7 +179,10 @@ class HomeworkController extends Controller
         );
 
         if ($submission->status === 'submitted') {
-            return response()->json(['message' => 'Homework already submitted'], 409);
+            $hasGradedResponse = $submission->responses()->whereNotNull('grade')->exists();
+            if ($hasGradedResponse) {
+                return response()->json(['message' => 'Cannot edit answers after grading has started'], 409);
+            }
         }
 
         // ── Text answers ──────────────────────────────────────────────────────
@@ -260,6 +263,10 @@ class HomeworkController extends Controller
                     ]
                 );
             }
+        }
+
+        if ($submission->status === 'submitted') {
+            $submission->update(['submitted_at' => now()]);
         }
 
         return response()->json([

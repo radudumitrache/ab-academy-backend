@@ -204,11 +204,13 @@ Returns the student's submitted answers alongside the teacher's grade and feedba
 
 ---
 
-## Save Answers (Draft)
+## Save Answers (Draft or Edit After Submission)
 
 `POST /api/student/homework/{id}/answers`
 
 Saves answers without submitting. Can be called multiple times — each call upserts the provided answers. Answers for questions not included in the request are preserved.
+
+**Editing after submission is allowed** as long as the teacher has not yet graded any individual response. If the submission is already `submitted` and no response has a grade, answers are updated and `submitted_at` is refreshed to the current time. Once any response receives a grade, the submission is locked and further edits return `409`.
 
 Accepts **`multipart/form-data`** to support both text and file answers in the same request.
 
@@ -268,7 +270,7 @@ The `submissions` folder is created automatically if it does not exist.
 
 **Errors**:
 - `404` — homework not found or not assigned
-- `409` — homework already submitted
+- `409` — submission is locked because grading has already started (`"Cannot edit answers after grading has started"`)
 - `422` — neither answers nor files provided
 
 ---
@@ -277,7 +279,7 @@ The `submissions` folder is created automatically if it does not exist.
 
 `POST /api/student/homework/{id}/submit`
 
-Finalizes the submission. After this, answers can no longer be changed.
+Finalizes the submission. After submitting, answers can still be changed via `POST /answers` until the teacher grades at least one response.
 
 No request body required.
 

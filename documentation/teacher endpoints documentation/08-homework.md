@@ -503,6 +503,8 @@ Saves a grade and/or observation on a submitted homework. Can be called multiple
 
 Sets a grade, observation, and/or an attached correction file on one or more individual question responses. Can be called multiple times — only the listed responses are updated.
 
+> **Note:** Once any response in a submission is graded (i.e. has a non-null `grade`), the student can no longer edit their answers. Grading the first response effectively locks the submission for the student.
+
 Accepts **`multipart/form-data`** so that correction files can be sent alongside the grading data.
 
 > **Important:** Always send this request as `multipart/form-data`. Do **not** set `Content-Type: application/json` — the file cannot be transmitted that way and the upload will be silently skipped. When using `fetch` or `axios` with a `FormData` object, do **not** manually set the `Content-Type` header — let the browser/library set it automatically so the `boundary` parameter is included.
