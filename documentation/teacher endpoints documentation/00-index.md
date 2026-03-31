@@ -17,6 +17,7 @@ This documentation covers all teacher-facing API endpoints for the AB Academy pl
 11. [Profile](11-profile.md)
 12. [Attendance](12-attendance.md)
 13. [Student Performance](13-student-performance.md)
+14. [Group Announcements](14-group-announcements.md)
 
 ## Base URL
 
@@ -127,6 +128,11 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | GET | `/api/teacher/profile/picture` | Yes | Get a signed URL for the teacher's profile picture |
 | GET | `/api/teacher/students/performance` | Yes | Get performance data for all students in teacher's groups |
 | GET | `/api/teacher/students/{id}/performance` | Yes | Get performance data for a single student (must be in teacher's groups) |
+| GET | `/api/teacher/group-announcements` | Yes | List announcements for groups the teacher manages |
+| POST | `/api/teacher/group-announcements` | Yes | Create a group announcement |
+| GET | `/api/teacher/group-announcements/{id}` | Yes | Get a single announcement |
+| PUT | `/api/teacher/group-announcements/{id}` | Yes | Update an announcement |
+| DELETE | `/api/teacher/group-announcements/{id}` | Yes | Delete an announcement |
 
 ## Teacher User Object
 

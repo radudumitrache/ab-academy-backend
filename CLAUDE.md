@@ -2,6 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Documentation Rule
+
+**Any time you add, modify, or remove API endpoints, you MUST update the corresponding documentation files:**
+
+- Admin endpoints → `documentation/admin endpoints documentation/`
+- Teacher endpoints → `documentation/teacher endpoints documentation/`
+- Student endpoints → `documentation/student endpoints documentation/`
+
+For each affected role:
+1. Create or update the numbered detail file (e.g. `27-group-announcements.md`) with the full endpoint spec (object shape, request body, response examples).
+2. Add the new section to the Table of Contents in `00-index.md`.
+3. Add the endpoint row(s) to the Quick Reference table in `00-index.md`.
+
 ## Common Commands
 
 ```bash
@@ -41,7 +54,7 @@ Routes are registered in `app/Providers/RouteServiceProvider.php` and split acro
 
 ### Response Convention
 
-All controllers use the `ApiResponder` trait (`app/Http/Traits/ApiResponder.php`) for consistent JSON responses.
+Controllers return `response()->json()` directly. The `ApiResponder` trait (`app/Http/Traits/ApiResponder.php`) exists but is rarely used — do not add it to controllers unless it is already present.
 
 ### Services Layer
 

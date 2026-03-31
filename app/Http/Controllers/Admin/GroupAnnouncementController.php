@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\DatabaseLog;
+use App\Models\Group;
 use App\Models\GroupAnnouncement;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class GroupAnnouncementController extends Controller
@@ -53,6 +55,18 @@ class GroupAnnouncementController extends Controller
             GroupAnnouncement::class,
             $announcement->announcement_id,
             "Created group announcement '{$announcement->title}' for group {$announcement->group_id}"
+        );
+
+        $studentIds = Group::find($announcement->group_id)
+            ->students()
+            ->pluck('id')
+            ->toArray();
+
+        NotificationService::notify(
+            $studentIds,
+            "New announcement in your group: {$announcement->title}",
+            'Admin',
+            'Announcement'
         );
 
         return response()->json([

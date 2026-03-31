@@ -19,6 +19,7 @@ This documentation covers all student-facing API endpoints for the AB Academy pl
 13. [Dashboard & Achievements](13-dashboard.md) — dashboard overview, streak, achievements
 14. [Payment Profiles](13-payment-profiles.md) — manage billing profiles (physical person or company)
 15. [Products & Purchases](14-products.md) — browse products, purchase via EuPlatesc, renew subscriptions
+16. [Group Announcements](15-group-announcements.md) — read announcements posted to your groups
 
 ## Base URL
 
@@ -97,6 +98,7 @@ Authorization: Bearer {access_token}
 | POST | `/api/student/acquisitions/{id}/renew` | Yes | Renew a completed/expired acquisition |
 | GET | `/api/student/dashboard` | Yes | Full dashboard overview |
 | GET | `/api/student/achievements` | Yes | Streak + achievement list |
+| GET | `/api/student/groups/{groupId}/announcements` | Yes | List announcements for a group (student must be a member) |
 | POST | `/broadcasting/auth` | Yes | Pusher channel authorization (called by Laravel Echo) |
 
 ## Error Format

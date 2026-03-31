@@ -30,6 +30,7 @@ This documentation provides comprehensive details about the AB Academy admin API
 24. [Acquisitions & Invoicing Flow](24-acquisitions-invoicing.md) — full admin flow: grant access → create SmartBill invoice → mark paid
 25. [EuPlatesc Transactions](25-euplatesc-transactions.md) — view all EuPlatesc payments, check live status
 26. [Student Performance](26-student-performance.md) — homework/test grades, observations, and admin notes per student
+27. [Group Announcements](27-group-announcements.md) — create and manage announcements posted to groups
 
 ## Base URL
 
@@ -205,6 +206,11 @@ Authorization: Bearer {access_token}
 | GET | `/api/admin/euplatesc-transactions/{id}/check-status` | Yes | Check live status of a transaction from EuPlatesc API |
 | GET | `/api/admin/students/performance` | Yes | Get performance data (grades, observations, notes) for all students |
 | GET | `/api/admin/students/{id}/performance` | Yes | Get performance data for a single student |
+| GET | `/api/admin/group-announcements` | Yes | List all group announcements |
+| POST | `/api/admin/group-announcements` | Yes | Create a group announcement |
+| GET | `/api/admin/group-announcements/{id}` | Yes | Get a single announcement |
+| PUT | `/api/admin/group-announcements/{id}` | Yes | Update an announcement |
+| DELETE | `/api/admin/group-announcements/{id}` | Yes | Delete an announcement |
 | POST | `/broadcasting/auth` | Yes | Pusher channel authorization (called by Laravel Echo) |
 
 ## Error Format

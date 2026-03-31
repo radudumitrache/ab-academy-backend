@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Teacher;
 use App\Http\Controllers\Controller;
 use App\Models\Group;
 use App\Models\GroupAnnouncement;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -64,6 +65,15 @@ class GroupAnnouncementController extends Controller
         }
 
         $announcement = GroupAnnouncement::create($validated);
+
+        $studentIds = $group->students()->pluck('id')->toArray();
+
+        NotificationService::notify(
+            $studentIds,
+            "New announcement in your group: {$announcement->title}",
+            'Teacher',
+            'Announcement'
+        );
 
         return response()->json([
             'message'      => 'Announcement created successfully',

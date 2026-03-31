@@ -10,7 +10,7 @@ class Notification extends Model
     use HasFactory;
 
     const SOURCES = ['Admin', 'Student', 'Teacher'];
-    const TYPES   = ['Exam', 'Schedule', 'Homework', 'Message', 'Payment'];
+    const TYPES   = ['Exam', 'Schedule', 'Homework', 'Message', 'Payment', 'Announcement'];
 
     protected $fillable = [
         'notification_owner',
