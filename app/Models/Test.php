@@ -18,6 +18,7 @@ class Test extends Model
         'due_date',
         'people_assigned',
         'groups_assigned',
+        'is_global',
         'date_created',
     ];
 
@@ -25,6 +26,7 @@ class Test extends Model
         'due_date'        => 'date:Y-m-d',
         'people_assigned' => 'array',
         'groups_assigned' => 'array',
+        'is_global'       => 'boolean',
         'date_created'    => 'datetime',
     ];
 

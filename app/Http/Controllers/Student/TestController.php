@@ -30,6 +30,7 @@ class TestController extends Controller
 
         // Filter in PHP to avoid MySQL JSON type-coercion issues and to include past tests.
         $tests = Test::orderByDesc('due_date')->get()->filter(function ($test) use ($studentId, $groupIds) {
+            if ($test->is_global) return true;
             $people = array_map('intval', (array) $test->people_assigned);
             $groups = array_map('intval', (array) $test->groups_assigned);
             if (in_array($studentId, $people, true)) return true;
@@ -348,6 +349,7 @@ class TestController extends Controller
             foreach ($groupIds as $gid) {
                 $q->orWhereJsonContains('groups_assigned', $gid);
             }
+            $q->orWhere('is_global', true);
         })->find($testId);
     }
 

@@ -20,7 +20,7 @@ POST /api/student/tests/{id}/submit       → finalize submission
 
 `GET /api/student/tests`
 
-Returns all tests assigned to this student (directly or via group), ordered by due date descending. **Includes past tests** — no date filter is applied.
+Returns all tests assigned to this student (directly, via group, or marked as global), ordered by due date descending. **Includes past tests** — no date filter is applied.
 
 **Response** `200`:
 ```json

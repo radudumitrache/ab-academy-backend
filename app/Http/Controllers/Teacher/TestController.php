@@ -197,11 +197,13 @@ class TestController extends Controller
             'people_assigned.*' => 'integer|exists:users,id',
             'groups_assigned'   => 'nullable|array',
             'groups_assigned.*' => 'integer|exists:groups,group_id',
+            'is_global'         => 'nullable|boolean',
         ]);
 
         $test->update([
             'people_assigned' => $validated['people_assigned'] ?? [],
             'groups_assigned' => $validated['groups_assigned'] ?? [],
+            'is_global'       => $validated['is_global'] ?? false,
         ]);
 
         return response()->json([

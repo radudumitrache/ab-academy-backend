@@ -103,12 +103,21 @@ Returns full test with sections, questions, detail records, and signed GCS URLs.
 
 `POST /api/admin/tests/{id}/assign` — overwrites current assignment.
 
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `people_assigned` | array | No | Array of user IDs |
+| `groups_assigned` | array | No | Array of group IDs |
+| `is_global` | boolean | No | When `true`, all current and future students can access this test; defaults to `false` |
+
 ```json
 {
   "people_assigned": [12, 15],
-  "groups_assigned": [3]
+  "groups_assigned": [3],
+  "is_global": false
 }
 ```
+
+When `is_global` is `true`, the test is visible to every student on the platform — including users who register after the test is created. Omitting `is_global` from the request resets it to `false`.
 
 ---
 
