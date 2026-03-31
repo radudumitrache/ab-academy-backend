@@ -1,8 +1,20 @@
 # Chat (Admin)
 
-Admins can open conversations with any student, reply to student messages, view message history, track unread counts, and archive closed threads.
+Admins can open conversations with any student, reply to student messages, view message history, track unread counts, resolve threads, and archive closed threads.
 
 The same underlying models (`Chat`, `Message`) are shared with the student-side. Messages are broadcast in real-time via Laravel Echo / Pusher.
+
+---
+
+## Chat Status
+
+Each chat has a `status` field with one of three values:
+
+| Status | Description |
+|--------|-------------|
+| `active` | Open conversation — visible to both admin and student |
+| `resolved` | Marked as handled — still visible in the admin's chat list, never deleted |
+| `archived` | Hidden — no longer appears in the default list |
 
 ---
 
@@ -10,11 +22,12 @@ The same underlying models (`Chat`, `Message`) are shared with the student-side.
 
 ```
 POST /api/admin/chats/student          → open (or resume) a chat with a student
-GET  /api/admin/chats                  → list all admin's chats
+GET  /api/admin/chats                  → list all admin's chats (active + resolved)
 GET  /api/admin/chats/{id}             → read full message history (marks messages read)
 POST /api/admin/chats/{id}/messages    → send a reply
 GET  /api/admin/chats/unread/count     → total unread messages
-PUT  /api/admin/chats/{id}/archive     → archive a closed thread
+PUT  /api/admin/chats/{id}/resolve     → mark a chat as resolved (kept in list)
+PUT  /api/admin/chats/{id}/archive     → archive a chat (hidden from default list)
 ```
 
 ---
@@ -44,6 +57,7 @@ Creates a new chat thread between the admin and the specified student. If a chat
     "teacher_id": null,
     "last_message_at": "2026-03-07T15:00:00.000000Z",
     "is_active": true,
+    "status": "active",
     "admin": { ... },
     "student": { "id": 12, "username": "john_doe" }
   }
@@ -58,7 +72,7 @@ Creates a new chat thread between the admin and the specified student. If a chat
 
 `GET /api/admin/chats`
 
-Returns all active chats belonging to this admin, ordered by most recent message. Includes the last message for preview.
+Returns all `active` and `resolved` chats belonging to this admin, ordered by most recent message. Includes the last message for preview. Archived chats are excluded.
 
 **Response** `200`:
 ```json
@@ -71,6 +85,7 @@ Returns all active chats belonging to this admin, ordered by most recent message
       "admin_id": 1,
       "last_message_at": "2026-03-07T15:30:00.000000Z",
       "is_active": true,
+      "status": "active",
       "student": { "id": 12, "username": "john_doe" },
       "messages": [
         { "id": 5, "content": "Hello, I have a question.", "sender_id": 12, "read_at": "2026-03-07T15:31:00.000000Z" }
@@ -98,6 +113,7 @@ Each message includes a `sender_role` field (`"admin"`, `"student"`, or `"teache
     "id": 1,
     "student_id": 12,
     "admin_id": 1,
+    "status": "active",
     "messages": [
       {
         "id": 5,
@@ -176,16 +192,36 @@ Returns the total number of unread messages sent by students across all the admi
 
 ---
 
+## Resolve a Chat
+
+`PUT /api/admin/chats/{id}/resolve`
+
+Marks the chat as `resolved`. The thread is kept in its entirety and continues to appear in the admin's chat list — nothing is deleted. The admin must own the chat.
+
+**Response** `200`:
+```json
+{
+  "message": "Chat resolved successfully",
+  "chat": { "id": 1, "status": "resolved" }
+}
+```
+
+**Errors**: `403` if the admin does not own the chat, `404` if not found.
+
+---
+
 ## Archive a Chat
 
 `PUT /api/admin/chats/{id}/archive`
 
-Marks the chat as inactive (`is_active: false`). It will no longer appear in the default list. The admin must own the chat.
+Marks the chat as `archived` (`is_active: false`, `status: "archived"`). It will no longer appear in the default list. The admin must own the chat.
 
 **Response** `200`:
 ```json
 {
   "message": "Chat archived successfully",
-  "chat": { "id": 1, "is_active": false }
+  "chat": { "id": 1, "is_active": false, "status": "archived" }
 }
 ```
+
+**Errors**: `403` if the admin does not own the chat, `404` if not found.

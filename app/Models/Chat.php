@@ -15,11 +15,12 @@ class Chat extends Model
         'admin_id',
         'last_message_at',
         'is_active',
+        'status',
     ];
 
     protected $casts = [
         'last_message_at' => 'datetime',
-        'is_active' => 'boolean',
+        'is_active'       => 'boolean',
     ];
 
     public function student()
@@ -59,7 +60,12 @@ class Chat extends Model
 
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('status', 'active');
+    }
+
+    public function scopeVisible($query)
+    {
+        return $query->whereIn('status', ['active', 'resolved']);
     }
 
     public function scopeFilterByDate($query, $date)

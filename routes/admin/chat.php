@@ -28,5 +28,8 @@ Route::get('/chats/unread/count',   [ChatController::class, 'unreadCount']);
 // Open a new chat with a student (or re-activate an existing one)
 Route::post('/chats/student',       [AdminChatController::class, 'store']);
 
-// Archive a chat
+// Resolve a chat (keeps it visible, marks the issue as handled)
+Route::put('/chats/{id}/resolve',   [ChatController::class, 'resolve']);
+
+// Archive a chat (hides it from the default list)
 Route::put('/chats/{id}/archive',   [ChatController::class, 'archive']);

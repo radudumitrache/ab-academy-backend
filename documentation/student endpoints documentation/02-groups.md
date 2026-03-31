@@ -4,6 +4,51 @@ Students interact with groups by joining via a class code and viewing their cour
 
 ---
 
+## Get Group Detail
+
+Returns details for a single group the student belongs to, including assigned homework (only published homework is returned — drafts are excluded).
+
+- **URL**: `/api/student/groups/{id}`
+- **Method**: `GET`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  ```
+- **Success Response** (`200`):
+  ```json
+  {
+    "message": "Group retrieved successfully",
+    "group": {
+      "group_id": 3,
+      "group_name": "English B2 — Morning",
+      "description": "Morning B2 class",
+      "schedule_days": [
+        { "day": "Monday", "time": "09:00", "duration": 120 }
+      ],
+      "formatted_schedule": "Monday at 09:00 (120min)",
+      "teacher": { "id": 5, "username": "Teacher Name" },
+      "homework": [
+        {
+          "id": 12,
+          "homework_title": "Unit 3 Exercise",
+          "homework_description": "Complete exercises 1–5",
+          "due_date": "2026-04-10",
+          "submission_status": "not_started",
+          "submitted_at": null
+        }
+      ]
+    }
+  }
+  ```
+- **Notes**:
+  - Only homework with `status = posted` is included. Draft homework is never visible to students.
+  - `submission_status` values: `not_started`, `draft`, `submitted`, `graded`
+- **Error Responses**:
+  - `404` — group not found or student is not a member
+
+---
+
 ## Join a Group
 
 Join a group using the class code provided by the teacher.

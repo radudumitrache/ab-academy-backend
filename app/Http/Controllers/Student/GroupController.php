@@ -73,10 +73,11 @@ class GroupController extends Controller
             return response()->json(['message' => 'Group not found'], 404);
         }
 
-        // Homework assigned to this group
+        // Homework assigned to this group (exclude drafts — students must not see unpublished homework)
         $homework = Homework::where(function ($q) use ($group) {
             $q->whereJsonContains('groups_assigned', (int) $group->group_id);
         })
+        ->where('status', 'posted')
         ->orderByDesc('due_date')
         ->get();
 

@@ -178,7 +178,8 @@ Authorization: Bearer {access_token}
 | POST | `/api/admin/chats/{id}/messages` | Yes | Send a message |
 | GET | `/api/admin/chats/unread/count` | Yes | Total unread message count |
 | POST | `/api/admin/chats/student` | Yes | Open or resume a chat with a student |
-| PUT | `/api/admin/chats/{id}/archive` | Yes | Archive a chat |
+| PUT | `/api/admin/chats/{id}/resolve` | Yes | Resolve a chat (kept visible, not deleted) |
+| PUT | `/api/admin/chats/{id}/archive` | Yes | Archive a chat (hidden from default list) |
 | POST | `/api/admin/profile/setup` | Yes | Create GCS folder structure for admin |
 | GET | `/api/admin/profile` | Yes | Get own profile |
 | PUT | `/api/admin/profile` | Yes | Update own profile details |

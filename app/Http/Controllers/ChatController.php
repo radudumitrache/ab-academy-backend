@@ -77,12 +77,12 @@ class ChatController extends Controller
             'student',
             'admin',
             'messages' => fn($q) => $q->latest()->limit(1),
-        ])->active()->orderByDesc('last_message_at');
+        ])->orderByDesc('last_message_at');
 
         if ($user->isStudent()) {
-            $query->forStudent($user->id);
+            $query->active()->forStudent($user->id);
         } elseif ($user->isAdmin()) {
-            $query->forAdmin($user->id);
+            $query->visible()->forAdmin($user->id);
         } else {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
@@ -155,7 +155,38 @@ class ChatController extends Controller
     }
 
     /**
+     * Resolve a chat (admin only).
+     * Marks the chat as resolved — it remains visible in the admin's chat list.
+     */
+    public function resolve($id)
+    {
+        $user = Auth::user();
+
+        if (!$user->isAdmin()) {
+            return response()->json(['message' => 'Only admins can resolve chats'], 403);
+        }
+
+        $chat = Chat::find($id);
+
+        if (!$chat) {
+            return response()->json(['message' => 'Chat not found'], 404);
+        }
+
+        if ($chat->admin_id != $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $chat->update(['status' => 'resolved']);
+
+        return response()->json([
+            'message' => 'Chat resolved successfully',
+            'chat'    => $chat,
+        ]);
+    }
+
+    /**
      * Archive a chat (admin only).
+     * Marks the chat as archived — it will no longer appear in the default list.
      */
     public function archive($id)
     {
@@ -175,7 +206,7 @@ class ChatController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $chat->update(['is_active' => false]);
+        $chat->update(['is_active' => false, 'status' => 'archived']);
 
         return response()->json([
             'message' => 'Chat archived successfully',
