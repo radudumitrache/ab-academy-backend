@@ -16,6 +16,7 @@ class TestQuestionResponse extends Model
         'related_question',
         'related_student',
         'answer',
+        'file_path',
         'grade',
         'observation',
         'correction_file_path',

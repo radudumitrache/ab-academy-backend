@@ -13,6 +13,7 @@ use App\Models\TypesOfTestQuestions\TestMultipleChoiceQuestion;
 use App\Models\TypesOfTestQuestions\TestReadingQuestion;
 use App\Models\TypesOfTestQuestions\TestWritingQuestion;
 use App\Models\TypesOfTestQuestions\TestSpeakingQuestion;
+use App\Models\TypesOfTestQuestions\TestMixedQuestion;
 use App\Models\TypesOfTestQuestions\TestRephraseQuestion;
 use App\Models\TypesOfTestQuestions\TestReplaceQuestion;
 use App\Models\TypesOfTestQuestions\TestTextCompletionQuestion;
@@ -46,6 +47,7 @@ class TestQuestionController extends Controller
             'reading_question'          => 'readingQuestionDetails',
             'writing_question'          => 'writingQuestionDetails',
             'speaking_question'         => 'speakingQuestionDetails',
+            'mixed_question'            => 'mixedQuestionDetails',
         ];
 
         $relation = $map[$question->question_type] ?? null;
@@ -293,6 +295,12 @@ class TestQuestionController extends Controller
                     'sample_answer'     => $data['sample_answer'] ?? null,
                 ]),
 
+            $type === 'mixed_question'
+                => TestMixedQuestion::create([
+                    'test_question_id' => $qId,
+                    'sample_answer'    => $data['sample_answer'] ?? null,
+                ]),
+
             default => null,
         };
     }
@@ -412,6 +420,13 @@ class TestQuestionController extends Controller
                         'instruction_files' => $data['speaking_instruction_files'] ?? null,
                         'sample_answer'     => $data['sample_answer'] ?? null,
                     ], fn ($v) => !is_null($v)));
+                }
+            })(),
+
+            $type === 'mixed_question' => (function () use ($qId, $data) {
+                $detail = TestMixedQuestion::where('test_question_id', $qId)->first();
+                if ($detail && isset($data['sample_answer'])) {
+                    $detail->update(['sample_answer' => $data['sample_answer']]);
                 }
             })(),
 

@@ -9,7 +9,7 @@ class HomeworkSection extends Model
 {
     use HasFactory;
 
-    const TYPES = ['GrammarAndVocabulary', 'Writing', 'Reading', 'Listening', 'Speaking'];
+    const TYPES = ['GrammarAndVocabulary', 'Writing', 'Reading', 'Listening', 'Speaking', 'Mixed'];
 
     /**
      * Question types allowed per section type.
@@ -31,6 +31,9 @@ class HomeworkSection extends Model
         ],
         'Speaking' => [
             'speaking_question',
+        ],
+        'Mixed' => [
+            'mixed_question',
         ],
     ];
 

@@ -14,6 +14,7 @@ use App\Models\TypesOfQuestions\CorrelationQuestion;
 use App\Models\TypesOfQuestions\ReadingQuestion;
 use App\Models\TypesOfQuestions\WritingQuestion;
 use App\Models\TypesOfQuestions\SpeakingQuestion;
+use App\Models\TypesOfQuestions\MixedQuestion;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -110,6 +111,11 @@ class Question extends Model
     public function speakingQuestionDetails()
     {
         return $this->hasOne(SpeakingQuestion::class, 'question_id', 'question_id');
+    }
+
+    public function mixedQuestionDetails()
+    {
+        return $this->hasOne(MixedQuestion::class, 'question_id', 'question_id');
     }
 
     // ── Student responses ─────────────────────────────────────────────────────

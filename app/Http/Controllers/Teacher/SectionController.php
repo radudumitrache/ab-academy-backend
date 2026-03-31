@@ -18,6 +18,7 @@ use App\Models\TypesOfQuestions\TextCompletionQuestion;
 use App\Models\TypesOfQuestions\WordDerivationQuestion;
 use App\Models\TypesOfQuestions\WordFormationQuestion;
 use App\Models\TypesOfQuestions\WritingQuestion;
+use App\Models\TypesOfQuestions\MixedQuestion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -345,6 +346,12 @@ class SectionController extends Controller
                     'question_id'       => $qId,
                     'instruction_files' => $data['speaking_instruction_files'] ?? null,
                     'sample_answer'     => $data['sample_answer'] ?? null,
+                ]),
+
+            $type === 'mixed_question'
+                => MixedQuestion::create([
+                    'question_id'   => $qId,
+                    'sample_answer' => $data['sample_answer'] ?? null,
                 ]),
 
             default => null,

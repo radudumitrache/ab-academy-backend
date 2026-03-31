@@ -32,6 +32,9 @@ GET  /api/admin/tests/{id}/submissions               → view all submissions
 | `Reading` | `reading_multiple_choice`, `reading_question`, `gap_fill`, `text_completion`, `correlation` |
 | `Listening` | `listening_multiple_choice`, `text_completion`, `gap_fill` |
 | `Speaking` | `speaking_question` |
+| `Mixed` | `mixed_question` |
+
+**`mixed_question`** — open-ended question where the student submits a long text response **or** uploads a file (up to 50 MB). Supports an optional `sample_answer` field for teacher reference. Students answer via `POST /api/student/tests/{id}/answers` using `answers[].answer` (text) or `files[{question_id}]` (file upload).
 
 ---
 

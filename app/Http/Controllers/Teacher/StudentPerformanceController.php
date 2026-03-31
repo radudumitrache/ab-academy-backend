@@ -103,7 +103,7 @@ class StudentPerformanceController extends Controller
             ->get(['id', 'homework_id', 'status', 'grade', 'observation', 'submitted_at']);
 
         $testSubmissions = TestSubmission::where('student_id', $studentId)
-            ->with('test:id,title')
+            ->with('test:id,test_title')
             ->get(['id', 'test_id', 'status', 'grade', 'observation', 'submitted_at']);
 
         $homeworkGrades = $homeworkSubmissions->whereNotNull('grade')->map(fn($s) => (float) $s->grade);
@@ -132,7 +132,7 @@ class StudentPerformanceController extends Controller
             'test_submissions' => $testSubmissions->map(fn($s) => [
                 'id'           => $s->id,
                 'test_id'      => $s->test_id,
-                'title'        => $s->test?->title,
+                'title'        => $s->test?->test_title,
                 'status'       => $s->status,
                 'grade'        => $s->grade,
                 'observation'  => $s->observation,

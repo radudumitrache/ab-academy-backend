@@ -29,6 +29,9 @@ POST /api/teacher/homework/{id}/questions         → add questions to a section
 | `Reading` | `reading_multiple_choice`, `reading_question`, `gap_fill`, `text_completion`, `correlation` |
 | `Listening` | `listening_multiple_choice`, `text_completion`, `gap_fill` |
 | `Speaking` | `speaking_question` |
+| `Mixed` | `mixed_question` |
+
+**`mixed_question`** — open-ended question where the student submits a long text response **or** uploads a file (up to 50 MB). Supports an optional `sample_answer` field for teacher reference.
 
 Sections have:
 - `title` (optional)

@@ -18,6 +18,7 @@ use App\Models\TypesOfQuestions\TextCompletionQuestion;
 use App\Models\TypesOfQuestions\WordDerivationQuestion;
 use App\Models\TypesOfQuestions\WordFormationQuestion;
 use App\Models\TypesOfQuestions\WritingQuestion;
+use App\Models\TypesOfQuestions\MixedQuestion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -46,6 +47,7 @@ class QuestionController extends Controller
             'reading_question'          => 'readingQuestionDetails',
             'writing_question'          => 'writingQuestionDetails',
             'speaking_question'         => 'speakingQuestionDetails',
+            'mixed_question'            => 'mixedQuestionDetails',
         ];
 
         $relation = $map[$question->question_type] ?? null;
@@ -297,6 +299,12 @@ class QuestionController extends Controller
                     'sample_answer'    => $data['sample_answer'] ?? null,
                 ]),
 
+            $type === 'mixed_question'
+                => MixedQuestion::create([
+                    'question_id'   => $qId,
+                    'sample_answer' => $data['sample_answer'] ?? null,
+                ]),
+
             default => null,
         };
     }
@@ -429,6 +437,13 @@ class QuestionController extends Controller
                         'instruction_files' => $data['speaking_instruction_files'] ?? null,
                         'sample_answer'     => $data['sample_answer'] ?? null,
                     ], fn ($v) => !is_null($v)));
+                }
+            })(),
+
+            $type === 'mixed_question' => (function () use ($qId, $data) {
+                $detail = MixedQuestion::where('question_id', $qId)->first();
+                if ($detail && isset($data['sample_answer'])) {
+                    $detail->update(['sample_answer' => $data['sample_answer']]);
                 }
             })(),
 

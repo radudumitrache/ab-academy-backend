@@ -169,25 +169,39 @@ Response field descriptions are identical to the homework results endpoint — s
 
 `POST /api/student/tests/{id}/answers`
 
+Supports both text answers and file uploads (for `mixed_question`). At least one of `answers` or `files` must be provided. Send as `multipart/form-data` when uploading files.
+
 ```json
 {
   "answers": [
-    { "question_id": 7, "answer": "went" }
+    { "question_id": 7, "answer": "went" },
+    { "question_id": 9, "answer": "My long essay text here..." }
   ]
 }
 ```
 
+For file upload (multipart/form-data):
+```
+files[{question_id}] = <file>
+```
+
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
-| `answers` | array | Yes | |
+| `answers` | array | No* | Text answers |
 | `answers.*.question_id` | integer | Yes | Must be a `test_question_id` on this test |
 | `answers.*.answer` | string | Yes | |
+| `files` | array | No* | File answers keyed by `question_id`; max 50 MB per file |
+
+\* At least one of `answers` or `files` must be present.
+
+Responses include a `file_url` field (signed GCS URL, valid 60 min) when the student submitted a file for a question.
 
 **Response** `200` with submission and responses.
 
 **Errors**:
 - `404` — test not found or not assigned
 - `409` — test already submitted
+- `422` — neither answers nor files provided
 
 ---
 

@@ -12,6 +12,7 @@ use App\Services\AchievementService;
 use App\Services\GcsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class TestController extends Controller
 {
@@ -105,10 +106,18 @@ class TestController extends Controller
                 $response = [
                     'question_id'         => $r->related_question,
                     'answer'              => $r->answer,
+                    'file_url'            => null,
                     'grade'               => $r->grade,
                     'observation'         => $r->observation,
                     'correction_file_url' => null,
                 ];
+                if ($r->file_path) {
+                    try {
+                        $response['file_url'] = $this->gcs->signedUrl($r->file_path, 60);
+                    } catch (\Throwable) {
+                        $response['file_url'] = null;
+                    }
+                }
                 if ($r->correction_file_path) {
                     try {
                         $response['correction_file_url'] = $this->gcs->signedUrl($r->correction_file_path, 60);
@@ -138,11 +147,17 @@ class TestController extends Controller
             return response()->json(['message' => 'Test not found'], 404);
         }
 
-        $validated = $request->validate([
-            'answers'               => 'required|array',
-            'answers.*.question_id' => 'required|integer|exists:test_questions,test_question_id',
-            'answers.*.answer'      => 'required|string',
+        $request->validate([
+            'answers'               => 'sometimes|array',
+            'answers.*.question_id' => 'required_with:answers|integer|exists:test_questions,test_question_id',
+            'answers.*.answer'      => 'required_with:answers|string',
+            'files'                 => 'sometimes|array',
+            'files.*'               => 'file|max:51200',
         ]);
+
+        if (empty($request->answers) && !$request->hasFile('files')) {
+            return response()->json(['message' => 'No answers or files provided'], 422);
+        }
 
         $submission = TestSubmission::firstOrCreate(
             ['test_id' => $id, 'student_id' => $studentId],
@@ -153,7 +168,7 @@ class TestController extends Controller
             return response()->json(['message' => 'Test already submitted'], 409);
         }
 
-        foreach ($validated['answers'] as $item) {
+        foreach ($request->answers ?? [] as $item) {
             TestQuestionResponse::updateOrCreate(
                 [
                     'submission_id'    => $submission->id,
@@ -164,6 +179,65 @@ class TestController extends Controller
                     'answer'          => $item['answer'],
                 ]
             );
+        }
+
+        // ── File answers (for mixed_question) ────────────────────────────────
+        if ($request->hasFile('files')) {
+            $test->load(['teacher', 'sections.questions']);
+            $teacherUsername = $test->teacher->username ?? 'unknown';
+
+            $submissionsFolder = "teachers/{$teacherUsername}/private/submissions";
+            $this->gcs->createFolder($submissionsFolder);
+
+            $questionMeta = [];
+            foreach ($test->sections as $section) {
+                $sectionSlug = Str::slug($section->title ?? $section->section_type);
+                foreach ($section->questions as $index => $question) {
+                    $questionMeta[$question->test_question_id] = [
+                        'section_slug'   => $sectionSlug,
+                        'question_index' => $index + 1,
+                    ];
+                }
+            }
+
+            $testSlug = Str::slug($test->test_title);
+
+            foreach ($request->file('files') as $questionId => $file) {
+                $questionId = (int) $questionId;
+
+                if (!isset($questionMeta[$questionId])) {
+                    continue;
+                }
+
+                $meta     = $questionMeta[$questionId];
+                $ext      = $file->getClientOriginalExtension();
+                $filename = "{$studentId}_{$testSlug}_{$meta['section_slug']}_{$meta['question_index']}.{$ext}";
+                $gcsPath  = "{$submissionsFolder}/{$filename}";
+
+                $existing = TestQuestionResponse::where('submission_id', $submission->id)
+                    ->where('related_question', $questionId)
+                    ->first();
+
+                if ($existing && $existing->file_path) {
+                    try {
+                        $this->gcs->delete($existing->file_path);
+                    } catch (\Throwable) {}
+                }
+
+                $this->gcs->upload($file, $gcsPath);
+
+                TestQuestionResponse::updateOrCreate(
+                    [
+                        'submission_id'    => $submission->id,
+                        'related_question' => $questionId,
+                    ],
+                    [
+                        'related_student' => $studentId,
+                        'answer'          => null,
+                        'file_path'       => $gcsPath,
+                    ]
+                );
+            }
         }
 
         return response()->json([
@@ -297,6 +371,13 @@ class TestController extends Controller
                 }
             }
 
+            $fileUrl = null;
+            if ($r->file_path) {
+                try {
+                    $fileUrl = $this->gcs->signedUrl($r->file_path, 60);
+                } catch (\Throwable) {}
+            }
+
             $correctionFileUrl = null;
             if ($r->correction_file_path) {
                 try {
@@ -310,6 +391,7 @@ class TestController extends Controller
                 'question_type'       => $q?->question_type,
                 'question_text'       => $q?->question_text,
                 'answer'              => $r->answer,
+                'file_url'            => $fileUrl,
                 'answer_text'         => $answerText,
                 'correct_answer'      => $correctAnswer,
                 'grade'               => $r->grade,

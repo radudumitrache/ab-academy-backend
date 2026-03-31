@@ -19,6 +19,7 @@ use App\Models\TypesOfQuestions\TextCompletionQuestion;
 use App\Models\TypesOfQuestions\WordDerivationQuestion;
 use App\Models\TypesOfQuestions\WordFormationQuestion;
 use App\Models\TypesOfQuestions\WritingQuestion;
+use App\Models\TypesOfQuestions\MixedQuestion;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -41,6 +42,7 @@ class HomeworkQuestionController extends Controller
             'reading_question'          => 'readingQuestionDetails',
             'writing_question'          => 'writingQuestionDetails',
             'speaking_question'         => 'speakingQuestionDetails',
+            'mixed_question'            => 'mixedQuestionDetails',
         ];
 
         $relation = $map[$question->question_type] ?? null;
@@ -231,6 +233,8 @@ class HomeworkQuestionController extends Controller
                 => WritingQuestion::create(['question_id' => $qId, 'sample_answer' => $data['sample_answer'] ?? null]),
             $type === 'speaking_question'
                 => SpeakingQuestion::create(['question_id' => $qId, 'instruction_files' => $data['speaking_instruction_files'] ?? null, 'sample_answer' => $data['sample_answer'] ?? null]),
+            $type === 'mixed_question'
+                => MixedQuestion::create(['question_id' => $qId, 'sample_answer' => $data['sample_answer'] ?? null]),
             default => null,
         };
     }
@@ -287,6 +291,10 @@ class HomeworkQuestionController extends Controller
             $type === 'speaking_question' => (function () use ($qId, $data) {
                 $d = SpeakingQuestion::where('question_id', $qId)->first();
                 if ($d) $d->update(array_filter(['instruction_files' => $data['speaking_instruction_files'] ?? null, 'sample_answer' => $data['sample_answer'] ?? null], fn($v) => !is_null($v)));
+            })(),
+            $type === 'mixed_question' => (function () use ($qId, $data) {
+                $d = MixedQuestion::where('question_id', $qId)->first();
+                if ($d && isset($data['sample_answer'])) $d->update(['sample_answer' => $data['sample_answer']]);
             })(),
             default => null,
         };

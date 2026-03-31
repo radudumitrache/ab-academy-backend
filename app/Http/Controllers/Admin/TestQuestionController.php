@@ -19,6 +19,7 @@ use App\Models\TypesOfTestQuestions\TestTextCompletionQuestion;
 use App\Models\TypesOfTestQuestions\TestWordDerivationQuestion;
 use App\Models\TypesOfTestQuestions\TestWordFormationQuestion;
 use App\Models\TypesOfTestQuestions\TestWritingQuestion;
+use App\Models\TypesOfTestQuestions\TestMixedQuestion;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -41,6 +42,7 @@ class TestQuestionController extends Controller
             'reading_question'          => 'readingQuestionDetails',
             'writing_question'          => 'writingQuestionDetails',
             'speaking_question'         => 'speakingQuestionDetails',
+            'mixed_question'            => 'mixedQuestionDetails',
         ];
 
         $relation = $map[$question->question_type] ?? null;
@@ -208,6 +210,7 @@ class TestQuestionController extends Controller
             $type === 'reading_question'  => TestReadingQuestion::create(['test_question_id' => $qId, 'sample_answer' => $data['sample_answer'] ?? null]),
             $type === 'writing_question'  => TestWritingQuestion::create(['test_question_id' => $qId, 'sample_answer' => $data['sample_answer'] ?? null]),
             $type === 'speaking_question' => TestSpeakingQuestion::create(['test_question_id' => $qId, 'instruction_files' => $data['speaking_instruction_files'] ?? null, 'sample_answer' => $data['sample_answer'] ?? null]),
+            $type === 'mixed_question'    => TestMixedQuestion::create(['test_question_id' => $qId, 'sample_answer' => $data['sample_answer'] ?? null]),
             default => null,
         };
     }
@@ -264,6 +267,10 @@ class TestQuestionController extends Controller
             $type === 'speaking_question' => (function () use ($qId, $data) {
                 $d = TestSpeakingQuestion::where('test_question_id', $qId)->first();
                 if ($d) $d->update(array_filter(['instruction_files' => $data['speaking_instruction_files'] ?? null, 'sample_answer' => $data['sample_answer'] ?? null], fn($v) => !is_null($v)));
+            })(),
+            $type === 'mixed_question' => (function () use ($qId, $data) {
+                $d = TestMixedQuestion::where('test_question_id', $qId)->first();
+                if ($d && isset($data['sample_answer'])) $d->update(['sample_answer' => $data['sample_answer']]);
             })(),
             default => null,
         };

@@ -9,7 +9,7 @@ class TestSection extends Model
 {
     use HasFactory;
 
-    const TYPES = ['GrammarAndVocabulary', 'Writing', 'Reading', 'Listening', 'Speaking'];
+    const TYPES = ['GrammarAndVocabulary', 'Writing', 'Reading', 'Listening', 'Speaking', 'Mixed'];
 
     /**
      * Question types allowed per section type (same rules as homework sections).
@@ -31,6 +31,9 @@ class TestSection extends Model
         ],
         'Speaking' => [
             'speaking_question',
+        ],
+        'Mixed' => [
+            'mixed_question',
         ],
     ];
 

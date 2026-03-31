@@ -21,6 +21,7 @@ use App\Models\TypesOfTestQuestions\TestTextCompletionQuestion;
 use App\Models\TypesOfTestQuestions\TestWordDerivationQuestion;
 use App\Models\TypesOfTestQuestions\TestWordFormationQuestion;
 use App\Models\TypesOfTestQuestions\TestWritingQuestion;
+use App\Models\TypesOfTestQuestions\TestMixedQuestion;
 use App\Services\GcsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -429,6 +430,12 @@ class TestController extends Controller
                     'test_question_id'  => $qId,
                     'instruction_files' => $data['speaking_instruction_files'] ?? null,
                     'sample_answer'     => $data['sample_answer'] ?? null,
+                ]),
+
+            $type === 'mixed_question'
+                => TestMixedQuestion::create([
+                    'test_question_id' => $qId,
+                    'sample_answer'    => $data['sample_answer'] ?? null,
                 ]),
 
             default => null,

@@ -9,6 +9,7 @@ use App\Models\TypesOfTestQuestions\TestMultipleChoiceQuestion;
 use App\Models\TypesOfTestQuestions\TestReadingQuestion;
 use App\Models\TypesOfTestQuestions\TestWritingQuestion;
 use App\Models\TypesOfTestQuestions\TestSpeakingQuestion;
+use App\Models\TypesOfTestQuestions\TestMixedQuestion;
 use App\Models\TypesOfTestQuestions\TestRephraseQuestion;
 use App\Models\TypesOfTestQuestions\TestReplaceQuestion;
 use App\Models\TypesOfTestQuestions\TestTextCompletionQuestion;
@@ -106,5 +107,10 @@ class TestQuestion extends Model
     public function speakingQuestionDetails()
     {
         return $this->hasOne(TestSpeakingQuestion::class, 'test_question_id', 'test_question_id');
+    }
+
+    public function mixedQuestionDetails()
+    {
+        return $this->hasOne(TestMixedQuestion::class, 'test_question_id', 'test_question_id');
     }
 }
