@@ -48,6 +48,7 @@ Sections have:
   "homework_title": "Unit 5 Practice",
   "homework_description": "Complete all sections before the due date.",
   "due_date": "2026-03-15",
+  "status": "draft",
   "people_assigned": [12, 15],
   "groups_assigned": [3],
   "date_created": "2026-02-25T10:00:00.000000Z"
@@ -149,6 +150,7 @@ Returns the homework with all sections eagerly loaded. Each section includes its
 | `homework_title` | string | Yes | Max 255 characters |
 | `homework_description` | string | No | |
 | `due_date` | string | Yes | `YYYY-MM-DD` |
+| `status` | string | No | `draft` or `posted`; defaults to `draft` |
 | `people_assigned` | array of integers | No | Individual student user IDs to assign at creation |
 | `groups_assigned` | array of integers | No | Group IDs to assign at creation |
 
@@ -160,7 +162,7 @@ Assignment fields are optional at creation. You can also assign later via `POST 
 
 ### Update Homework
 
-`PUT /api/teacher/homework/{id}` — owner only, all fields optional (same as create).
+`PUT /api/teacher/homework/{id}` — owner only, all fields optional (same as create). To publish a draft, send `"status": "posted"`. To revert to draft, send `"status": "draft"`.
 
 ---
 
@@ -182,6 +184,17 @@ Assignment fields are optional at creation. You can also assign later via `POST 
 ```
 
 Teachers can assign **any** student or group — no ownership restriction. The HomeworkObserver fires a notification to all assigned students.
+
+---
+
+## Homework Status
+
+| Status | Visible to students | Description |
+|--------|---------------------|-------------|
+| `draft` | No | Default on creation. Build and review before publishing. |
+| `posted` | Yes | Students can see and submit. Can be reverted to `draft`. |
+
+Status is changed via the `status` field in `POST` or `PUT` — there is no dedicated status-change endpoint.
 
 ---
 

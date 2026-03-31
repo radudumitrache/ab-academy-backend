@@ -9,7 +9,8 @@ This document provides comprehensive details about the AB Academy student API en
 3. [Dashboard](#dashboard)
 4. [Chats](#chats)
 5. [Notifications](#notifications)
-6. [Frontend Integration Examples](#frontend-integration)
+6. [Homework](#homework)
+7. [Frontend Integration Examples](#frontend-integration)
 
 ## Base URL
 

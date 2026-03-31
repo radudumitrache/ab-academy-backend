@@ -2,6 +2,8 @@
 
 Students can view homework assigned to them (directly or via a group), save answers at any time as a draft, and submit when done. Answers can be text or file uploads.
 
+> **Only `posted` homework is visible to students.** Homework in `draft` status is invisible — it will not appear in the list or detail endpoints.
+
 ---
 
 ## Submission Flow

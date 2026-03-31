@@ -53,6 +53,7 @@ Returns all homework across all teachers, newest first. Includes `teacher` objec
       "id": 1,
       "homework_title": "Unit 5 Practice",
       "due_date": "2026-03-15",
+      "status": "posted",
       "all_questions_count": 8,
       "teacher": { "id": 4, "username": "teacher_ana" }
     }
@@ -80,6 +81,7 @@ Returns the homework with all sections, questions, detail records, and signed GC
 | `homework_description` | string | No | |
 | `due_date` | string | Yes | `YYYY-MM-DD` |
 | `homework_teacher` | integer | No | User ID of the teacher; defaults to admin's ID |
+| `status` | string | No | `draft` or `posted`; defaults to `draft` |
 | `people_assigned` | array | No | Array of user IDs |
 | `groups_assigned` | array | No | Array of group IDs |
 
@@ -89,7 +91,7 @@ Returns the homework with all sections, questions, detail records, and signed GC
 
 ### Update Homework
 
-`PUT /api/admin/homework/{id}` — all fields optional (same as create minus `homework_teacher`).
+`PUT /api/admin/homework/{id}` — all fields optional (same as create minus `homework_teacher`). To publish a draft, send `"status": "posted"`. To revert to draft, send `"status": "draft"`.
 
 ---
 
@@ -138,6 +140,17 @@ Returns all student submissions for this homework, including responses.
   ]
 }
 ```
+
+---
+
+## Homework Status
+
+| Status | Visible to students | Description |
+|--------|---------------------|-------------|
+| `draft` | No | Default on creation. Build and review before publishing. |
+| `posted` | Yes | Students can see and submit. Can be reverted to `draft`. |
+
+Status is changed via the `status` field in `POST` or `PUT` — there is no dedicated status-change endpoint.
 
 ---
 

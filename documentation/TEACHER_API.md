@@ -9,7 +9,8 @@ This document provides comprehensive details about the AB Academy teacher API en
 3. [AI Assistant](#ai-assistant)
 4. [Dashboard](#dashboard)
 5. [Groups](#groups)
-6. [Frontend Integration Examples](#frontend-integration)
+6. [Homework](#homework)
+7. [Frontend Integration Examples](#frontend-integration)
 
 ## Base URL
 
@@ -723,3 +724,234 @@ const TranslationForm = () => {
 
 export default TranslationForm;
 ```
+
+## Homework
+
+Teachers can create and manage homework in two statuses: `draft` (hidden from students) and `posted` (visible to assigned students). A teacher can only update or delete homework they created.
+
+### List My Homework
+
+- **URL**: `/api/teacher/homework`
+- **Method**: `GET`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  ```
+- **Success Response**:
+  ```json
+  {
+    "message": "Homework retrieved successfully",
+    "data": [
+      {
+        "id": 1,
+        "homework_title": "Grammar Unit 5",
+        "homework_description": "Complete exercises 1-10",
+        "due_date": "2026-04-15",
+        "status": "draft",
+        "homework_teacher": 2,
+        "people_assigned": [3, 4],
+        "groups_assigned": [1],
+        "date_created": "2026-03-20T10:00:00Z"
+      }
+    ]
+  }
+  ```
+
+### Create Homework
+
+- **URL**: `/api/teacher/homework`
+- **Method**: `POST`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  ```
+- **Request Body**:
+  ```json
+  {
+    "homework_title": "Grammar Unit 5",
+    "homework_description": "Complete exercises 1-10",
+    "due_date": "2026-04-15",
+    "status": "draft",
+    "people_assigned": [3, 4],
+    "groups_assigned": [1]
+  }
+  ```
+  | Field | Type | Required | Notes |
+  |---|---|---|---|
+  | `homework_title` | string | Yes | Max 255 chars |
+  | `homework_description` | string | No | |
+  | `due_date` | string | Yes | Format: `Y-m-d` |
+  | `status` | string | No | `draft` or `posted`; defaults to `draft` |
+  | `people_assigned` | array of integers | No | User IDs of assigned students |
+  | `groups_assigned` | array of integers | No | Group IDs |
+
+  > `homework_teacher` is automatically set to the authenticated teacher's ID.
+- **Success Response**:
+  ```json
+  {
+    "message": "Homework created successfully",
+    "data": {
+      "id": 1,
+      "homework_title": "Grammar Unit 5",
+      "homework_description": "Complete exercises 1-10",
+      "due_date": "2026-04-15",
+      "status": "draft",
+      "homework_teacher": 2,
+      "people_assigned": [3, 4],
+      "groups_assigned": [1],
+      "date_created": "2026-03-31T10:00:00Z"
+    }
+  }
+  ```
+
+### Get Homework Details
+
+- **URL**: `/api/teacher/homework/{id}`
+- **Method**: `GET`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  ```
+- **Success Response**:
+  ```json
+  {
+    "message": "Homework retrieved successfully",
+    "data": {
+      "id": 1,
+      "homework_title": "Grammar Unit 5",
+      "homework_description": "Complete exercises 1-10",
+      "due_date": "2026-04-15",
+      "status": "posted",
+      "homework_teacher": 2,
+      "people_assigned": [3, 4],
+      "groups_assigned": [1],
+      "date_created": "2026-03-20T10:00:00Z",
+      "sections": []
+    }
+  }
+  ```
+
+### Update Homework
+
+- **URL**: `/api/teacher/homework/{id}`
+- **Method**: `PUT`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  ```
+- **Request Body** (all fields optional):
+  ```json
+  {
+    "status": "posted"
+  }
+  ```
+  > Only the teacher who created the homework can update it. To publish, send `"status": "posted"`. To revert to draft, send `"status": "draft"`.
+- **Success Response**:
+  ```json
+  {
+    "message": "Homework updated successfully",
+    "data": {
+      "id": 1,
+      "homework_title": "Grammar Unit 5",
+      "status": "posted",
+      "due_date": "2026-04-15",
+      "homework_teacher": 2,
+      "people_assigned": [3, 4],
+      "groups_assigned": [1],
+      "date_created": "2026-03-20T10:00:00Z"
+    }
+  }
+  ```
+- **Error Response** (not owner):
+  ```json
+  {
+    "message": "Unauthorized"
+  }
+  ```
+
+### Delete Homework
+
+- **URL**: `/api/teacher/homework/{id}`
+- **Method**: `DELETE`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  ```
+- **Success Response**:
+  ```json
+  {
+    "message": "Homework deleted successfully"
+  }
+  ```
+
+### Assign Students to Homework
+
+- **URL**: `/api/teacher/homework/{id}/assign`
+- **Method**: `POST`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  ```
+- **Request Body**:
+  ```json
+  {
+    "people_assigned": [3, 4, 5],
+    "groups_assigned": [1, 2]
+  }
+  ```
+- **Success Response**:
+  ```json
+  {
+    "message": "Homework assigned successfully",
+    "data": {
+      "id": 1,
+      "people_assigned": [3, 4, 5],
+      "groups_assigned": [1, 2]
+    }
+  }
+  ```
+
+### View Homework Submissions
+
+- **URL**: `/api/teacher/homework/{id}/submissions`
+- **Method**: `GET`
+- **Auth Required**: Yes
+- **Headers**:
+  ```
+  Authorization: Bearer {token}
+  ```
+- **Success Response**:
+  ```json
+  {
+    "message": "Submissions retrieved successfully",
+    "data": [
+      {
+        "id": 1,
+        "homework_id": 1,
+        "student_id": 3,
+        "submitted_at": "2026-04-10T14:00:00Z",
+        "status": "submitted",
+        "student": {
+          "id": 3,
+          "username": "student1",
+          "name": "Student Name"
+        }
+      }
+    ]
+  }
+  ```
+
+### Homework Status Workflow
+
+| Status | Visible to Students | Notes |
+|---|---|---|
+| `draft` | No | Default on creation; build and review before publishing |
+| `posted` | Yes | Students can see and submit; can be reverted to `draft` |
+
+Status is updated via the standard `PUT /api/teacher/homework/{id}` endpoint.
