@@ -8,6 +8,7 @@ use App\Models\Material;
 use App\Services\GcsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class HomeworkController extends Controller
 {
@@ -122,6 +123,7 @@ class HomeworkController extends Controller
             'people_assigned.*'    => 'integer|exists:users,id',
             'groups_assigned'      => 'nullable|array',
             'groups_assigned.*'    => 'integer|exists:groups,group_id',
+            'status'               => ['sometimes', Rule::in(Homework::STATUSES)],
         ]);
 
         $validated['homework_teacher'] = Auth::id();
@@ -154,6 +156,7 @@ class HomeworkController extends Controller
             'people_assigned.*'    => 'integer|exists:users,id',
             'groups_assigned'      => 'nullable|array',
             'groups_assigned.*'    => 'integer|exists:groups,group_id',
+            'status'               => ['sometimes', Rule::in(Homework::STATUSES)],
         ]);
 
         $homework->update($validated);

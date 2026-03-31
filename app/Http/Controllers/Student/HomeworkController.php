@@ -34,7 +34,7 @@ class HomeworkController extends Controller
             ->toArray();
 
         // Filter in PHP to avoid MySQL JSON type-coercion issues and to include past homework.
-        $homework = Homework::orderByDesc('due_date')->get()->filter(function ($hw) use ($studentId, $groupIds) {
+        $homework = Homework::where('status', 'posted')->orderByDesc('due_date')->get()->filter(function ($hw) use ($studentId, $groupIds) {
             $people = array_map('intval', (array) $hw->people_assigned);
             $groups = array_map('intval', (array) $hw->groups_assigned);
             if (in_array($studentId, $people, true)) return true;
@@ -463,7 +463,7 @@ class HomeworkController extends Controller
 
         // Fetch by ID first, then verify assignment in PHP — avoids any
         // MySQL JSON type-coercion issues with whereJsonContains + find().
-        $homework = Homework::find((int) $homeworkId);
+        $homework = Homework::where('status', 'posted')->find((int) $homeworkId);
 
         if (!$homework) {
             return null;

@@ -41,10 +41,12 @@ class AttendanceObserver
 
     private function handleExhausted(ProductAcquisition $acquisition): void
     {
-        $student    = $acquisition->student;
+        $student     = $acquisition->student;
         $studentName = $student ? trim($student->first_name . ' ' . $student->last_name) : "Student #{$acquisition->student_id}";
+        $studentId   = $acquisition->student_id;
+        $productName = $acquisition->product?->name ?? "acquisition #{$acquisition->id}";
 
-        $adminMessage = "Student {$studentName} has used all course sessions for acquisition #{$acquisition->id}. "
+        $adminMessage = "Student {$studentName} (ID: {$studentId}) has used all course sessions for \"{$productName}\". "
             . "The student has been removed from the related group(s).";
 
         // Notify all admins

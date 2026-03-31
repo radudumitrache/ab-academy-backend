@@ -9,6 +9,8 @@ class Homework extends Model
 {
     use HasFactory;
 
+    const STATUSES = ['draft', 'posted'];
+
     protected $fillable = [
         'homework_teacher',
         'homework_title',
@@ -17,6 +19,7 @@ class Homework extends Model
         'people_assigned',
         'groups_assigned',
         'date_created',
+        'status',
     ];
 
     protected $casts = [
