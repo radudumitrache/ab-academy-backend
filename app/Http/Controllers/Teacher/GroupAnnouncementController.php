@@ -66,7 +66,7 @@ class GroupAnnouncementController extends Controller
 
         $announcement = GroupAnnouncement::create($validated);
 
-        $studentIds = $group->students()->pluck('id')->toArray();
+        $studentIds = $group->students()->pluck('users.id')->toArray();
 
         NotificationService::notify(
             $studentIds,
