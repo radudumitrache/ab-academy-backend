@@ -133,6 +133,50 @@ Verifies that the stored credentials can obtain a Zoom access token.
 
 ---
 
+## Check Meetings on a Zoom Account
+
+Queries the Zoom API directly to find any scheduled meetings on this account that overlap a given time window. This does **not** consult the local database — it hits the Zoom API and returns live data.
+
+- **URL**: `GET /api/admin/meeting-accounts/{id}/check-meetings`
+- **Auth Required**: Yes
+- **Query Parameters**:
+
+  | Param | Type | Required | Description |
+  |-------|------|----------|-------------|
+  | `date` | string (Y-m-d) | Yes | Date to check, in the admin's timezone |
+  | `time` | string (H:i) | Yes | Time to check, in the admin's timezone |
+  | `duration` | integer (minutes) | No | Length of the window to check for overlap (default: 60) |
+
+- **Success Response** `200`:
+  ```json
+  {
+    "message": "Meetings found in this time window",
+    "account_id": 1,
+    "account_name": "Main Zoom Account",
+    "checked_from": "2026-04-10 14:00",
+    "checked_until": "2026-04-10 15:00",
+    "timezone": "Europe/Bucharest",
+    "meeting_count": 1,
+    "meetings": [
+      {
+        "zoom_meeting_id": 12345678901,
+        "topic": "Math Class",
+        "start_time": "2026-04-10T11:00:00Z",
+        "duration": 60,
+        "join_url": "https://us05web.zoom.us/j/12345678?pwd=..."
+      }
+    ]
+  }
+  ```
+  When no meetings overlap, `message` is `"No meetings found in this time window"` and `meetings` is an empty array.
+
+- **Errors**:
+  - `404` — meeting account not found
+  - `422` — validation failed (missing/invalid date, time, or duration)
+  - `502` — Zoom API call failed (message included)
+
+---
+
 ## Create Zoom Meeting for an Event
 
 See [02-events.md](02-events.md) — **Create Zoom Meeting** section.

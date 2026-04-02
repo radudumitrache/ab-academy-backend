@@ -173,6 +173,7 @@ Authorization: Bearer {access_token}
 | PUT | `/api/admin/meeting-accounts/{id}` | Yes | Update a meeting account |
 | DELETE | `/api/admin/meeting-accounts/{id}` | Yes | Delete a meeting account |
 | POST | `/api/admin/meeting-accounts/{id}/test` | Yes | Test Zoom credentials |
+| GET | `/api/admin/meeting-accounts/{id}/check-meetings` | Yes | Check Zoom API for meetings overlapping a given time window |
 | GET | `/api/admin/chats` | Yes | List all admin chats |
 | GET | `/api/admin/chats/{id}` | Yes | Get full message history (marks messages read, includes `sender_role`) |
 | POST | `/api/admin/chats/{id}/messages` | Yes | Send a message |

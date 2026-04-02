@@ -63,4 +63,27 @@ class ZoomService
             'start_url' => $response->json('start_url'),
         ];
     }
+
+    /**
+     * Fetch all scheduled meetings for the account from the Zoom API.
+     * Returns the raw meetings array.
+     */
+    public function listMeetings(MeetingAccount $account): array
+    {
+        $token = $this->getAccessToken($account);
+
+        $response = Http::withToken($token)
+            ->get('https://api.zoom.us/v2/users/me/meetings', [
+                'type'      => 'scheduled',
+                'page_size' => 300,
+            ]);
+
+        if (!$response->successful()) {
+            throw new \RuntimeException(
+                'Zoom meeting list failed: ' . $response->body()
+            );
+        }
+
+        return $response->json('meetings') ?? [];
+    }
 }

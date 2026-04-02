@@ -14,4 +14,5 @@ Route::post('/meeting-accounts',             [MeetingAccountController::class, '
 Route::get('/meeting-accounts/{id}',         [MeetingAccountController::class, 'show']);
 Route::put('/meeting-accounts/{id}',         [MeetingAccountController::class, 'update']);
 Route::delete('/meeting-accounts/{id}',      [MeetingAccountController::class, 'destroy']);
-Route::post('/meeting-accounts/{id}/test',   [MeetingAccountController::class, 'test']);
+Route::post('/meeting-accounts/{id}/test',          [MeetingAccountController::class, 'test']);
+Route::get('/meeting-accounts/{id}/check-meetings', [MeetingAccountController::class, 'checkMeetings']);
