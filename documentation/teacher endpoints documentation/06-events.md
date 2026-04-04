@@ -316,7 +316,7 @@ The organizer **or** any assistant teacher of a group in the event's `guest_grou
 
 ## Create Zoom Meeting
 
-Automatically selects an available (non-conflicting) meeting account and creates a Zoom meeting for the event. The organizer **or** any assistant teacher of a group in the event's `guest_groups` may call this. Stores the guest join URL in `event_meet_link`, the host start URL in `event_start_link`, and associates the chosen account via `meeting_account_id`.
+Iterates all active meeting accounts and checks the **Zoom API directly** for each one to find the first account that has no meeting overlapping the event's time window. Creates a scheduled Zoom meeting on that account. The organizer **or** any assistant teacher of a group in the event's `guest_groups` may call this. Stores the guest join URL in `event_meet_link`, the host start URL in `event_start_link`, and associates the chosen account via `meeting_account_id`.
 
 - **URL**: `POST /api/teacher/events/{id}/create-zoom-meeting`
 - **Auth Required**: Yes
@@ -340,10 +340,11 @@ Automatically selects an available (non-conflicting) meeting account and creates
 - **Error Responses**:
   - `403` — teacher is not a manager of this event (not organizer and not assistant of any invited group)
   - `404` — event not found
-  - `422` — no available meeting accounts for this time slot
+  - `422` — no active meeting accounts configured
+  - `422` — all meeting accounts are busy during this time slot (checked live against Zoom API)
   - `502` — Zoom API call failed (error message included)
 
-**How account selection works**: All active meeting accounts already assigned to another event with an overlapping time window on the same date are excluded. The first remaining active account is used.
+**How account selection works**: Every active meeting account is queried via the Zoom API. The first account with no scheduled meeting overlapping the event's time window is used. Accounts that are unreachable are silently skipped.
 
 **Host vs guest URLs**:
 - `meeting_link` / `event_meet_link` — the guest join URL. Share this with students and other attendees.

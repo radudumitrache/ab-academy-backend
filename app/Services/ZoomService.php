@@ -65,6 +65,30 @@ class ZoomService
     }
 
     /**
+     * Return true if this account already has a Zoom meeting that overlaps the
+     * given UTC start time + duration window.
+     */
+    public function hasOverlappingMeeting(MeetingAccount $account, \Carbon\Carbon $eventStart, int $durationMinutes): bool
+    {
+        $meetings = $this->listMeetings($account);
+        $eventEnd = $eventStart->copy()->addMinutes($durationMinutes);
+
+        foreach ($meetings as $meeting) {
+            if (empty($meeting['start_time']) || empty($meeting['duration'])) {
+                continue;
+            }
+            $mStart = \Carbon\Carbon::parse($meeting['start_time'])->utc();
+            $mEnd   = $mStart->copy()->addMinutes((int) $meeting['duration']);
+
+            if ($mStart->lt($eventEnd) && $mEnd->gt($eventStart)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Fetch all scheduled meetings for the account from the Zoom API.
      * Returns the raw meetings array.
      */

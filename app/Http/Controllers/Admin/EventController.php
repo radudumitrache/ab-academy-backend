@@ -219,28 +219,33 @@ class EventController extends Controller
             return response()->json(['message' => 'Event not found'], 404);
         }
 
-        $eventStart = strtotime($event->event_date->format('Y-m-d') . ' ' . $event->event_time);
-        $eventEnd   = $eventStart + ($event->event_duration * 60);
+        $eventStart = Carbon::createFromFormat(
+            'Y-m-d H:i',
+            $event->event_date->format('Y-m-d') . ' ' . substr($event->event_time, 0, 5),
+            'UTC'
+        );
 
-        $busyAccountIds = Event::whereDate('event_date', $event->event_date)
-            ->whereNotNull('meeting_account_id')
-            ->where('id', '!=', $event->id)
-            ->get()
-            ->filter(function ($other) use ($eventStart, $eventEnd) {
-                $otherStart = strtotime($other->event_date->format('Y-m-d') . ' ' . $other->event_time);
-                $otherEnd   = $otherStart + ($other->event_duration * 60);
-                return $otherStart < $eventEnd && $otherEnd > $eventStart;
-            })
-            ->pluck('meeting_account_id')
-            ->unique()
-            ->toArray();
+        $accounts = MeetingAccount::where('is_active', true)->get();
 
-        $account = MeetingAccount::where('is_active', true)
-            ->whereNotIn('id', $busyAccountIds)
-            ->first();
+        if ($accounts->isEmpty()) {
+            return response()->json(['message' => 'No active meeting accounts configured'], 422);
+        }
+
+        $account = null;
+        foreach ($accounts as $candidate) {
+            try {
+                if (!$zoom->hasOverlappingMeeting($candidate, $eventStart, $event->event_duration)) {
+                    $account = $candidate;
+                    break;
+                }
+            } catch (\Throwable $e) {
+                // Account unreachable — skip and try next
+                continue;
+            }
+        }
 
         if (!$account) {
-            return response()->json(['message' => 'No available meeting accounts for this time slot'], 422);
+            return response()->json(['message' => 'All meeting accounts are busy during this time slot'], 422);
         }
 
         try {
@@ -374,25 +379,23 @@ class EventController extends Controller
      */
     private function attachZoomToEvent(ZoomService $zoom, Event $event): Event
     {
-        $eventStart = strtotime($event->event_date->format('Y-m-d') . ' ' . $event->event_time);
-        $eventEnd   = $eventStart + ($event->event_duration * 60);
+        $eventStart = Carbon::createFromFormat(
+            'Y-m-d H:i',
+            $event->event_date->format('Y-m-d') . ' ' . substr($event->event_time, 0, 5),
+            'UTC'
+        );
 
-        $busyAccountIds = Event::whereDate('event_date', $event->event_date)
-            ->whereNotNull('meeting_account_id')
-            ->where('id', '!=', $event->id)
-            ->get()
-            ->filter(function ($other) use ($eventStart, $eventEnd) {
-                $otherStart = strtotime($other->event_date->format('Y-m-d') . ' ' . $other->event_time);
-                $otherEnd   = $otherStart + ($other->event_duration * 60);
-                return $otherStart < $eventEnd && $otherEnd > $eventStart;
-            })
-            ->pluck('meeting_account_id')
-            ->unique()
-            ->toArray();
-
-        $account = MeetingAccount::where('is_active', true)
-            ->whereNotIn('id', $busyAccountIds)
-            ->first();
+        $account = null;
+        foreach (MeetingAccount::where('is_active', true)->get() as $candidate) {
+            try {
+                if (!$zoom->hasOverlappingMeeting($candidate, $eventStart, $event->event_duration)) {
+                    $account = $candidate;
+                    break;
+                }
+            } catch (\Throwable $e) {
+                continue;
+            }
+        }
 
         if (!$account) {
             return $event;

@@ -177,7 +177,7 @@ All fields are optional (`sometimes`). Only include the fields you want to chang
 
 `POST /api/admin/events/{id}/create-zoom-meeting`
 
-Automatically selects a free (non-conflicting) active meeting account and creates a scheduled Zoom meeting. Stores the guest join URL in `event_meet_link`, the host start URL in `event_start_link`, and records the chosen account in `meeting_account_id`. The meeting `start_time` is sent to Zoom in UTC with `timezone: UTC`.
+Iterates all active meeting accounts and checks the **Zoom API directly** for each one to find the first account that has no meeting overlapping the event's time window. Creates a scheduled Zoom meeting on that account. Stores the guest join URL in `event_meet_link`, the host start URL in `event_start_link`, and records the chosen account in `meeting_account_id`. The meeting `start_time` is sent to Zoom in UTC with `timezone: UTC`.
 
 **Body**: none
 
@@ -199,10 +199,11 @@ Automatically selects a free (non-conflicting) active meeting account and create
 
 **Errors**:
 - `404` — event not found
-- `422` — no available meeting accounts for this time slot
+- `422` — no active meeting accounts configured
+- `422` — all meeting accounts are busy during this time slot (checked live against Zoom API)
 - `502` — Zoom API call failed (message included)
 
-**Account selection**: all active accounts already assigned to a time-overlapping event on the same date are excluded; the first remaining active account is used.
+**Account selection**: every active meeting account is queried via the Zoom API. The first account that has no scheduled meeting overlapping the event's date/time window is used. Accounts that are unreachable are silently skipped.
 
 ---
 
