@@ -231,27 +231,24 @@ class EventController extends Controller
             return response()->json(['message' => 'No active meeting accounts configured'], 422);
         }
 
+        $urls    = null;
         $account = null;
         foreach ($accounts as $candidate) {
             try {
-                if (!$zoom->hasOverlappingMeeting($candidate, $eventStart, $event->event_duration)) {
-                    $account = $candidate;
-                    break;
+                if ($zoom->hasOverlappingMeeting($candidate, $eventStart, $event->event_duration)) {
+                    continue; // account busy — try next
                 }
+                $urls    = $zoom->createMeeting($candidate, $event);
+                $account = $candidate;
+                break;
             } catch (\Throwable $e) {
-                // Account unreachable — skip and try next
+                // Account unreachable or missing scopes — try next
                 continue;
             }
         }
 
-        if (!$account) {
-            return response()->json(['message' => 'All meeting accounts are busy during this time slot'], 422);
-        }
-
-        try {
-            $urls = $zoom->createMeeting($account, $event);
-        } catch (\Throwable $e) {
-            return response()->json(['message' => 'Zoom meeting creation failed: ' . $e->getMessage()], 502);
+        if (!$account || !$urls) {
+            return response()->json(['message' => 'All meeting accounts are busy or unavailable during this time slot'], 422);
         }
 
         $event->update([
@@ -385,31 +382,27 @@ class EventController extends Controller
             'UTC'
         );
 
-        $account = null;
+        $urls = null;
         foreach (MeetingAccount::where('is_active', true)->get() as $candidate) {
             try {
-                if (!$zoom->hasOverlappingMeeting($candidate, $eventStart, $event->event_duration)) {
-                    $account = $candidate;
-                    break;
+                if ($zoom->hasOverlappingMeeting($candidate, $eventStart, $event->event_duration)) {
+                    continue;
                 }
+                $urls    = $zoom->createMeeting($candidate, $event);
+                $account = $candidate;
+                break;
             } catch (\Throwable $e) {
+                // Account unreachable or missing scopes — try next; link stays null for recurrence
                 continue;
             }
         }
 
-        if (!$account) {
-            return $event;
-        }
-
-        try {
-            $urls = $zoom->createMeeting($account, $event);
+        if ($account && $urls) {
             $event->update([
                 'meeting_account_id' => $account->id,
                 'event_meet_link'    => $urls['join_url'],
                 'event_start_link'   => $urls['start_url'],
             ]);
-        } catch (\Throwable $e) {
-            // Skip Zoom failure silently for bulk recurrence; link stays null
         }
 
         return $event->fresh();
