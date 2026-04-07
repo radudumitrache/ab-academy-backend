@@ -522,7 +522,7 @@ This section covers the API endpoints for managing users (teachers and students)
 
 ### Change Student Password
 
-- **URL**: `/api/admin/students/change-password`
+- **URL**: `/api/admin/students/set-credentials`
 - **Method**: `POST`
 - **Auth Required**: Yes
 - **Headers**:
