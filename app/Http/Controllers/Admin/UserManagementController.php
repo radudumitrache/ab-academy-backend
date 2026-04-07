@@ -9,6 +9,7 @@ use App\Models\Teacher;
 use App\Models\User;
 use App\Models\Invoice;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -382,12 +383,14 @@ class UserManagementController extends Controller
             $student->admin_notes = $request->admin_notes;
         }
         
-        // Update password if provided
-        if ($request->has('password')) {
-            $student->password = Hash::make($request->password);
-        }
-        
         $student->save();
+
+        // Update password directly to bypass Eloquent global scope on UPDATE
+        if ($request->filled('password')) {
+            DB::table('users')->where('id', $student->id)->update([
+                'password' => Hash::make($request->password),
+            ]);
+        }
 
         DatabaseLog::logAction('update', Student::class, $student->id, "Student '{$student->username}' updated");
 
