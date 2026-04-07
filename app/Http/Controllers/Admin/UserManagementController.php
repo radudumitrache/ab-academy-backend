@@ -418,13 +418,14 @@ class UserManagementController extends Controller
         ]);
     }
 
-    public function changeStudentPassword(Request $request, $id)
+    public function changeStudentPassword(Request $request)
     {
-        $student = Student::findOrFail($id);
-
         $request->validate([
+            'student_id' => 'required|integer|exists:users,id',
             'password' => 'required|string|min:6|confirmed',
         ]);
+
+        $student = Student::findOrFail($request->student_id);
 
         $student->password = Hash::make($request->password);
         $student->save();

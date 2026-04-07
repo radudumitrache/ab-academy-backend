@@ -522,7 +522,7 @@ This section covers the API endpoints for managing users (teachers and students)
 
 ### Change Student Password
 
-- **URL**: `/api/admin/students/{id}/change-password`
+- **URL**: `/api/admin/students/change-password`
 - **Method**: `POST`
 - **Auth Required**: Yes
 - **Headers**:
@@ -532,6 +532,7 @@ This section covers the API endpoints for managing users (teachers and students)
 - **Request Body**:
   ```json
   {
+    "student_id": 5,
     "password": "new_password",
     "password_confirmation": "new_password"
   }
@@ -544,4 +545,4 @@ This section covers the API endpoints for managing users (teachers and students)
   ```
 - **Error Responses**:
   - `404` — Student not found
-  - `422` — Validation failed (password min 6 chars, confirmation must match)
+  - `422` — Validation failed (student_id must exist, password min 6 chars, confirmation must match)
