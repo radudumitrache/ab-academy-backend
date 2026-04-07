@@ -417,4 +417,22 @@ class UserManagementController extends Controller
             'message' => "Student '{$username}' deleted successfully",
         ]);
     }
+
+    public function changeStudentPassword(Request $request, $id)
+    {
+        $student = Student::findOrFail($id);
+
+        $request->validate([
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        $student->password = Hash::make($request->password);
+        $student->save();
+
+        DatabaseLog::logAction('update', Student::class, $student->id, "Password changed for student '{$student->username}'");
+
+        return response()->json([
+            'message' => 'Student password changed successfully',
+        ]);
+    }
 }
