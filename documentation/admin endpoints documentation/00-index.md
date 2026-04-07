@@ -92,7 +92,6 @@ Authorization: Bearer {access_token}
 | GET | `/api/admin/students/{id}` | Yes | Get a student |
 | PUT | `/api/admin/students/{id}` | Yes | Update a student |
 | DELETE | `/api/admin/students/{id}` | Yes | Delete a student |
-| POST | `/api/admin/students/set-credentials` | Yes | Change a student's password |
 | GET | `/api/admin/courses` | Yes | List all courses |
 | POST | `/api/admin/courses` | Yes | Create a course |
 | GET | `/api/admin/courses/{id}` | Yes | Get a course |

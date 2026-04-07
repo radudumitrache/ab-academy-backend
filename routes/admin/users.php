@@ -21,4 +21,3 @@ Route::get('/students', [UserManagementController::class, 'listStudents'])->midd
 Route::get('/students/{id}', [UserManagementController::class, 'getStudent'])->middleware('auth:api');
 Route::put('/students/{id}', [UserManagementController::class, 'updateStudent'])->middleware('auth:api');
 Route::delete('/students/{id}', [UserManagementController::class, 'deleteStudent'])->middleware('auth:api');
-Route::post('/students/set-credentials', [UserManagementController::class, 'changeStudentPassword'])->middleware('auth:api');
