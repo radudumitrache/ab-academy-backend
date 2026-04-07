@@ -109,7 +109,7 @@ class EuPlatescController extends Controller
                 'ep_id'                  => $data['ep_id'] ?? null,
                 'payment_status_message' => $data['message'] ?? null,
                 'paid_at'                => $paidAt,
-                'acquisition_status'     => $approved ? 'paid' : 'pending_payment',
+                'acquisition_status'     => $approved ? 'paid' : 'payment_failed',
                 'acquisition_date'       => $approved ? now()->toDateString() : $acquisition->acquisition_date,
             ]);
 

@@ -80,7 +80,7 @@ class ProductAcquisitionController extends Controller
             'payment_profile_id' => 'nullable|integer|exists:payment_profiles,id',
             'amount_paid'        => 'required|numeric|min:0',
             'currency'           => 'required|in:RON,EUR',
-            'acquisition_status' => 'required|in:pending_payment,paid,active,completed,cancelled,expired',
+            'acquisition_status' => 'required|in:pending_payment,paid,active,completed,cancelled,expired,payment_failed',
             'acquisition_date'   => 'nullable|date',
             'acquisition_notes'  => 'nullable|string',
             'groups_access'      => 'nullable|array',
@@ -378,7 +378,7 @@ class ProductAcquisitionController extends Controller
         }
 
         $data = $request->validate([
-            'acquisition_status' => 'required|in:pending_payment,paid,active,completed,cancelled,expired',
+            'acquisition_status' => 'required|in:pending_payment,paid,active,completed,cancelled,expired,payment_failed',
             'completion_date'    => 'nullable|date',
             'is_completed'       => 'boolean',
             'acquisition_notes'  => 'nullable|string',
