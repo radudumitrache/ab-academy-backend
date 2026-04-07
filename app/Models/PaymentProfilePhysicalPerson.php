@@ -8,6 +8,10 @@ class PaymentProfilePhysicalPerson extends Model
 {
     protected $table = 'payment_profile_physical_persons';
 
+    protected $casts = [
+        'billing_zip_code' => 'string',
+    ];
+
     protected $fillable = [
         'payment_profile_id',
         'first_name',

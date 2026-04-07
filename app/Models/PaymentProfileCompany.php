@@ -22,6 +22,7 @@ class PaymentProfileCompany extends Model
 
     protected $casts = [
         'registration_date' => 'date',
+        'billing_zip_code'  => 'string',
     ];
 
     public function profile()

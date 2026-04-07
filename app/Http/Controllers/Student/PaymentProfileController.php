@@ -64,8 +64,8 @@ class PaymentProfileController extends Controller
             $details = $request->validate([
                 'first_name'      => 'required|string|max:255',
                 'last_name'       => 'required|string|max:255',
-                'billing_address' => 'required|string|max:500',
-                'billing_city'    => 'required|string|max:255',
+                'billing_address' => 'nullable|string|max:500',
+                'billing_city'    => 'nullable|string|max:255',
                 'billing_state'   => 'nullable|string|max:255',
                 'billing_zip_code'=> 'nullable|string|max:20',
                 'billing_country' => 'nullable|string|max:255',
