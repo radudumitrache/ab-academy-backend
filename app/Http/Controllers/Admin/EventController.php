@@ -14,6 +14,7 @@ use App\Services\ZoomService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class EventController extends Controller
@@ -231,24 +232,39 @@ class EventController extends Controller
             return response()->json(['message' => 'No active meeting accounts configured'], 422);
         }
 
-        $urls    = null;
-        $account = null;
+        $urls          = null;
+        $account       = null;
+        $busyAccounts  = [];
+        $errorAccounts = [];
+
         foreach ($accounts as $candidate) {
             try {
                 if ($zoom->hasOverlappingMeeting($candidate, $eventStart, $event->event_duration)) {
-                    continue; // account busy — try next
+                    $busyAccounts[] = $candidate->name ?? $candidate->id;
+                    continue;
                 }
                 $urls    = $zoom->createMeeting($candidate, $event);
                 $account = $candidate;
                 break;
             } catch (\Throwable $e) {
-                // Account unreachable or missing scopes — try next
+                Log::warning('Zoom account unavailable for event ' . $event->id, [
+                    'account_id'   => $candidate->id,
+                    'account_name' => $candidate->name ?? null,
+                    'error'        => $e->getMessage(),
+                ]);
+                $errorAccounts[] = $candidate->name ?? $candidate->id;
                 continue;
             }
         }
 
         if (!$account || !$urls) {
-            return response()->json(['message' => 'All meeting accounts are busy or unavailable during this time slot'], 422);
+            $message = 'All meeting accounts are busy or unavailable during this time slot';
+            if ($errorAccounts && !$busyAccounts) {
+                $message = 'All meeting accounts failed to respond (Zoom API error) — check server logs for details';
+            } elseif ($busyAccounts && $errorAccounts) {
+                $message = 'Some meeting accounts are busy and others failed to respond — check server logs for details';
+            }
+            return response()->json(['message' => $message], 422);
         }
 
         $event->update([
@@ -382,7 +398,8 @@ class EventController extends Controller
             'UTC'
         );
 
-        $urls = null;
+        $urls    = null;
+        $account = null;
         foreach (MeetingAccount::where('is_active', true)->get() as $candidate) {
             try {
                 if ($zoom->hasOverlappingMeeting($candidate, $eventStart, $event->event_duration)) {
@@ -392,7 +409,11 @@ class EventController extends Controller
                 $account = $candidate;
                 break;
             } catch (\Throwable $e) {
-                // Account unreachable or missing scopes — try next; link stays null for recurrence
+                Log::warning('Zoom account unavailable during recurrence for event ' . $event->id, [
+                    'account_id'   => $candidate->id,
+                    'account_name' => $candidate->name ?? null,
+                    'error'        => $e->getMessage(),
+                ]);
                 continue;
             }
         }
