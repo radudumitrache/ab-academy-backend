@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Event;
 use App\Models\MeetingAccount;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class ZoomService
 {
@@ -65,13 +66,21 @@ class ZoomService
     }
 
     /**
-     * Return true if this account already has a Zoom meeting that overlaps the
-     * given UTC start time + duration window.
+     * Return the first overlapping Zoom meeting for this account, or null if free.
+     * Overlap window: [eventStart, eventStart + durationMinutes).
      */
-    public function hasOverlappingMeeting(MeetingAccount $account, \Carbon\Carbon $eventStart, int $durationMinutes): bool
+    public function findOverlappingMeeting(MeetingAccount $account, \Carbon\Carbon $eventStart, int $durationMinutes): ?array
     {
         $meetings = $this->listMeetings($account);
         $eventEnd = $eventStart->copy()->addMinutes($durationMinutes);
+
+        Log::debug('Zoom overlap check', [
+            'account_id'   => $account->id,
+            'account_name' => $account->name ?? null,
+            'event_start'  => $eventStart->toIso8601String(),
+            'event_end'    => $eventEnd->toIso8601String(),
+            'meeting_count' => count($meetings),
+        ]);
 
         foreach ($meetings as $meeting) {
             if (empty($meeting['start_time']) || empty($meeting['duration'])) {
@@ -81,11 +90,28 @@ class ZoomService
             $mEnd   = $mStart->copy()->addMinutes((int) $meeting['duration']);
 
             if ($mStart->lt($eventEnd) && $mEnd->gt($eventStart)) {
-                return true;
+                Log::debug('Zoom overlap found', [
+                    'account_id'        => $account->id,
+                    'conflicting_topic' => $meeting['topic'] ?? null,
+                    'conflicting_start' => $mStart->toIso8601String(),
+                    'conflicting_end'   => $mEnd->toIso8601String(),
+                ]);
+                return $meeting;
             }
         }
 
-        return false;
+        return null;
+    }
+
+    /**
+     * Return true if this account already has a Zoom meeting that overlaps the
+     * given UTC start time + duration window.
+     *
+     * @deprecated use findOverlappingMeeting() for richer diagnostics
+     */
+    public function hasOverlappingMeeting(MeetingAccount $account, \Carbon\Carbon $eventStart, int $durationMinutes): bool
+    {
+        return $this->findOverlappingMeeting($account, $eventStart, $durationMinutes) !== null;
     }
 
     /**

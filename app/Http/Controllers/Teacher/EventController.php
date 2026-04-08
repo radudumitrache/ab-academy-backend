@@ -386,15 +386,22 @@ class EventController extends Controller
             return response()->json(['message' => 'No active meeting accounts configured'], 422);
         }
 
-        $urls         = null;
-        $account      = null;
-        $busyAccounts = [];
+        $urls          = null;
+        $account       = null;
+        $busyAccounts  = [];
         $errorAccounts = [];
 
         foreach ($accounts as $candidate) {
             try {
-                if ($zoom->hasOverlappingMeeting($candidate, $eventStart, $event->event_duration)) {
-                    $busyAccounts[] = $candidate->name ?? $candidate->id;
+                $conflict = $zoom->findOverlappingMeeting($candidate, $eventStart, $event->event_duration);
+                if ($conflict !== null) {
+                    $busyAccounts[] = [
+                        'account_id'        => $candidate->id,
+                        'account_name'      => $candidate->name ?? null,
+                        'conflicting_topic' => $conflict['topic'] ?? null,
+                        'conflicting_start' => $conflict['start_time'] ?? null,
+                        'conflicting_duration_min' => $conflict['duration'] ?? null,
+                    ];
                     continue;
                 }
                 $urls    = $zoom->createMeeting($candidate, $event);
@@ -406,7 +413,11 @@ class EventController extends Controller
                     'account_name' => $candidate->name ?? null,
                     'error'        => $e->getMessage(),
                 ]);
-                $errorAccounts[] = $candidate->name ?? $candidate->id;
+                $errorAccounts[] = [
+                    'account_id'   => $candidate->id,
+                    'account_name' => $candidate->name ?? null,
+                    'error'        => $e->getMessage(),
+                ];
                 continue;
             }
         }
@@ -414,11 +425,19 @@ class EventController extends Controller
         if (!$account || !$urls) {
             $message = 'All meeting accounts are busy or unavailable during this time slot';
             if ($errorAccounts && !$busyAccounts) {
-                $message = 'All meeting accounts failed to respond (Zoom API error) — check server logs for details';
+                $message = 'All meeting accounts failed to respond (Zoom API error)';
             } elseif ($busyAccounts && $errorAccounts) {
-                $message = 'Some meeting accounts are busy and others failed to respond — check server logs for details';
+                $message = 'Some meeting accounts are busy and others failed to respond';
             }
-            return response()->json(['message' => $message], 422);
+            return response()->json([
+                'message'       => $message,
+                'busy_accounts' => $busyAccounts,
+                'error_accounts' => $errorAccounts,
+                'checked_window' => [
+                    'start_utc' => $eventStart->toIso8601String(),
+                    'end_utc'   => $eventStart->copy()->addMinutes((int) $event->event_duration)->toIso8601String(),
+                ],
+            ], 422);
         }
 
         $event->update([
