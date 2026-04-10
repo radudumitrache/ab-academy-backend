@@ -5,6 +5,23 @@
 </IfModule>
 # php -- END cPanel-generated handler, do not edit
 
+# ─── MCP Server Proxy (Node.js on port 3001) ────────────────────────────────
+# Equivalent to the Nginx location /mcp and /mcp-health blocks in INTEGRATION.md
+# Requires: mod_proxy + mod_proxy_http enabled on the server
+<IfModule mod_proxy.c>
+    ProxyPreserveHost On
+
+    # Health check — https://yourdomain.com/mcp-health → http://127.0.0.1:3001/health
+    ProxyPass        /mcp-health http://127.0.0.1:3001/health
+    ProxyPassReverse /mcp-health http://127.0.0.1:3001/health
+
+    # MCP endpoint — https://yourdomain.com/mcp → http://127.0.0.1:3001/mcp
+    # Authorization header is forwarded automatically by mod_proxy
+    ProxyPass        /mcp http://127.0.0.1:3001/mcp
+    ProxyPassReverse /mcp http://127.0.0.1:3001/mcp
+</IfModule>
+# ─────────────────────────────────────────────────────────────────────────────
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
