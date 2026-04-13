@@ -40,7 +40,11 @@ Route::middleware('auth:api')->group(function () {
         $response = DB::table('question_responses')
             ->where('submission_id', $submissionId)
             ->where('response_id', $responseId)
-            ->firstOrFail();
+            ->first();
+
+        if (!$response) {
+            abort(404, 'Response not found');
+        }
 
         if (!$response->correction_file_path) {
             abort(404, 'No correction file');
