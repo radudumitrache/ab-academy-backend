@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
+use App\Models\Material;
 use App\Models\Test;
 use App\Models\TestSubmission;
 use App\Models\TestQuestionResponse;
@@ -241,16 +242,29 @@ class TestSubmissionController extends Controller
                 $ext  = $file->getClientOriginalExtension();
                 $path = "{$correctionsFolder}/{$submissionId}_{$responseId}.{$ext}";
 
-                // Delete old correction file if present
+                // Delete old correction file and its Material record if present
                 if ($response->correction_file_path) {
                     try {
                         $this->gcs->delete($response->correction_file_path);
                     } catch (\Throwable) {}
+                    Material::where('gcs_path', $response->correction_file_path)->delete();
                 }
 
                 $this->gcs->createFolder($correctionsFolder);
                 $this->gcs->upload($file, $path);
                 $updates['correction_file_path'] = $path;
+
+                Material::create([
+                    'material_name'  => $file->getClientOriginalName(),
+                    'file_type'      => $file->getClientMimeType(),
+                    'date_created'   => now(),
+                    'authors'        => [$teacher->id],
+                    'allowed_users'  => [],
+                    'allowed_groups' => [],
+                    'gcs_path'       => $path,
+                    'uploader_id'    => $teacher->id,
+                    'folder'         => 'private/corrections',
+                ]);
             }
 
             $response->update($updates);

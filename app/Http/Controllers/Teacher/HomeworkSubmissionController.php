@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Teacher;
 use App\Http\Controllers\Controller;
 use App\Models\Homework;
 use App\Models\HomeworkSubmission;
+use App\Models\Material;
 use App\Models\QuestionResponse;
 use App\Services\GcsService;
 use App\Services\NotificationService;
@@ -297,6 +298,7 @@ class HomeworkSubmissionController extends Controller
             $parsedKey   = "files[{$responseId}]";
             $fileContent = null;
             $fileExt     = null;
+            $parsed      = null;
 
             if ($request->hasFile($fileKey)) {
                 $file        = $request->file($fileKey);
@@ -311,16 +313,33 @@ class HomeworkSubmissionController extends Controller
             if ($fileContent !== null) {
                 $path = "{$correctionsFolder}/{$submissionId}_{$responseId}.{$fileExt}";
 
-                // Delete old correction file if present
+                // Delete old correction file and its Material record if present
                 if ($response->correction_file_path) {
                     try {
                         $this->gcs->delete($response->correction_file_path);
                     } catch (\Throwable) {}
+                    Material::where('gcs_path', $response->correction_file_path)->delete();
                 }
 
                 $this->gcs->createFolder($correctionsFolder);
                 $this->gcs->uploadContent($fileContent, $path);
                 $updates['correction_file_path'] = $path;
+
+                $originalName = isset($parsed)
+                    ? $parsed['filename']
+                    : ($request->hasFile($fileKey) ? $request->file($fileKey)->getClientOriginalName() : basename($path));
+
+                Material::create([
+                    'material_name'  => $originalName,
+                    'file_type'      => isset($parsed) ? ($parsed['contentType'] ?? 'application/octet-stream') : ($request->hasFile($fileKey) ? $request->file($fileKey)->getClientMimeType() : 'application/octet-stream'),
+                    'date_created'   => now(),
+                    'authors'        => [$teacher->id],
+                    'allowed_users'  => [],
+                    'allowed_groups' => [],
+                    'gcs_path'       => $path,
+                    'uploader_id'    => $teacher->id,
+                    'folder'         => 'private/corrections',
+                ]);
             }
 
             $response->update($updates);
