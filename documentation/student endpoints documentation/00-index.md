@@ -20,6 +20,7 @@ This documentation covers all student-facing API endpoints for the AB Academy pl
 14. [Payment Profiles](13-payment-profiles.md) — manage billing profiles (physical person or company)
 15. [Products & Purchases](14-products.md) — browse products, purchase via EuPlatesc, renew subscriptions
 16. [Group Announcements](15-group-announcements.md) — read announcements posted to your groups
+17. [Correction Content Viewer](16-correction-content.md) — fetch raw correction file content for inline rendering
 
 ## Base URL
 
@@ -99,6 +100,7 @@ Authorization: Bearer {access_token}
 | GET | `/api/student/dashboard` | Yes | Full dashboard overview |
 | GET | `/api/student/achievements` | Yes | Streak + achievement list |
 | GET | `/api/student/groups/{groupId}/announcements` | Yes | List announcements for a group (student must be a member) |
+| GET | `/api/student/submissions/{submissionId}/responses/{responseId}/correction-content` | Yes | Fetch raw correction file content for inline rendering |
 | POST | `/broadcasting/auth` | Yes | Pusher channel authorization (called by Laravel Echo) |
 
 ## Error Format
