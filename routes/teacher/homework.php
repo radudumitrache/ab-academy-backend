@@ -4,7 +4,9 @@ use App\Http\Controllers\Teacher\HomeworkController;
 use App\Http\Controllers\Teacher\HomeworkSubmissionController;
 use App\Http\Controllers\Teacher\QuestionController;
 use App\Http\Controllers\Teacher\SectionController;
+use App\Services\GcsService;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Teacher Homework Routes
@@ -33,6 +35,22 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/homework/{homeworkId}/submissions/{submissionId}',                        [HomeworkSubmissionController::class, 'show']);
     Route::patch('/homework/{homeworkId}/submissions/{submissionId}/grade',                [HomeworkSubmissionController::class, 'grade']);
     Route::patch('/homework/{homeworkId}/submissions/{submissionId}/grade-responses',      [HomeworkSubmissionController::class, 'gradeResponses']);
+
+    Route::get('/submissions/{submissionId}/responses/{responseId}/correction-content', function ($submissionId, $responseId) {
+        $response = DB::table('question_responses')
+            ->where('submission_id', $submissionId)
+            ->where('response_id', $responseId)
+            ->firstOrFail();
+
+        if (!$response->correction_file_path) {
+            abort(404, 'No correction file');
+        }
+
+        $content = app(GcsService::class)->downloadContent($response->correction_file_path);
+
+        return response($content, 200)
+            ->header('Content-Type', 'text/plain; charset=utf-8');
+    });
 
     // ── Sections CRUD ─────────────────────────────────────────────────────────
     Route::get('/homework/{homeworkId}/sections',                      [SectionController::class, 'index']);

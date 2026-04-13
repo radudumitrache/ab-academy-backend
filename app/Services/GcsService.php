@@ -56,6 +56,16 @@ class GcsService
     }
 
     /**
+     * Download an object from GCS and return its raw content as a string.
+     */
+    public function downloadContent(string $path): string
+    {
+        $bucket = $this->client->bucket($this->bucketName);
+        $object = $bucket->object($path);
+        return $object->downloadAsString();
+    }
+
+    /**
      * Upload raw string/binary content to GCS and return the object path.
      */
     public function uploadContent(string $content, string $path): string
