@@ -274,6 +274,152 @@ class MaterialController extends Controller
     }
 
     // -------------------------------------------------------------------------
+    // Storage repair — syncs missing Material DB records from GCS
+    // -------------------------------------------------------------------------
+
+    /**
+     * Scan the bucket for files that exist in GCS but have no Material record,
+     * then create the missing records, deriving uploader and folder from the path.
+     *
+     * Scans:
+     *   teachers/{username}/private/...  → uploader = teacher, folder = private[/sub]
+     *   common/...                       → uploader = null,    folder = common
+     *
+     * Skips:
+     *   .keep placeholder objects
+     *   teachers/{username}/profile/...  (profile pictures, not materials)
+     *
+     * POST /api/admin/storage/repair
+     */
+    public function repairMaterials()
+    {
+        // Index existing paths so we can check in O(1)
+        $existingPaths = Material::pluck('gcs_path')->flip()->toArray();
+
+        // Build username → User map (any role; username is unique across all users)
+        $usersByUsername = User::all(['id', 'username'])->keyBy('username');
+
+        $created = [];
+        $skipped = [];
+
+        // Collect all objects from the relevant top-level prefixes
+        $prefixes = ['teachers/', 'common/'];
+        foreach ($prefixes as $prefix) {
+            $objects = $this->gcs->listFolder($prefix);
+
+            foreach ($objects as $path) {
+                // Skip .keep folder placeholders
+                if (str_ends_with($path, '.keep')) {
+                    continue;
+                }
+
+                // Skip if a Material record already exists for this path
+                if (isset($existingPaths[$path])) {
+                    $skipped[] = $path;
+                    continue;
+                }
+
+                $parts    = explode('/', $path);
+                $filename = end($parts);
+                $fileType = $this->guessMimeType(pathinfo($filename, PATHINFO_EXTENSION));
+
+                if (str_starts_with($path, 'teachers/')) {
+                    // Expected shape: teachers/{username}/{folder_parts...}/{filename}
+                    if (count($parts) < 3) {
+                        continue;
+                    }
+
+                    $username = $parts[1];
+
+                    // Skip profile pictures — they are not teaching materials
+                    if (($parts[2] ?? '') === 'profile') {
+                        continue;
+                    }
+
+                    $user = $usersByUsername[$username] ?? null;
+                    if (!$user) {
+                        continue;
+                    }
+
+                    // folder = everything between the username and the filename
+                    // e.g. teachers/teacherTest/private/corrections/153_1248.md → private/corrections
+                    $folderParts = array_slice($parts, 2, count($parts) - 3);
+                    $folder      = count($folderParts) ? implode('/', $folderParts) : 'private';
+
+                    Material::create([
+                        'material_name'  => $filename,
+                        'file_type'      => $fileType,
+                        'date_created'   => now(),
+                        'authors'        => [$user->id],
+                        'allowed_users'  => [],
+                        'allowed_groups' => [],
+                        'gcs_path'       => $path,
+                        'uploader_id'    => $user->id,
+                        'folder'         => $folder,
+                    ]);
+
+                    $created[] = ['path' => $path, 'uploader' => $username, 'folder' => $folder];
+
+                } elseif (str_starts_with($path, 'common/')) {
+                    Material::create([
+                        'material_name'  => $filename,
+                        'file_type'      => $fileType,
+                        'date_created'   => now(),
+                        'authors'        => [],
+                        'allowed_users'  => [],
+                        'allowed_groups' => [],
+                        'gcs_path'       => $path,
+                        'uploader_id'    => null,
+                        'folder'         => 'common',
+                    ]);
+
+                    $created[] = ['path' => $path, 'uploader' => null, 'folder' => 'common'];
+                }
+            }
+        }
+
+        DatabaseLog::logAction('create', Material::class, null, 'Storage repair: ' . count($created) . ' missing Material records created.');
+
+        return response()->json([
+            'message'       => 'Storage repair completed',
+            'created_count' => count($created),
+            'skipped_count' => count($skipped),
+            'created'       => $created,
+        ]);
+    }
+
+    // -------------------------------------------------------------------------
+
+    private function guessMimeType(string $ext): string
+    {
+        $map = [
+            'jpg'  => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png'  => 'image/png',
+            'gif'  => 'image/gif',
+            'webp' => 'image/webp',
+            'svg'  => 'image/svg+xml',
+            'pdf'  => 'application/pdf',
+            'doc'  => 'application/msword',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'xls'  => 'application/vnd.ms-excel',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'ppt'  => 'application/vnd.ms-powerpoint',
+            'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'mp3'  => 'audio/mpeg',
+            'mp4'  => 'video/mp4',
+            'wav'  => 'audio/wav',
+            'zip'  => 'application/zip',
+            'txt'  => 'text/plain',
+            'md'   => 'text/markdown',
+            'csv'  => 'text/csv',
+            'json' => 'application/json',
+        ];
+
+        return $map[strtolower($ext)] ?? 'application/octet-stream';
+    }
+
+    // -------------------------------------------------------------------------
 
     private function uniquePath(string $path): string
     {

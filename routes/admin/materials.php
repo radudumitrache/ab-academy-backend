@@ -20,3 +20,6 @@ Route::get('/storage/list',           [MaterialController::class, 'listObjects']
 Route::get('/storage/folders',        [MaterialController::class, 'listFolders']);
 Route::post('/storage/folders',       [MaterialController::class, 'createFolder']);
 Route::delete('/storage/folders',     [MaterialController::class, 'deleteFolder']);
+
+// Storage repair — creates missing Material DB records from GCS objects
+Route::post('/storage/repair',        [MaterialController::class, 'repairMaterials']);
