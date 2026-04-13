@@ -164,7 +164,7 @@ class HomeworkController extends Controller
         $request->validate([
             'answers'   => 'sometimes|array',
             'answers.*.question_id' => 'required_with:answers|integer|exists:questions,question_id',
-            'answers.*.answer'      => 'required_with:answers|string',
+            'answers.*.answer'      => 'required_with:answers|nullable|string',
             'files'     => 'sometimes|array',
             'files.*'   => 'file|max:51200', // 50 MB per file
         ]);
@@ -306,6 +306,22 @@ class HomeworkController extends Controller
             'status'       => 'submitted',
             'submitted_at' => $submittedAt,
         ]);
+
+        // Create empty responses for any questions the student did not answer
+        $homework->load('sections.questions');
+        $answeredQuestionIds = $submission->responses()->pluck('related_question')->all();
+        foreach ($homework->sections as $section) {
+            foreach ($section->questions as $question) {
+                if (!in_array($question->question_id, $answeredQuestionIds, true)) {
+                    QuestionResponse::create([
+                        'submission_id'    => $submission->id,
+                        'related_question' => $question->question_id,
+                        'related_student'  => $studentId,
+                        'answer'           => '',
+                    ]);
+                }
+            }
+        }
 
         $newAchievements = $this->achievements->recordSubmission(
             $studentId,
