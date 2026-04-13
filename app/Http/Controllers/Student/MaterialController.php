@@ -24,11 +24,7 @@ class MaterialController extends Controller
             if (!$this->hasAccess($material, $studentId, $groupIds)) {
                 return false;
             }
-            if (!$this->gcs->objectExists($material->gcs_path)) {
-                $material->delete();
-                return false;
-            }
-            return true;
+            return $this->gcs->objectExists($material->gcs_path);
         })->values();
 
         return response()->json([
@@ -51,7 +47,6 @@ class MaterialController extends Controller
         }
 
         if (!$this->gcs->objectExists($material->gcs_path)) {
-            $material->delete();
             return response()->json(['message' => 'Material not found'], 404);
         }
 

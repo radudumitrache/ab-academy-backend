@@ -50,11 +50,7 @@ class MaterialController extends Controller
         })->latest()->get();
 
         $live = $materials->filter(function ($material) {
-            if (!$this->gcs->objectExists($material->gcs_path)) {
-                $material->delete();
-                return false;
-            }
-            return true;
+            return $this->gcs->objectExists($material->gcs_path);
         })->values();
 
         return response()->json([
@@ -143,11 +139,7 @@ class MaterialController extends Controller
         $materials = Material::where('folder', 'common')->latest()->get();
 
         $live = $materials->filter(function ($material) {
-            if (!$this->gcs->objectExists($material->gcs_path)) {
-                $material->delete();
-                return false;
-            }
-            return true;
+            return $this->gcs->objectExists($material->gcs_path);
         })->values();
 
         return response()->json([
@@ -170,7 +162,6 @@ class MaterialController extends Controller
         }
 
         if (!$this->gcs->objectExists($material->gcs_path)) {
-            $material->delete();
             return response()->json(['message' => 'Material not found'], 404);
         }
 
