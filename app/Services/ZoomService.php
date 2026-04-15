@@ -68,17 +68,33 @@ class ZoomService
     /**
      * Return the first overlapping Zoom meeting for this account, or null if free.
      * Overlap window: [eventStart, eventStart + durationMinutes).
+     * Also returns a live meeting immediately, since a host cannot start a second meeting
+     * while one is already in progress.
      */
     public function findOverlappingMeeting(MeetingAccount $account, \Carbon\Carbon $eventStart, int $durationMinutes): ?array
     {
+        // A live (in-progress) meeting blocks the account regardless of scheduled times.
+        $live = $this->listLiveMeetings($account);
+        if (!empty($live)) {
+            Log::debug('Zoom live meeting in progress', [
+                'account_id'   => $account->id,
+                'account_name' => $account->name ?? null,
+                'live_topic'   => $live[0]['topic'] ?? null,
+            ]);
+            return $live[0];
+        }
+
+        $bufferMinutes = 20;
+
         $meetings = $this->listMeetings($account);
         $eventEnd = $eventStart->copy()->addMinutes($durationMinutes);
 
         Log::debug('Zoom overlap check', [
-            'account_id'   => $account->id,
-            'account_name' => $account->name ?? null,
-            'event_start'  => $eventStart->toIso8601String(),
-            'event_end'    => $eventEnd->toIso8601String(),
+            'account_id'    => $account->id,
+            'account_name'  => $account->name ?? null,
+            'event_start'   => $eventStart->toIso8601String(),
+            'event_end'     => $eventEnd->toIso8601String(),
+            'buffer_minutes' => $bufferMinutes,
             'meeting_count' => count($meetings),
         ]);
 
@@ -86,15 +102,18 @@ class ZoomService
             if (empty($meeting['start_time']) || empty($meeting['duration'])) {
                 continue;
             }
-            $mStart = \Carbon\Carbon::parse($meeting['start_time'])->utc();
-            $mEnd   = $mStart->copy()->addMinutes((int) $meeting['duration']);
+            $mStart          = \Carbon\Carbon::parse($meeting['start_time'])->utc();
+            $mEnd            = $mStart->copy()->addMinutes((int) $meeting['duration']);
+            $mEndWithBuffer  = $mEnd->copy()->addMinutes($bufferMinutes);
 
-            if ($mStart->lt($eventEnd) && $mEnd->gt($eventStart)) {
+            // Conflict if the existing meeting (plus buffer) overlaps the new event window.
+            if ($mStart->lt($eventEnd->copy()->addMinutes($bufferMinutes)) && $mEndWithBuffer->gt($eventStart)) {
                 Log::debug('Zoom overlap found', [
-                    'account_id'        => $account->id,
-                    'conflicting_topic' => $meeting['topic'] ?? null,
-                    'conflicting_start' => $mStart->toIso8601String(),
-                    'conflicting_end'   => $mEnd->toIso8601String(),
+                    'account_id'             => $account->id,
+                    'conflicting_topic'      => $meeting['topic'] ?? null,
+                    'conflicting_start'      => $mStart->toIso8601String(),
+                    'conflicting_end'        => $mEnd->toIso8601String(),
+                    'conflicting_end_buffer' => $mEndWithBuffer->toIso8601String(),
                 ]);
                 return $meeting;
             }
@@ -131,6 +150,28 @@ class ZoomService
         if (!$response->successful()) {
             throw new \RuntimeException(
                 'Zoom meeting list failed: ' . $response->body()
+            );
+        }
+
+        return $response->json('meetings') ?? [];
+    }
+
+    /**
+     * Fetch all currently live (in-progress) meetings for the account from the Zoom API.
+     */
+    public function listLiveMeetings(MeetingAccount $account): array
+    {
+        $token = $this->getAccessToken($account);
+
+        $response = Http::withToken($token)
+            ->get('https://api.zoom.us/v2/users/me/meetings', [
+                'type'      => 'live',
+                'page_size' => 300,
+            ]);
+
+        if (!$response->successful()) {
+            throw new \RuntimeException(
+                'Zoom live meeting list failed: ' . $response->body()
             );
         }
 
