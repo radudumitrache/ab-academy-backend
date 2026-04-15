@@ -9,10 +9,12 @@ use Illuminate\Support\Facades\Route;
  * Middleware: auth:api (applied in RouteServiceProvider)
  */
 
-Route::get('/meeting-accounts',              [MeetingAccountController::class, 'index']);
-Route::post('/meeting-accounts',             [MeetingAccountController::class, 'store']);
-Route::get('/meeting-accounts/{id}',         [MeetingAccountController::class, 'show']);
-Route::put('/meeting-accounts/{id}',         [MeetingAccountController::class, 'update']);
-Route::delete('/meeting-accounts/{id}',      [MeetingAccountController::class, 'destroy']);
-Route::post('/meeting-accounts/{id}/test',          [MeetingAccountController::class, 'test']);
-Route::get('/meeting-accounts/{id}/check-meetings', [MeetingAccountController::class, 'checkMeetings']);
+Route::get('/meeting-accounts',                      [MeetingAccountController::class, 'index']);
+Route::post('/meeting-accounts',                     [MeetingAccountController::class, 'store']);
+Route::get('/meeting-accounts/today-meetings',       [MeetingAccountController::class, 'todayMeetings']);
+Route::get('/meeting-accounts/suggest-account',      [MeetingAccountController::class, 'suggestAccount']);
+Route::get('/meeting-accounts/{id}',                 [MeetingAccountController::class, 'show']);
+Route::put('/meeting-accounts/{id}',                 [MeetingAccountController::class, 'update']);
+Route::delete('/meeting-accounts/{id}',              [MeetingAccountController::class, 'destroy']);
+Route::post('/meeting-accounts/{id}/test',           [MeetingAccountController::class, 'test']);
+Route::get('/meeting-accounts/{id}/check-meetings',  [MeetingAccountController::class, 'checkMeetings']);
