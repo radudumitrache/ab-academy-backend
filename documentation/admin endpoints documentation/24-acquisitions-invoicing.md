@@ -134,6 +134,7 @@ Creates an acquisition directly on behalf of a student — used for cash payment
       "remaining_courses": null,
       "invoice_series": null,
       "invoice_number": null,
+      "group_id": null,
       "groups_access": null,
       "tests_access": null,
       "acquisition_notes": null,
@@ -171,6 +172,7 @@ For course products, `remaining_courses` is automatically initialised from `cour
 |-------|------|----------|-------------|
 | `groups_access` | array of integers | No | Group IDs (for course products) |
 | `tests_access` | array of integers | No | Test IDs (for single products) |
+| `group_id` | integer | No | The specific group this acquisition's sessions are tied to. When set, attendance for this group decrements `remaining_courses` from this acquisition directly, with no ambiguity if the student has multiple active acquisitions. |
 | `invoice_series` | string | No | Optionally record invoice series at this step |
 | `invoice_number` | string | No | Optionally record invoice number at this step |
 | `acquisition_notes` | string | No | Internal admin notes |

@@ -20,11 +20,19 @@ class AttendanceObserver
             return;
         }
 
-        // Find the active course acquisition for this student that covers this group
+        // Find the active course acquisition for this student that covers this group.
+        // Prefer an acquisition directly tied via group_id; fall back to groups_access JSON for older records.
         $acquisition = ProductAcquisition::where('student_id', $attendance->student_id)
             ->whereIn('acquisition_status', ['active', 'paid'])
             ->whereNotNull('remaining_courses')
-            ->whereJsonContains('groups_access', $attendance->group_id)
+            ->where(function ($q) use ($attendance) {
+                $q->where('group_id', $attendance->group_id)
+                  ->orWhere(function ($q2) use ($attendance) {
+                      $q2->whereNull('group_id')
+                         ->whereJsonContains('groups_access', $attendance->group_id);
+                  });
+            })
+            ->orderByRaw('group_id IS NOT NULL DESC')
             ->first();
 
         if (! $acquisition || $acquisition->remaining_courses <= 0) {

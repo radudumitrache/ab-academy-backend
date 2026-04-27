@@ -27,6 +27,7 @@ class ProductAcquisition extends Model
         'payment_status_message',
         'paid_at',
         'renewed_from_id',
+        'group_id',
     ];
 
     protected $casts = [
