@@ -52,6 +52,8 @@ Returns all attendance records for a group. Only the group's teacher may call th
 Records attendance for a specific group session. Only the group's teacher may call this.
 Uses `updateOrCreate` — calling it again for the same `(group_id, student_id, session_date, session_time)` overwrites the previous status.
 
+> **Course session consumption**: When a student is marked `present` or `absent` (not `motivated_absent`) for a group, the system automatically decrements `remaining_courses` on the student's linked course acquisition and appends an entry to `marked_courses` (e.g. `"present: 2026-04-27"` or `"absent: 2026-04-27"`). When `remaining_courses` reaches `0`, all admins are notified and the student is removed from the group. Admins can review and edit `marked_courses` via `PATCH /api/admin/acquisitions/{id}/marked-courses`.
+
 - **URL**: `POST /api/teacher/groups/{id}/attendance`
 - **Auth Required**: Yes
 - **Headers**:

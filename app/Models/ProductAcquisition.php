@@ -28,6 +28,7 @@ class ProductAcquisition extends Model
         'paid_at',
         'renewed_from_id',
         'group_id',
+        'marked_courses',
     ];
 
     protected $casts = [
@@ -39,6 +40,7 @@ class ProductAcquisition extends Model
         'is_completed'      => 'boolean',
         'paid_at'           => 'datetime',
         'remaining_courses' => 'integer',
+        'marked_courses'    => 'array',
     ];
 
     public function paymentProfile()

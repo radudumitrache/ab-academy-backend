@@ -135,6 +135,7 @@ Creates an acquisition directly on behalf of a student — used for cash payment
       "invoice_series": null,
       "invoice_number": null,
       "group_id": null,
+      "marked_courses": null,
       "groups_access": null,
       "tests_access": null,
       "acquisition_notes": null,
@@ -311,6 +312,56 @@ Sends the SmartBill invoice for the acquisition to an email address. If no email
 ```
 
 **Errors**: `404` if not found, `422` if no invoice exists yet or no email is available, `502` if SmartBill API fails.
+
+---
+
+### Update Product
+
+`PATCH /api/admin/acquisitions/{id}/product`
+
+Change the product linked to an acquisition.
+
+**Request body**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `product_id` | integer | Yes | ID of the new product |
+
+**Response** `200`:
+```json
+{
+  "message": "Product updated successfully",
+  "acquisition": { ... }
+}
+```
+
+**Errors**: `404` if not found, `422` if validation fails.
+
+---
+
+### Update Marked Courses
+
+`PATCH /api/admin/acquisitions/{id}/marked-courses`
+
+Overwrite the `marked_courses` list for an acquisition. This is the log of sessions that counted toward session consumption, automatically appended by the system whenever attendance is recorded as `present` or `absent`. Admins can edit or remove entries here.
+
+Each entry is a string in the format `"present: YYYY-MM-DD"` or `"absent: YYYY-MM-DD"`, where the date is the `session_date` of the attendance record.
+
+**Request body**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `marked_courses` | array of strings | Yes | Full replacement list of marked course strings |
+
+**Response** `200`:
+```json
+{
+  "message": "Marked courses updated successfully",
+  "marked_courses": ["present: 2026-04-01", "absent: 2026-04-08"]
+}
+```
+
+**Errors**: `404` if not found, `422` if validation fails.
 
 ---
 

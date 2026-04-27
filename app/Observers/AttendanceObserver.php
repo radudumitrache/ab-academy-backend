@@ -40,6 +40,11 @@ class AttendanceObserver
         }
 
         $acquisition->decrement('remaining_courses');
+
+        $entry = $attendance->status . ': ' . $attendance->session_date;
+        $acquisition->marked_courses = array_merge($acquisition->marked_courses ?? [], [$entry]);
+        $acquisition->save();
+
         $acquisition->refresh();
 
         if ($acquisition->remaining_courses === 0) {

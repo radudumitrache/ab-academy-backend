@@ -197,10 +197,17 @@ Authorization: Bearer {access_token}
 | GET | `/api/admin/acquisitions` | Yes | List all acquisitions (filterable, incl. `needs_groups`) |
 | POST | `/api/admin/acquisitions` | Yes | Manually create an acquisition for a student (cash/bank transfer) |
 | GET | `/api/admin/acquisitions/{id}` | Yes | Get a single acquisition with full profile details |
-| POST | `/api/admin/acquisitions/{id}/grant-access` | Yes | Grant groups/tests access → marks active |
-| POST | `/api/admin/acquisitions/{id}/create-invoice` | Yes | Create SmartBill invoice (requires profile confirmation if observations exist) |
+| POST | `/api/admin/acquisitions/{id}/grant-access` | Yes | Grant groups/tests access, optionally tie a specific `group_id` → marks active |
+| POST | `/api/admin/acquisitions/create-invoice` | Yes | Create SmartBill invoice (requires profile confirmation if observations exist) |
+| GET | `/api/admin/acquisitions/{id}/download-invoice` | Yes | Download SmartBill invoice PDF |
+| POST | `/api/admin/acquisitions/{id}/send-invoice-to-spv` | Yes | Submit invoice to SPV (ANAF e-Factura) |
 | POST | `/api/admin/acquisitions/{id}/mark-invoice-paid` | Yes | Mark SmartBill invoice as paid |
+| POST | `/api/admin/acquisitions/{id}/send-invoice-email` | Yes | Send SmartBill invoice by email |
 | PUT | `/api/admin/acquisitions/{id}/status` | Yes | Update acquisition status |
+| PATCH | `/api/admin/acquisitions/{id}/product` | Yes | Change the product linked to an acquisition |
+| PATCH | `/api/admin/acquisitions/{id}/remaining-courses` | Yes | Manually set remaining course session count |
+| PATCH | `/api/admin/acquisitions/{id}/marked-courses` | Yes | View / overwrite the list of consumed-session date strings |
+| DELETE | `/api/admin/acquisitions/{id}` | Yes | Delete an acquisition (only terminal statuses) |
 | GET | `/api/admin/payment-profiles` | Yes | List all student payment profiles (filterable, incl. `needs_confirmation`) |
 | GET | `/api/admin/payment-profiles/{id}` | Yes | Get profile with acquisitions summary |
 | GET | `/api/admin/students/{studentId}/payment-profiles` | Yes | List profiles for a specific student |

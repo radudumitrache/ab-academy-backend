@@ -423,6 +423,57 @@ class ProductAcquisitionController extends Controller
     }
 
     /**
+     * Change the product linked to an acquisition.
+     */
+    public function updateProduct(Request $request, $id)
+    {
+        $acquisition = ProductAcquisition::find($id);
+
+        if (!$acquisition) {
+            return response()->json(['message' => 'Acquisition not found'], 404);
+        }
+
+        $data = $request->validate([
+            'product_id' => 'required|integer|exists:products,id',
+        ]);
+
+        $acquisition->update($data);
+
+        DatabaseLog::logAction('update', ProductAcquisition::class, $acquisition->id, "Product changed to #{$data['product_id']} for acquisition #{$acquisition->id}");
+
+        return response()->json([
+            'message'     => 'Product updated successfully',
+            'acquisition' => $this->format($acquisition->fresh(['product', 'student', 'paymentProfile'])),
+        ]);
+    }
+
+    /**
+     * Overwrite the marked_courses list for an acquisition.
+     */
+    public function updateMarkedCourses(Request $request, $id)
+    {
+        $acquisition = ProductAcquisition::find($id);
+
+        if (!$acquisition) {
+            return response()->json(['message' => 'Acquisition not found'], 404);
+        }
+
+        $data = $request->validate([
+            'marked_courses'   => 'required|array',
+            'marked_courses.*' => 'string',
+        ]);
+
+        $acquisition->update($data);
+
+        DatabaseLog::logAction('update', ProductAcquisition::class, $acquisition->id, "marked_courses updated for acquisition #{$acquisition->id}");
+
+        return response()->json([
+            'message'        => 'Marked courses updated successfully',
+            'marked_courses' => $acquisition->marked_courses,
+        ]);
+    }
+
+    /**
      * Manually set the number of remaining course sessions for an acquisition.
      */
     public function updateRemainingCourses(Request $request, $id)
@@ -509,6 +560,7 @@ class ProductAcquisitionController extends Controller
             'invoice_series'     => $a->invoice_series,
             'invoice_number'     => $a->invoice_number,
             'group_id'           => $a->group_id,
+            'marked_courses'     => $a->marked_courses,
             'groups_access'      => $a->groups_access,
             'tests_access'       => $a->tests_access,
             'acquisition_notes'  => $a->acquisition_notes,
