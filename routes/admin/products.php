@@ -24,6 +24,7 @@ Route::post('/acquisitions/{id}/send-invoice-to-spv',      [ProductAcquisitionCo
 Route::post('/acquisitions/{id}/mark-invoice-paid',        [ProductAcquisitionController::class, 'markInvoicePaid']);
 Route::post('/acquisitions/{id}/send-invoice-email',       [ProductAcquisitionController::class, 'sendInvoiceByEmail']);
 Route::put('/acquisitions/{id}/status',                    [ProductAcquisitionController::class, 'updateStatus']);
+Route::patch('/acquisitions/{id}/group',                   [ProductAcquisitionController::class, 'updateGroup']);
 Route::patch('/acquisitions/{id}/product',                 [ProductAcquisitionController::class, 'updateProduct']);
 Route::patch('/acquisitions/{id}/remaining-courses',       [ProductAcquisitionController::class, 'updateRemainingCourses']);
 Route::patch('/acquisitions/{id}/marked-courses',          [ProductAcquisitionController::class, 'updateMarkedCourses']);

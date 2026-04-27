@@ -315,6 +315,30 @@ Sends the SmartBill invoice for the acquisition to an email address. If no email
 
 ---
 
+### Update Group
+
+`PATCH /api/admin/acquisitions/{id}/group`
+
+Change (or clear) the group tied to a course acquisition. When set, attendance for this group drains sessions from this acquisition directly.
+
+**Request body**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `group_id` | integer\|null | Yes | ID of the group to link, or `null` to unlink |
+
+**Response** `200`:
+```json
+{
+  "message": "Group updated successfully",
+  "acquisition": { ... }
+}
+```
+
+**Errors**: `404` if not found, `422` if validation fails.
+
+---
+
 ### Update Product
 
 `PATCH /api/admin/acquisitions/{id}/product`
@@ -347,6 +371,8 @@ Overwrite the `marked_courses` list for an acquisition. This is the log of sessi
 
 Each entry is a string in the format `"present: YYYY-MM-DD"` or `"absent: YYYY-MM-DD"`, where the date is the `session_date` of the attendance record.
 
+**Automatic `remaining_courses` adjustment**: The endpoint compares the old and new list lengths and adjusts `remaining_courses` by the net difference — adding entries decrements it, removing entries increments it. The value is floored at `0`. No adjustment is made if `remaining_courses` is `null`.
+
 **Request body**:
 
 | Field | Type | Required | Description |
@@ -357,7 +383,8 @@ Each entry is a string in the format `"present: YYYY-MM-DD"` or `"absent: YYYY-M
 ```json
 {
   "message": "Marked courses updated successfully",
-  "marked_courses": ["present: 2026-04-01", "absent: 2026-04-08"]
+  "marked_courses": ["present: 2026-04-01", "absent: 2026-04-08"],
+  "remaining_courses": 18
 }
 ```
 

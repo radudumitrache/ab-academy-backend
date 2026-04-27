@@ -204,6 +204,7 @@ Authorization: Bearer {access_token}
 | POST | `/api/admin/acquisitions/{id}/mark-invoice-paid` | Yes | Mark SmartBill invoice as paid |
 | POST | `/api/admin/acquisitions/{id}/send-invoice-email` | Yes | Send SmartBill invoice by email |
 | PUT | `/api/admin/acquisitions/{id}/status` | Yes | Update acquisition status |
+| PATCH | `/api/admin/acquisitions/{id}/group` | Yes | Change (or clear) the group tied to a course acquisition |
 | PATCH | `/api/admin/acquisitions/{id}/product` | Yes | Change the product linked to an acquisition |
 | PATCH | `/api/admin/acquisitions/{id}/remaining-courses` | Yes | Manually set remaining course session count |
 | PATCH | `/api/admin/acquisitions/{id}/marked-courses` | Yes | View / overwrite the list of consumed-session date strings |

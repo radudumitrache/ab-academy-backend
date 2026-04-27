@@ -423,6 +423,31 @@ class ProductAcquisitionController extends Controller
     }
 
     /**
+     * Change the group tied to a course acquisition.
+     */
+    public function updateGroup(Request $request, $id)
+    {
+        $acquisition = ProductAcquisition::find($id);
+
+        if (!$acquisition) {
+            return response()->json(['message' => 'Acquisition not found'], 404);
+        }
+
+        $data = $request->validate([
+            'group_id' => 'nullable|integer|exists:groups,group_id',
+        ]);
+
+        $acquisition->update($data);
+
+        DatabaseLog::logAction('update', ProductAcquisition::class, $acquisition->id, "group_id changed to " . ($data['group_id'] ?? 'null') . " for acquisition #{$acquisition->id}");
+
+        return response()->json([
+            'message'     => 'Group updated successfully',
+            'acquisition' => $this->format($acquisition->fresh(['product', 'student', 'paymentProfile'])),
+        ]);
+    }
+
+    /**
      * Change the product linked to an acquisition.
      */
     public function updateProduct(Request $request, $id)
@@ -449,6 +474,9 @@ class ProductAcquisitionController extends Controller
 
     /**
      * Overwrite the marked_courses list for an acquisition.
+     * Automatically adjusts remaining_courses by the net change in list size:
+     *   added entries  → decrement remaining_courses
+     *   removed entries → increment remaining_courses
      */
     public function updateMarkedCourses(Request $request, $id)
     {
@@ -463,13 +491,24 @@ class ProductAcquisitionController extends Controller
             'marked_courses.*' => 'string',
         ]);
 
-        $acquisition->update($data);
+        $oldCount = count($acquisition->marked_courses ?? []);
+        $newCount = count($data['marked_courses']);
+        $delta    = $newCount - $oldCount;
 
-        DatabaseLog::logAction('update', ProductAcquisition::class, $acquisition->id, "marked_courses updated for acquisition #{$acquisition->id}");
+        $acquisition->marked_courses = $data['marked_courses'];
+
+        if ($delta !== 0 && !is_null($acquisition->remaining_courses)) {
+            $acquisition->remaining_courses = max(0, $acquisition->remaining_courses - $delta);
+        }
+
+        $acquisition->save();
+
+        DatabaseLog::logAction('update', ProductAcquisition::class, $acquisition->id, "marked_courses updated for acquisition #{$acquisition->id} (delta: {$delta})");
 
         return response()->json([
-            'message'        => 'Marked courses updated successfully',
-            'marked_courses' => $acquisition->marked_courses,
+            'message'           => 'Marked courses updated successfully',
+            'marked_courses'    => $acquisition->marked_courses,
+            'remaining_courses' => $acquisition->remaining_courses,
         ]);
     }
 
