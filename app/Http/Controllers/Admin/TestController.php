@@ -88,6 +88,7 @@ class TestController extends Controller
             'people_assigned.*' => 'integer|exists:users,id',
             'groups_assigned'   => 'nullable|array',
             'groups_assigned.*' => 'integer|exists:groups,group_id',
+            'is_global'         => 'nullable|boolean',
         ]);
 
         $validated['test_teacher'] = $validated['test_teacher'] ?? Auth::id();
@@ -119,6 +120,7 @@ class TestController extends Controller
             'people_assigned.*' => 'integer|exists:users,id',
             'groups_assigned'   => 'nullable|array',
             'groups_assigned.*' => 'integer|exists:groups,group_id',
+            'is_global'         => 'sometimes|boolean',
         ]);
 
         $test->update($validated);
