@@ -59,7 +59,7 @@ class GroupAnnouncementController extends Controller
 
         $studentIds = Group::find($announcement->group_id)
             ->students()
-            ->pluck('id')
+            ->pluck('users.id')
             ->toArray();
 
         NotificationService::notify(
