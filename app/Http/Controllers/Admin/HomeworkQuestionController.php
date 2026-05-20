@@ -104,6 +104,7 @@ class HomeworkQuestionController extends Controller
 
         $question = Question::create([
             'section_id'        => $section->id,
+            'homework_id'       => (int) $homeworkId,
             'question_text'     => $validated['question_text'],
             'question_type'     => $validated['question_type'],
             'order'             => $validated['order'] ?? null,
