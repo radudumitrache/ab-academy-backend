@@ -61,9 +61,9 @@ class TestQuestionController extends Controller
 
         $validated = $request->validate([
             'section_id'                    => 'required|integer',
-            'question_text'                 => 'required|string',
+            'question_text'                 => 'nullable|string',
             'question_type'                 => ['required', Rule::in($allTypes)],
-            'order'                         => 'nullable|integer|min:1',
+            'order'                         => 'nullable|integer|min:0',
             'instruction_files'             => 'nullable|array',
             'instruction_files.*'           => 'integer|exists:materials,material_id',
             'variants'                      => 'nullable|array',
@@ -132,7 +132,7 @@ class TestQuestionController extends Controller
 
         $validated = $request->validate([
             'question_text'                 => 'sometimes|string',
-            'order'                         => 'nullable|integer|min:1',
+            'order'                         => 'nullable|integer|min:0',
             'instruction_files'             => 'nullable|array',
             'instruction_files.*'           => 'integer|exists:materials,material_id',
             'variants'                      => 'nullable|array',
