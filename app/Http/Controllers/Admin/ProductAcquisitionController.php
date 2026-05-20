@@ -407,10 +407,10 @@ class ProductAcquisitionController extends Controller
             return response()->json(['message' => 'Acquisition not found'], 404);
         }
 
-        $deletableStatuses = ['pending_payment', 'cancelled', 'expired'];
+        $deletableStatuses = ['pending_payment', 'paid', 'cancelled', 'expired', 'payment_failed'];
         if (!in_array($acquisition->acquisition_status, $deletableStatuses)) {
             return response()->json([
-                'message' => 'Only acquisitions with status pending_payment, cancelled, or expired can be deleted',
+                'message' => 'Only acquisitions with status pending_payment, paid, cancelled, expired, or payment_failed can be deleted',
                 'current_status' => $acquisition->acquisition_status,
             ], 422);
         }
