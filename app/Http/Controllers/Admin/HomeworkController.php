@@ -9,9 +9,12 @@ use App\Models\HomeworkSection;
 use App\Models\HomeworkSubmission;
 use App\Models\Material;
 use App\Models\Question;
+use App\Models\QuestionResponse;
 use App\Services\GcsService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 class HomeworkController extends Controller
@@ -389,6 +392,203 @@ class HomeworkController extends Controller
             'message'     => 'Submissions retrieved successfully',
             'count'       => $submissions->count(),
             'submissions' => $submissions,
+        ]);
+    }
+
+    /**
+     * Grade a submission (overall score + observation).
+     */
+    public function submissionGrade(Request $request, $homeworkId, $submissionId)
+    {
+        $homework = Homework::find($homeworkId);
+        if (!$homework) {
+            return response()->json(['message' => 'Homework not found'], 404);
+        }
+
+        $submission = HomeworkSubmission::where('homework_id', $homeworkId)->find($submissionId);
+        if (!$submission) {
+            return response()->json(['message' => 'Submission not found'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'grade'       => 'nullable|string|max:50',
+            'observation' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Validation failed', 'errors' => $validator->errors()], 422);
+        }
+
+        $submission->update($validator->validated());
+
+        NotificationService::notify(
+            $submission->student_id,
+            "Your homework '{$homework->homework_title}' has been graded.",
+            'Teacher',
+            'Homework'
+        );
+
+        return response()->json([
+            'message'    => 'Submission graded successfully',
+            'submission' => $submission->fresh(['student:id,username,email']),
+        ]);
+    }
+
+    /**
+     * Grade individual question responses within a submission.
+     * Accepts multipart/form-data with a JSON-encoded `responses` field and optional `files[{response_id}]`.
+     */
+    public function submissionGradeResponses(Request $request, $homeworkId, $submissionId)
+    {
+        $homework = Homework::find($homeworkId);
+        if (!$homework) {
+            return response()->json(['message' => 'Homework not found'], 404);
+        }
+
+        $submission = HomeworkSubmission::where('homework_id', $homeworkId)->find($submissionId);
+        if (!$submission) {
+            return response()->json(['message' => 'Submission not found'], 404);
+        }
+
+        // Parse multipart body manually (same approach as teacher controller — Symfony
+        // does not parse multipart/form-data for PATCH requests automatically).
+        $parsedBody  = [];
+        $parsedFiles = [];
+        $contentType = $request->header('Content-Type', '');
+
+        if (str_contains($contentType, 'multipart/form-data')) {
+            preg_match('/boundary=("?)(.+?)\1\s*$/i', $contentType, $matches);
+            $boundary = $matches[2] ?? '';
+            if ($boundary) {
+                $raw = $request->getContent();
+                if ($raw === '') {
+                    $raw = file_get_contents('php://input');
+                }
+                $start = strpos($raw, '--' . $boundary);
+                if ($start !== false) {
+                    $pos = $start;
+                    while (true) {
+                        $lineEnd = strpos($raw, "\r\n", $pos);
+                        if ($lineEnd === false) break;
+                        $boundaryLine = substr($raw, $pos, $lineEnd - $pos);
+                        if (str_ends_with(trim($boundaryLine), '--')) break;
+                        $partStart = $lineEnd + 2;
+                        $nextBoundary = strpos($raw, "\r\n--" . $boundary, $partStart);
+                        if ($nextBoundary === false) break;
+                        $partRaw   = substr($raw, $partStart, $nextBoundary - $partStart);
+                        $headerEnd = strpos($partRaw, "\r\n\r\n");
+                        if ($headerEnd === false) { $pos = $nextBoundary + 2; continue; }
+                        $partHeaders = substr($partRaw, 0, $headerEnd);
+                        $partBody    = substr($partRaw, $headerEnd + 4);
+                        preg_match('/name="([^"]+)"/i', $partHeaders, $nm);
+                        $fieldName = $nm[1] ?? null;
+                        if ($fieldName) {
+                            if (preg_match('/filename="([^"]*)"/i', $partHeaders, $fn)) {
+                                preg_match('/Content-Type:\s*(\S+)/i', $partHeaders, $ct);
+                                $parsedFiles[$fieldName] = ['filename' => $fn[1], 'content' => $partBody, 'contentType' => $ct[1] ?? 'application/octet-stream'];
+                            } else {
+                                $parsedBody[$fieldName] = $partBody;
+                            }
+                        }
+                        $pos = $nextBoundary + 2;
+                    }
+                }
+            }
+        }
+
+        $rawResponses = $request->input('responses') ?? ($parsedBody['responses'] ?? null);
+        if (is_string($rawResponses)) {
+            $responsesInput = json_decode($rawResponses, true) ?? null;
+        } elseif (is_array($rawResponses)) {
+            $responsesInput = $rawResponses;
+        } else {
+            $responsesInput = $request->json('responses');
+        }
+
+        $validator = Validator::make(
+            array_merge($request->all(), ['responses' => $responsesInput]),
+            [
+                'responses'               => 'required|array|min:1',
+                'responses.*.response_id' => 'required|integer',
+                'responses.*.grade'       => 'nullable|string|max:50',
+                'responses.*.observation' => 'nullable|string',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Validation failed', 'errors' => $validator->errors()], 422);
+        }
+
+        $teacher           = Auth::user();
+        $correctionsFolder = "teachers/{$teacher->username}/private/corrections";
+
+        foreach ($responsesInput as $item) {
+            $responseId = (int) $item['response_id'];
+            $response   = QuestionResponse::where('submission_id', $submissionId)->where('response_id', $responseId)->first();
+            if (!$response) {
+                return response()->json(['message' => "Response {$responseId} not found in this submission"], 404);
+            }
+
+            $updates   = [
+                'grade'       => array_key_exists('grade', $item) ? $item['grade'] : $response->grade,
+                'observation' => array_key_exists('observation', $item) ? $item['observation'] : $response->observation,
+            ];
+
+            $fileKey     = "files.{$responseId}";
+            $parsedKey   = "files[{$responseId}]";
+            $fileContent = null;
+            $fileExt     = null;
+            $parsed      = null;
+
+            if ($request->hasFile($fileKey)) {
+                $file        = $request->file($fileKey);
+                $fileExt     = $file->getClientOriginalExtension();
+                $fileContent = file_get_contents($file->getRealPath());
+            } elseif (isset($parsedFiles[$parsedKey]) && $parsedFiles[$parsedKey]['content'] !== '') {
+                $parsed      = $parsedFiles[$parsedKey];
+                $fileExt     = pathinfo($parsed['filename'], PATHINFO_EXTENSION) ?: 'bin';
+                $fileContent = $parsed['content'];
+            }
+
+            if ($fileContent !== null) {
+                $path = "{$correctionsFolder}/{$submissionId}_{$responseId}.{$fileExt}";
+                if ($response->correction_file_path) {
+                    try { $this->gcs->delete($response->correction_file_path); } catch (\Throwable) {}
+                    Material::where('gcs_path', $response->correction_file_path)->delete();
+                }
+                $this->gcs->createFolder($correctionsFolder);
+                $this->gcs->uploadContent($fileContent, $path);
+                $updates['correction_file_path'] = $path;
+
+                $originalName = isset($parsed) ? $parsed['filename']
+                    : ($request->hasFile($fileKey) ? $request->file($fileKey)->getClientOriginalName() : basename($path));
+
+                Material::create([
+                    'material_name'  => $originalName,
+                    'file_type'      => isset($parsed) ? ($parsed['contentType'] ?? 'application/octet-stream') : ($request->hasFile($fileKey) ? $request->file($fileKey)->getClientMimeType() : 'application/octet-stream'),
+                    'date_created'   => now(),
+                    'authors'        => [$teacher->id],
+                    'allowed_users'  => [],
+                    'allowed_groups' => [],
+                    'gcs_path'       => $path,
+                    'uploader_id'    => $teacher->id,
+                    'folder'         => 'private/corrections',
+                ]);
+            }
+
+            $response->update($updates);
+        }
+
+        NotificationService::notify(
+            $submission->student_id,
+            "Your homework '{$homework->homework_title}' has been graded.",
+            'Teacher',
+            'Homework'
+        );
+
+        return response()->json([
+            'message'    => 'Responses graded successfully',
+            'submission' => $submission->fresh(['student:id,username,email']),
         ]);
     }
 
