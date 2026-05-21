@@ -32,4 +32,5 @@ Route::put('/homework/{homeworkId}/questions/{questionId}',    [HomeworkQuestion
 Route::delete('/homework/{homeworkId}/questions/{questionId}', [HomeworkQuestionController::class, 'destroy']);
 
 // ── Submissions (read-only) ───────────────────────────────────────────────────
-Route::get('/homework/{id}/submissions', [HomeworkController::class, 'submissions']);
+Route::get('/homework/{id}/submissions',                   [HomeworkController::class, 'submissions']);
+Route::get('/homework/{id}/submissions/{submissionId}',    [HomeworkController::class, 'submissionShow']);
