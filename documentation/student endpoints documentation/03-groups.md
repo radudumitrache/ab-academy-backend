@@ -1,10 +1,11 @@
 # Groups (Student)
 
 ```
-GET  /api/student/groups           → list all groups the student belongs to
-GET  /api/student/groups/{id}      → group detail with assigned homework
-POST /api/student/groups/join      → join a group via class code
-GET  /api/student/groups/hours     → attendance & course hours summary
+GET  /api/student/groups                      → list all groups the student belongs to
+GET  /api/student/groups/{id}                 → group detail with assigned homework
+POST /api/student/groups/join                 → join a group via class code
+GET  /api/student/groups/hours                → attendance & course hours summary
+GET  /api/student/groups/{id}/leaderboard     → streak leaderboard for a group
 ```
 
 > **Timezone note** — `schedule_days[].time` is always returned in the **student's timezone** (set via `PUT /api/student/profile`, default `Europe/Bucharest`).
@@ -81,6 +82,54 @@ Returns group details plus all homework assigned to this group, with the student
   }
 }
 ```
+
+**Errors**: `404` if the group doesn't exist or the student is not a member.
+
+---
+
+## Streak Leaderboard
+
+`GET /api/student/groups/{id}/leaderboard`
+
+Returns all members of the group ranked by their current streak (descending). The authenticated student's entry is flagged with `is_you: true`.
+
+**Response** `200`:
+```json
+{
+  "message": "Leaderboard retrieved successfully",
+  "group_name": "English B2 — Morning",
+  "leaderboard": [
+    {
+      "rank": 1,
+      "student_id": 42,
+      "username": "maria_p",
+      "current_streak": 12,
+      "longest_streak": 15,
+      "is_you": false
+    },
+    {
+      "rank": 2,
+      "student_id": 31,
+      "username": "studentFinalDemo",
+      "current_streak": 7,
+      "longest_streak": 7,
+      "is_you": true
+    },
+    {
+      "rank": 3,
+      "student_id": 55,
+      "username": "john_d",
+      "current_streak": 0,
+      "longest_streak": 4,
+      "is_you": false
+    }
+  ]
+}
+```
+
+**Notes**:
+- Students who have never submitted anything appear with `current_streak: 0` and `longest_streak: 0`.
+- Only members of the group can view its leaderboard.
 
 **Errors**: `404` if the group doesn't exist or the student is not a member.
 

@@ -6,7 +6,7 @@ This documentation covers all student-facing API endpoints for the AB Academy pl
 
 1. [Authentication](01-authentication.md) — register, login, logout
 2. [Profile](02-profile.md) — view and update personal details, change password, profile picture
-3. [Groups](03-groups.md) — list groups, view group detail with homework, join by code, course hours
+3. [Groups](03-groups.md) — list groups, view group detail with homework, join by code, course hours, streak leaderboard
 4. [Schedule](04-schedule.md) — weekly schedule overview across all groups
 5. [Events](05-events.md) — meetings and events the student is invited to
 6. [Homework](06-homework.md) — view assigned homework, save answers, submit
@@ -55,6 +55,7 @@ Authorization: Bearer {access_token}
 | GET | `/api/student/groups/{id}` | Yes | Group detail with assigned homework |
 | POST | `/api/student/groups/join` | Yes | Join a group by class code |
 | GET | `/api/student/groups/hours` | Yes | Get attendance and course hours |
+| GET | `/api/student/groups/{id}/leaderboard` | Yes | Streak leaderboard for a group |
 | GET | `/api/student/schedule` | Yes | Weekly schedule overview |
 | GET | `/api/student/events` | Yes | List events the student is invited to |
 | GET | `/api/student/events/{id}` | Yes | Get a single event |
