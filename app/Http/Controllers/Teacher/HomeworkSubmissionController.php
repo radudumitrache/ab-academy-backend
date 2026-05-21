@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
+use App\Models\Group;
 use App\Models\Homework;
 use App\Models\HomeworkSubmission;
 use App\Models\Material;
@@ -17,12 +18,30 @@ class HomeworkSubmissionController extends Controller
 {
     public function __construct(private GcsService $gcs) {}
 
+    private function findAccessibleHomework(int $homeworkId): ?Homework
+    {
+        $teacherId = Auth::id();
+
+        $groupIds = array_unique(array_merge(
+            Group::where('group_teacher', $teacherId)->pluck('group_id')->toArray(),
+            Group::whereHas('assistantTeachers', fn($q) => $q->where('teacher_id', $teacherId))
+                ->pluck('group_id')->toArray()
+        ));
+
+        return Homework::where(function ($q) use ($teacherId, $groupIds) {
+            $q->where('homework_teacher', $teacherId);
+            foreach ($groupIds as $gid) {
+                $q->orWhereJsonContains('groups_assigned', $gid);
+            }
+        })->find($homeworkId);
+    }
+
     /**
-     * List all submitted submissions for a homework the teacher owns.
+     * List all submitted submissions for a homework accessible to the teacher.
      */
     public function index($homeworkId)
     {
-        $homework = Homework::where('homework_teacher', Auth::id())->find($homeworkId);
+        $homework = $this->findAccessibleHomework((int) $homeworkId);
 
         if (!$homework) {
             return response()->json(['message' => 'Homework not found'], 404);
@@ -54,7 +73,7 @@ class HomeworkSubmissionController extends Controller
      */
     public function show($homeworkId, $submissionId)
     {
-        $homework = Homework::where('homework_teacher', Auth::id())->find($homeworkId);
+        $homework = $this->findAccessibleHomework((int) $homeworkId);
 
         if (!$homework) {
             return response()->json(['message' => 'Homework not found'], 404);
@@ -87,7 +106,7 @@ class HomeworkSubmissionController extends Controller
      */
     public function grade(Request $request, $homeworkId, $submissionId)
     {
-        $homework = Homework::where('homework_teacher', Auth::id())->find($homeworkId);
+        $homework = $this->findAccessibleHomework((int) $homeworkId);
 
         if (!$homework) {
             return response()->json(['message' => 'Homework not found'], 404);
@@ -153,7 +172,7 @@ class HomeworkSubmissionController extends Controller
      */
     public function gradeResponses(Request $request, $homeworkId, $submissionId)
     {
-        $homework = Homework::where('homework_teacher', Auth::id())->find($homeworkId);
+        $homework = $this->findAccessibleHomework((int) $homeworkId);
 
         if (!$homework) {
             return response()->json(['message' => 'Homework not found'], 404);
