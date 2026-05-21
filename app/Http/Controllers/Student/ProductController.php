@@ -13,7 +13,7 @@ class ProductController extends Controller
     public function index()
     {
         $products = Product::where('is_active', true)
-            ->with(['singleProduct.test:id,name', 'courseProduct'])
+            ->with(['singleProduct.test:id,test_title', 'courseProduct'])
             ->get()
             ->map(fn($p) => $this->format($p));
 
@@ -30,7 +30,7 @@ class ProductController extends Controller
     public function show($id)
     {
         $product = Product::where('is_active', true)
-            ->with(['singleProduct.test:id,name', 'courseProduct'])
+            ->with(['singleProduct.test:id,test_title', 'courseProduct'])
             ->find($id);
 
         if (!$product) {
