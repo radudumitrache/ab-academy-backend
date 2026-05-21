@@ -141,6 +141,16 @@ class ProductAcquisitionController extends Controller
             'acquisition_date'   => $acquisition->acquisition_date ?? now()->toDateString(),
         ]));
 
+        // Enroll the student in each granted group via the pivot table
+        if (!empty($data['groups_access'])) {
+            foreach ($data['groups_access'] as $groupId) {
+                $group = \App\Models\Group::find($groupId);
+                if ($group) {
+                    $group->students()->syncWithoutDetaching([$acquisition->student_id]);
+                }
+            }
+        }
+
         DatabaseLog::logAction('update', ProductAcquisition::class, $acquisition->id, "Access granted for acquisition #{$acquisition->id} (student #{$acquisition->student_id})");
 
         return response()->json([
