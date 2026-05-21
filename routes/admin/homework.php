@@ -31,8 +31,6 @@ Route::post('/homework/{homeworkId}/questions',                [HomeworkQuestion
 Route::put('/homework/{homeworkId}/questions/{questionId}',    [HomeworkQuestionController::class, 'update']);
 Route::delete('/homework/{homeworkId}/questions/{questionId}', [HomeworkQuestionController::class, 'destroy']);
 
-// ── Submissions ───────────────────────────────────────────────────────────────
-Route::get('/homework/{id}/submissions',                                          [HomeworkController::class, 'submissions']);
-Route::get('/homework/{id}/submissions/{submissionId}',                           [HomeworkController::class, 'submissionShow']);
-Route::patch('/homework/{homeworkId}/submissions/{submissionId}/grade',           [HomeworkController::class, 'submissionGrade']);
-Route::patch('/homework/{homeworkId}/submissions/{submissionId}/grade-responses', [HomeworkController::class, 'submissionGradeResponses']);
+// ── Submissions (read-only) ───────────────────────────────────────────────────
+Route::get('/homework/{id}/submissions',                   [HomeworkController::class, 'submissions']);
+Route::get('/homework/{id}/submissions/{submissionId}',    [HomeworkController::class, 'submissionShow']);
