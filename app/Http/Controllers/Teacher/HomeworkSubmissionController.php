@@ -131,8 +131,9 @@ class HomeworkSubmissionController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'grade'       => 'nullable|string|max:50',
-            'observation' => 'nullable|string',
+            'grade'            => 'nullable|string|max:50',
+            'observation'      => 'nullable|string',
+            'generated_report' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {

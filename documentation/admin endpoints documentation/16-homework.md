@@ -135,6 +135,9 @@ Returns all student submissions for this homework, including responses.
       "student_id": 12,
       "status": "submitted",
       "submitted_at": "2026-03-14T18:30:00.000000Z",
+      "grade": "85",
+      "observation": "Good work overall.",
+      "generated_report": "<div>...</div>",
       "student": { "id": 12, "username": "john_doe", "email": "john@example.com" },
       "responses": [
         { "response_id": 7, "related_question": 5, "answer": "Steam power" }
@@ -143,6 +146,36 @@ Returns all student submissions for this homework, including responses.
   ]
 }
 ```
+
+---
+
+### Grade Submission
+
+`PATCH /api/admin/homework/{homeworkId}/submissions/{submissionId}/grade`
+
+Sets the overall grade, observation, and/or the generated HTML correction report on a submission.
+
+**Request body** (JSON):
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `grade` | string (max 50) | no | Overall score, e.g. `"85"` |
+| `observation` | string | no | General feedback |
+| `generated_report` | string (HTML) | no | Full HTML correction report editable by teachers/admins |
+
+**Response** `200`: Updated submission object.
+
+---
+
+### Grade Responses
+
+`PATCH /api/admin/homework/{homeworkId}/submissions/{submissionId}/grade-responses`
+
+Grades individual question responses. Accepts `multipart/form-data`.
+
+| Field | Type | Description |
+|---|---|---|
+| `responses` | JSON string | Array of `{ response_id, grade, observation }` |
+| `files[{responseId}]` | file | Optional correction file per response |
 
 ---
 
