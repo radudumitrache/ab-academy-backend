@@ -411,8 +411,9 @@ class HomeworkController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'grade'       => 'nullable|string|max:50',
-            'observation' => 'nullable|string',
+            'grade'         => 'nullable|string|max:50',
+            'observation'   => 'nullable|string',
+            'ai_correction' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
