@@ -55,7 +55,11 @@ class HomeworkSubmissionController extends Controller
                 'responses.question.wordFormationDetails',
                 'responses.question.rephraseDetails',
                 'responses.question.replaceDetails',
-                'responses.question.wordDerivationDetails'])
+                'responses.question.wordDerivationDetails',
+                'responses.question.writingQuestionDetails',
+                'responses.question.readingQuestionDetails',
+                'responses.question.speakingQuestionDetails',
+                'responses.question.mixedQuestionDetails'])
             ->where('homework_id', $homeworkId)
             ->where('status', 'submitted')
             ->get()
@@ -87,7 +91,11 @@ class HomeworkSubmissionController extends Controller
                 'responses.question.wordFormationDetails',
                 'responses.question.rephraseDetails',
                 'responses.question.replaceDetails',
-                'responses.question.wordDerivationDetails'])
+                'responses.question.wordDerivationDetails',
+                'responses.question.writingQuestionDetails',
+                'responses.question.readingQuestionDetails',
+                'responses.question.speakingQuestionDetails',
+                'responses.question.mixedQuestionDetails'])
             ->where('homework_id', $homeworkId)
             ->find($submissionId);
 
@@ -144,7 +152,11 @@ class HomeworkSubmissionController extends Controller
                 'responses.question.wordFormationDetails',
                 'responses.question.rephraseDetails',
                 'responses.question.replaceDetails',
-                'responses.question.wordDerivationDetails']);
+                'responses.question.wordDerivationDetails',
+                'responses.question.writingQuestionDetails',
+                'responses.question.readingQuestionDetails',
+                'responses.question.speakingQuestionDetails',
+                'responses.question.mixedQuestionDetails']);
 
         // Notify the student that their homework has been graded
         NotificationService::notify(
@@ -372,7 +384,11 @@ class HomeworkSubmissionController extends Controller
                 'responses.question.wordFormationDetails',
                 'responses.question.rephraseDetails',
                 'responses.question.replaceDetails',
-                'responses.question.wordDerivationDetails']);
+                'responses.question.wordDerivationDetails',
+                'responses.question.writingQuestionDetails',
+                'responses.question.readingQuestionDetails',
+                'responses.question.speakingQuestionDetails',
+                'responses.question.mixedQuestionDetails']);
 
         // Notify the student that their homework responses have been graded
         NotificationService::notify(
