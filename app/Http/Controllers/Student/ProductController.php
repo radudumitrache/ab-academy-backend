@@ -62,7 +62,7 @@ class ProductController extends Controller
                 'teacher_assistance' => $sp->teacher_assistance,
                 'test'               => $sp->test ? [
                     'id'   => $sp->test->id,
-                    'name' => $sp->test->name,
+                    'name' => $sp->test->test_title,
                 ] : null,
             ];
         } elseif ($product->type === 'course' && $product->courseProduct) {
