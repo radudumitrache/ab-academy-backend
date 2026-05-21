@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\HomeworkController;
 use App\Http\Controllers\Admin\HomeworkQuestionController;
+use App\Http\Controllers\Admin\HomeworkSubmissionController;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -34,3 +35,7 @@ Route::delete('/homework/{homeworkId}/questions/{questionId}', [HomeworkQuestion
 // ── Submissions (read-only) ───────────────────────────────────────────────────
 Route::get('/homework/{id}/submissions',                   [HomeworkController::class, 'submissions']);
 Route::get('/homework/{id}/submissions/{submissionId}',    [HomeworkController::class, 'submissionShow']);
+
+// ── Grading ───────────────────────────────────────────────────────────────────
+Route::patch('/homework/{homeworkId}/submissions/{submissionId}/grade',           [HomeworkSubmissionController::class, 'grade']);
+Route::patch('/homework/{homeworkId}/submissions/{submissionId}/grade-responses', [HomeworkSubmissionController::class, 'gradeResponses']);
