@@ -9,12 +9,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Wrap existing integer values into JSON arrays before changing column type
-        DB::statement('UPDATE test_multiple_choice_questions SET correct_variant = JSON_ARRAY(correct_variant)');
-
-        Schema::table('test_multiple_choice_questions', function (Blueprint $table) {
-            $table->json('correct_variant')->change();
-        });
+        // Step 1: Widen to text so we can store JSON strings
+        DB::statement('ALTER TABLE test_multiple_choice_questions MODIFY correct_variant TEXT NOT NULL');
+        // Step 2: Wrap existing bare integers into single-element JSON arrays
+        DB::statement("UPDATE test_multiple_choice_questions SET correct_variant = CONCAT('[', correct_variant, ']')");
+        // Step 3: Tighten back to proper JSON column
+        DB::statement('ALTER TABLE test_multiple_choice_questions MODIFY correct_variant JSON NOT NULL');
     }
 
     public function down(): void
