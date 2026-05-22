@@ -21,7 +21,7 @@ class TestSubmissionController extends Controller
      */
     public function index($testId)
     {
-        $test = Test::where('test_teacher', Auth::id())->find($testId);
+        $test = Test::find($testId);
 
         if (!$test) {
             return response()->json(['message' => 'Test not found'], 404);
@@ -53,7 +53,7 @@ class TestSubmissionController extends Controller
      */
     public function show($testId, $submissionId)
     {
-        $test = Test::where('test_teacher', Auth::id())->find($testId);
+        $test = Test::find($testId);
 
         if (!$test) {
             return response()->json(['message' => 'Test not found'], 404);
@@ -86,7 +86,7 @@ class TestSubmissionController extends Controller
      */
     public function grade(Request $request, $testId, $submissionId)
     {
-        $test = Test::where('test_teacher', Auth::id())->find($testId);
+        $test = Test::find($testId);
 
         if (!$test) {
             return response()->json(['message' => 'Test not found'], 404);
@@ -144,7 +144,7 @@ class TestSubmissionController extends Controller
      */
     public function gradeResponses(Request $request, $testId, $submissionId)
     {
-        $test = Test::where('test_teacher', Auth::id())->find($testId);
+        $test = Test::find($testId);
 
         if (!$test) {
             return response()->json(['message' => 'Test not found'], 404);

@@ -18,8 +18,7 @@ class TestController extends Controller
      */
     public function index()
     {
-        $tests = Test::where('test_teacher', Auth::id())
-            ->withCount('allQuestions')
+        $tests = Test::withCount('allQuestions')
             ->orderByDesc('created_at')
             ->get();
 
@@ -36,7 +35,7 @@ class TestController extends Controller
      */
     public function show($id)
     {
-        $test = Test::where('test_teacher', Auth::id())->find($id);
+        $test = Test::find($id);
 
         if (!$test) {
             return response()->json(['message' => 'Test not found'], 404);
@@ -141,7 +140,7 @@ class TestController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $test = Test::where('test_teacher', Auth::id())->find($id);
+        $test = Test::find($id);
 
         if (!$test) {
             return response()->json(['message' => 'Test not found'], 404);
@@ -170,7 +169,7 @@ class TestController extends Controller
      */
     public function destroy($id)
     {
-        $test = Test::where('test_teacher', Auth::id())->find($id);
+        $test = Test::find($id);
 
         if (!$test) {
             return response()->json(['message' => 'Test not found'], 404);
@@ -186,7 +185,7 @@ class TestController extends Controller
      */
     public function assignStudents(Request $request, $id)
     {
-        $test = Test::where('test_teacher', Auth::id())->find($id);
+        $test = Test::find($id);
 
         if (!$test) {
             return response()->json(['message' => 'Test not found'], 404);

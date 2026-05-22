@@ -27,7 +27,7 @@ class TestQuestionController extends Controller
 {
     private function findOwnedTest($testId)
     {
-        return Test::where('test_teacher', Auth::id())->find($testId);
+        return Test::find($testId);
     }
 
     private function loadDetailRelation(TestQuestion $question): TestQuestion
