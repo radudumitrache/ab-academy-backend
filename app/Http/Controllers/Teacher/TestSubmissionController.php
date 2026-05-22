@@ -315,7 +315,11 @@ class TestSubmissionController extends Controller
                         $row['answer_text'] = $variants[(int) $response->answer] ?? $response->answer;
                     }
                     if ($correct !== null) {
-                        $row['correct_answer'] = $variants[(int) $correct] ?? null;
+                        $correctIndices = is_array($correct) ? $correct : [$correct];
+                        $row['correct_answer'] = array_values(array_filter(
+                            array_map(fn ($i) => $variants[(int) $i] ?? null, $correctIndices),
+                            fn ($v) => $v !== null
+                        ));
                     }
                     break;
 

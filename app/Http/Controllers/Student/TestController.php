@@ -341,7 +341,11 @@ class TestController extends Controller
                             $answerText = $variants[(int) $r->answer] ?? $r->answer;
                         }
                         if ($correct !== null) {
-                            $correctAnswer = $variants[(int) $correct] ?? null;
+                            $correctIndices = is_array($correct) ? $correct : [$correct];
+                            $correctAnswer = array_values(array_filter(
+                                array_map(fn ($i) => $variants[(int) $i] ?? null, $correctIndices),
+                                fn ($v) => $v !== null
+                            ));
                         }
                         break;
                     case 'gap_fill':
