@@ -391,8 +391,9 @@ Returns all submitted submissions for the given homework (owner only).
       "submitted_at": "2026-03-10T14:00:00.000000Z",
       "grade": null,
       "observation": null,
+      "generated_report": null,
       "student": { "id": 12, "username": "student1", "email": "s1@example.com" },
-      "responses": [ { ... } ]
+      "responses": [ { "...": "..." } ]
     }
   ]
 }
@@ -421,6 +422,7 @@ Returns a single submission with all student responses and question details.
     "submitted_at": "2026-03-10T14:00:00.000000Z",
     "grade": null,
     "observation": null,
+    "generated_report": null,
     "student": { "id": 12, "username": "student1", "email": "s1@example.com" },
     "responses": [
       {

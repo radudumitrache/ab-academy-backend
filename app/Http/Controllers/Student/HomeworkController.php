@@ -104,6 +104,7 @@ class HomeworkController extends Controller
         $homeworkData['submitted_at']      = $sub ? $sub->submitted_at : null;
         $homeworkData['grade']             = $sub ? $sub->grade : null;
         $homeworkData['observation']       = $sub ? $sub->observation : null;
+        $homeworkData['generated_report']  = $sub ? $sub->generated_report : null;
 
         if ($sub) {
             $homeworkData['responses'] = $sub->responses->map(function ($r) {
@@ -460,11 +461,12 @@ class HomeworkController extends Controller
         return response()->json([
             'message' => 'Results retrieved successfully',
             'results' => [
-                'submission_id' => $sub->id,
-                'submitted_at'  => $sub->submitted_at,
-                'grade'         => $sub->grade,
-                'observation'   => $sub->observation,
-                'responses'     => $responses,
+                'submission_id'    => $sub->id,
+                'submitted_at'     => $sub->submitted_at,
+                'grade'            => $sub->grade,
+                'observation'      => $sub->observation,
+                'generated_report' => $sub->generated_report,
+                'responses'        => $responses,
             ],
         ]);
     }

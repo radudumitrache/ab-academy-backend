@@ -146,10 +146,10 @@ Authorization: Bearer {access_token}
 | POST | `/api/admin/homework/{homeworkId}/questions` | Yes | Add a question |
 | PUT | `/api/admin/homework/{homeworkId}/questions/{qId}` | Yes | Update a question |
 | DELETE | `/api/admin/homework/{homeworkId}/questions/{qId}` | Yes | Delete a question |
-| GET | `/api/admin/homework/{homeworkId}/submissions` | Yes | List submitted homework submissions |
-| GET | `/api/admin/homework/{homeworkId}/submissions/{sId}` | Yes | Get a single homework submission |
-| PATCH | `/api/admin/homework/{homeworkId}/submissions/{sId}/grade` | Yes | Grade a homework submission |
-| PATCH | `/api/admin/homework/{homeworkId}/submissions/{sId}/grade-responses` | Yes | Grade individual question responses |
+| GET | `/api/admin/homework/{homeworkId}/submissions` | Yes | List all submitted homework submissions |
+| GET | `/api/admin/homework/{homeworkId}/submissions/{sId}` | Yes | Get a single submission with full question details |
+| PATCH | `/api/admin/homework/{homeworkId}/submissions/{sId}/grade` | Yes | Set overall grade, observation, and/or `generated_report` (HTML) |
+| PATCH | `/api/admin/homework/{homeworkId}/submissions/{sId}/grade-responses` | Yes | Grade individual question responses, optionally with correction files |
 | GET | `/api/admin/tests` | Yes | List all tests |
 | POST | `/api/admin/tests` | Yes | Create a test |
 | GET | `/api/admin/tests/{id}` | Yes | Get test with sections and questions |
