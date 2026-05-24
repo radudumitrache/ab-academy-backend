@@ -78,7 +78,7 @@ class TestQuestionController extends Controller
             'instruction_files'   => 'nullable|array',
             'instruction_files.*' => 'integer|exists:materials,material_id',
             'variants'            => 'nullable|array',
-            'variants.*'          => 'string',
+            'variants.*'          => 'nullable|string',
             'correct_variant'     => ['nullable', function ($attribute, $value, $fail) {
                 if (!is_int($value) && !is_array($value)) {
                     $fail("The $attribute must be an integer or an array of integers.");
@@ -93,7 +93,7 @@ class TestQuestionController extends Controller
             }],
             'with_variants'       => 'nullable|boolean',
             'correct_answers'     => 'nullable|array',
-            'correct_answers.*'   => 'string',
+            'correct_answers.*' => 'nullable|string',
             'sample_answer'       => 'nullable|string',
             'base_word'           => 'nullable|string',
             'root_word'           => 'nullable|string',
@@ -101,9 +101,9 @@ class TestQuestionController extends Controller
             'incorrect_text'      => 'nullable|string',
             'full_text'           => 'nullable|string',
             'column_a'            => 'nullable|array',
-            'column_a.*'          => 'string',
+            'column_a.*' => 'nullable|string',
             'column_b'            => 'nullable|array',
-            'column_b.*'          => 'string',
+            'column_b.*' => 'nullable|string',
             'correct_pairs'                   => 'nullable|array',
             'speaking_instruction_files'      => 'nullable|array',
             'speaking_instruction_files.*'    => 'integer|exists:materials,material_id',
@@ -160,7 +160,7 @@ class TestQuestionController extends Controller
             'instruction_files'   => 'nullable|array',
             'instruction_files.*' => 'integer|exists:materials,material_id',
             'variants'            => 'nullable|array',
-            'variants.*'          => 'string',
+            'variants.*'          => 'nullable|string',
             'correct_variant'     => ['nullable', function ($attribute, $value, $fail) {
                 if (!is_int($value) && !is_array($value)) {
                     $fail("The $attribute must be an integer or an array of integers.");
@@ -175,7 +175,7 @@ class TestQuestionController extends Controller
             }],
             'with_variants'       => 'nullable|boolean',
             'correct_answers'     => 'nullable|array',
-            'correct_answers.*'   => 'string',
+            'correct_answers.*' => 'nullable|string',
             'sample_answer'       => 'nullable|string',
             'base_word'           => 'nullable|string',
             'root_word'           => 'nullable|string',
@@ -183,9 +183,9 @@ class TestQuestionController extends Controller
             'incorrect_text'      => 'nullable|string',
             'full_text'           => 'nullable|string',
             'column_a'            => 'nullable|array',
-            'column_a.*'          => 'string',
+            'column_a.*' => 'nullable|string',
             'column_b'            => 'nullable|array',
-            'column_b.*'          => 'string',
+            'column_b.*' => 'nullable|string',
             'correct_pairs'                   => 'nullable|array',
             'speaking_instruction_files'      => 'nullable|array',
             'speaking_instruction_files.*'    => 'integer|exists:materials,material_id',
