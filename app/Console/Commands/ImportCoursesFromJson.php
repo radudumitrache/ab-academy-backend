@@ -88,8 +88,10 @@ class ImportCoursesFromJson extends Command
                     return;
                 }
 
-                $name             = trim($translation['title'] ?? '');
-                $description      = $translation['description'] ?? null;
+                $name             = trim(strip_tags($translation['title'] ?? ''));
+                $description      = isset($translation['description'])
+                                        ? trim(strip_tags($translation['description']))
+                                        : null;
                 $price            = isset($item['price']) && $item['price'] !== null
                                         ? (float) $item['price']
                                         : 0.00;
