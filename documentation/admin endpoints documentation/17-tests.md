@@ -128,6 +128,8 @@ When `is_global` is `true`, the test is visible to every student on the platform
 
 `GET /api/admin/tests/{id}/submissions`
 
+Returns all submitted submissions for this test across all students.
+
 **Response** `200`:
 ```json
 {
@@ -140,14 +142,162 @@ When `is_global` is `true`, the test is visible to every student on the platform
       "student_id": 12,
       "status": "submitted",
       "submitted_at": "2026-03-30T14:00:00.000000Z",
+      "grade": null,
+      "observation": null,
       "student": { "id": 12, "username": "john_doe", "email": "john@example.com" },
       "responses": [
-        { "response_id": 9, "related_question": 7, "answer": "went" }
+        {
+          "response_id": 9,
+          "related_question": 7,
+          "answer": "1",
+          "answer_text": "went",
+          "correct_answer": ["went"],
+          "grade": "correct",
+          "observation": null,
+          "correction_file_url": null
+        }
       ]
     }
   ]
 }
 ```
+
+---
+
+### View Single Submission
+
+`GET /api/admin/tests/{testId}/submissions/{submissionId}`
+
+Returns one submission with all student responses and full question detail objects (question type, correct answers, etc.).
+
+**Response** `200`:
+```json
+{
+  "message": "Submission retrieved successfully",
+  "submission": {
+    "id": 4,
+    "test_id": 2,
+    "student_id": 12,
+    "status": "submitted",
+    "submitted_at": "2026-03-30T14:00:00.000000Z",
+    "grade": "8/10",
+    "observation": "Good overall.",
+    "student": { "id": 12, "username": "john_doe", "email": "john@example.com" },
+    "responses": [
+      {
+        "response_id": 9,
+        "submission_id": 4,
+        "related_question": 7,
+        "answer": "1",
+        "answer_text": "went",
+        "correct_answer": ["went"],
+        "grade": "correct",
+        "observation": null,
+        "correction_file_path": null,
+        "correction_file_url": null,
+        "question": {
+          "test_question_id": 7,
+          "question_type": "multiple_choice",
+          "question_text": "Choose the correct past tense form.",
+          "...": "..."
+        }
+      }
+    ]
+  }
+}
+```
+
+**Errors**:
+- `404` — test not found or submission not found
+
+---
+
+### Grade Submission
+
+`PATCH /api/admin/tests/{testId}/submissions/{submissionId}/grade`
+
+Sets the overall grade and/or observation on a submission. All fields are optional — only the provided fields are updated. Can be called multiple times.
+
+**Request body** (JSON — all fields optional):
+```json
+{
+  "grade": "8/10",
+  "observation": "Good overall performance."
+}
+```
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `grade` | string (max 50) | Free-form score string, e.g. `"85"`, `"8/10"`, `"B+"` |
+| `observation` | string | Overall feedback text |
+
+**Response** `200` — the full updated submission object:
+```json
+{
+  "message": "Submission graded successfully",
+  "submission": { "...": "..." }
+}
+```
+
+A push notification is sent to the student: `"Your test '{test_title}' has been graded."`
+
+**Errors**:
+- `404` — test or submission not found
+- `422` — submission status is not `"submitted"`
+
+---
+
+### Grade Individual Question Responses
+
+`PATCH /api/admin/tests/{testId}/submissions/{submissionId}/grade-responses`
+
+Sets a grade, observation, and/or an attached correction file on one or more individual question responses. Only the listed response IDs are updated — omitted responses are left unchanged.
+
+> **Note:** Questions with predefined correct answers (`multiple_choice`, `gap_fill`, `text_completion`, `correlation`) are auto-graded when the student saves answers. Their `grade` field is pre-filled (`"correct"/"incorrect"` or `"x / total"`). Admins can still override these grades using this endpoint.
+
+Accepts **`multipart/form-data`**.
+
+> **Important:** Always send as `multipart/form-data`. Do **not** set `Content-Type: application/json`. When using `fetch` or `axios` with a `FormData` object, do **not** set `Content-Type` manually — let the library include the `boundary` parameter automatically.
+
+**Request fields:**
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `responses` | JSON string | Yes | Array of `{ response_id, grade, observation }` encoded as a JSON string |
+| `responses[*].response_id` | integer | Yes | `response_id` from the submission |
+| `responses[*].grade` | string | No | Per-question grade, max 50 chars |
+| `responses[*].observation` | string | No | Per-question feedback |
+| `files[{response_id}]` | file | No | Correction file for the given response. Max 50 MB. Stored at `admin/private/corrections/{submissionId}_{responseId}.{ext}` |
+
+**Example form fields:**
+```
+responses = [{"response_id":9,"grade":"correct","observation":"Perfect."},{"response_id":10,"grade":"2/3","observation":"One blank wrong."}]
+files[10]  = <uploaded correction PDF>
+```
+
+**Response** `200` — the full updated submission, with `correction_file_url` (60-min signed GCS URL) on each graded response:
+```json
+{
+  "message": "Responses graded successfully",
+  "submission": {
+    "responses": [
+      {
+        "response_id": 10,
+        "grade": "2/3",
+        "observation": "One blank wrong.",
+        "correction_file_path": "admin/private/corrections/4_10.pdf",
+        "correction_file_url": "https://storage.googleapis.com/...?X-Goog-Signature=..."
+      }
+    ]
+  }
+}
+```
+
+A push notification is sent to the student: `"Your test '{test_title}' has been graded."`
+
+**Errors**:
+- `404` — test, submission, or a `response_id` not found in this submission
+- `422` — submission not yet submitted, or validation failed
 
 ---
 
