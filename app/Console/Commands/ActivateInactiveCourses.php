@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Course;
+use App\Models\Product;
 use Illuminate\Console\Command;
 
 class ActivateInactiveCourses extends Command
@@ -20,30 +20,34 @@ class ActivateInactiveCourses extends Command
      *
      * @var string
      */
-    protected $description = 'Set all inactive courses (is_active = false) to active';
+    protected $description = 'Set all inactive course products (type=course, is_active=false) to active';
 
     /**
      * Execute the console command.
      */
     public function handle(): int
     {
-        $count = Course::where('is_active', false)->count();
+        $count = Product::where('type', 'course')
+            ->where('is_active', false)
+            ->count();
 
         if ($count === 0) {
-            $this->info('No inactive courses found.');
+            $this->info('No inactive course products found.');
             return 0;
         }
 
-        $this->warn("Found {$count} inactive course(s).");
+        $this->warn("Found {$count} inactive course product(s).");
 
-        if (! $this->option('force') && ! $this->confirm("Set {$count} course(s) to active?", false)) {
+        if (! $this->option('force') && ! $this->confirm("Set {$count} course product(s) to active?", false)) {
             $this->line('Aborted.');
             return 0;
         }
 
-        $updated = Course::where('is_active', false)->update(['is_active' => true]);
+        $updated = Product::where('type', 'course')
+            ->where('is_active', false)
+            ->update(['is_active' => true]);
 
-        $this->info("Activated {$updated} course(s).");
+        $this->info("Activated {$updated} course product(s).");
 
         return 0;
     }

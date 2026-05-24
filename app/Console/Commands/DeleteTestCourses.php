@@ -2,7 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Course;
+use App\Models\CourseProduct;
+use App\Models\Product;
 use Illuminate\Console\Command;
 
 class DeleteTestCourses extends Command
@@ -20,48 +21,51 @@ class DeleteTestCourses extends Command
      *
      * @var string
      */
-    protected $description = 'Permanently delete all courses whose title contains the word "Test" (case insensitive)';
+    protected $description = 'Permanently delete all course products whose name contains the word "Test" (case insensitive)';
 
     /**
      * Execute the console command.
      */
     public function handle(): int
     {
-        $courses = Course::withTrashed()
-            ->whereRaw('LOWER(title) LIKE ?', ['%test%'])
+        $courses = Product::withTrashed()
+            ->where('type', 'course')
+            ->whereRaw('LOWER(name) LIKE ?', ['%test%'])
             ->get();
 
         $count = $courses->count();
 
         if ($count === 0) {
-            $this->info('No courses with "Test" in the title found.');
+            $this->info('No course products with "Test" in the name found.');
             return 0;
         }
 
-        $this->warn("Found {$count} course(s) with \"Test\" in the title:");
+        $this->warn("Found {$count} course product(s) with \"Test\" in the name:");
         $this->table(
-            ['ID', 'Title', 'Is Active', 'Deleted At'],
-            $courses->map(fn ($c) => [
-                $c->id,
-                $c->title,
-                $c->is_active ? 'Yes' : 'No',
-                $c->deleted_at ?? '—',
+            ['ID', 'Name', 'Is Active', 'Deleted At'],
+            $courses->map(fn ($p) => [
+                $p->id,
+                $p->name,
+                $p->is_active ? 'Yes' : 'No',
+                $p->deleted_at ?? '—',
             ])->toArray()
         );
 
-        if (! $this->option('force') && ! $this->confirm("Permanently delete {$count} course(s)?", false)) {
+        if (! $this->option('force') && ! $this->confirm("Permanently delete {$count} course product(s)?", false)) {
             $this->line('Aborted.');
             return 0;
         }
 
         $deleted = 0;
 
-        foreach ($courses as $course) {
-            $course->forceDelete();
+        foreach ($courses as $product) {
+            // Delete the child course_products row before force-deleting the parent
+            CourseProduct::where('product_id', $product->id)->delete();
+            $product->forceDelete();
             $deleted++;
         }
 
-        $this->info("Permanently deleted {$deleted} course(s) with \"Test\" in the title.");
+        $this->info("Permanently deleted {$deleted} course product(s) with \"Test\" in the name.");
 
         return 0;
     }
