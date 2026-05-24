@@ -8,6 +8,7 @@ use App\Models\HomeworkSubmission;
 use App\Models\Material;
 use App\Models\QuestionResponse;
 use App\Services\AchievementService;
+use App\Services\AutoGradingService;
 use App\Services\GcsService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -188,15 +189,26 @@ class HomeworkController extends Controller
 
         // ── Text answers ──────────────────────────────────────────────────────
         foreach ($request->answers ?? [] as $item) {
+            $autoGrade = AutoGradingService::gradeHomeworkResponse(
+                (int) $item['question_id'],
+                $item['answer'] ?? null
+            );
+
+            $updateData = [
+                'related_student' => $studentId,
+                'answer'          => $item['answer'],
+            ];
+
+            if ($autoGrade !== null) {
+                $updateData['grade'] = $autoGrade;
+            }
+
             QuestionResponse::updateOrCreate(
                 [
                     'submission_id'    => $submission->id,
                     'related_question' => $item['question_id'],
                 ],
-                [
-                    'related_student' => $studentId,
-                    'answer'          => $item['answer'],
-                ]
+                $updateData
             );
         }
 
