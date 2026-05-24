@@ -30,6 +30,7 @@ class DeleteTestCourses extends Command
     {
         $courses = Product::withTrashed()
             ->where('type', 'course')
+            ->where('id', '>', 5)
             ->whereRaw('LOWER(name) LIKE ?', ['%test%'])
             ->get();
 
