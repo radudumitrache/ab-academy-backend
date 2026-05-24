@@ -151,6 +151,20 @@ class ProductAcquisitionController extends Controller
             }
         }
 
+        // Assign the student to each granted test (people_assigned JSON merge, no duplicates)
+        if (!empty($data['tests_access'])) {
+            foreach ($data['tests_access'] as $testId) {
+                $test = \App\Models\Test::find($testId);
+                if ($test) {
+                    $assigned = $test->people_assigned ?? [];
+                    if (!in_array($acquisition->student_id, $assigned)) {
+                        $assigned[] = $acquisition->student_id;
+                        $test->update(['people_assigned' => $assigned]);
+                    }
+                }
+            }
+        }
+
         DatabaseLog::logAction('update', ProductAcquisition::class, $acquisition->id, "Access granted for acquisition #{$acquisition->id} (student #{$acquisition->student_id})");
 
         return response()->json([
