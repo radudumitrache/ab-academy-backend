@@ -12,6 +12,7 @@ All enrollment operations are scoped to the teacher's own groups — a teacher c
 {
   "id": 7,
   "name": "English B1 — March 2026",
+  "exam_type": "Ielts certificate",
   "date": "2026-03-15",
   "status": "upcoming",
   "students": [
@@ -23,7 +24,11 @@ All enrollment operations are scoped to the teacher's own groups — a teacher c
         "exam_id": 7,
         "student_id": 12,
         "score": null,
-        "feedback": null
+        "feedback": null,
+        "student_score": null,
+        "notes": null,
+        "created_at": "2026-02-20T10:00:00.000000Z",
+        "updated_at": "2026-02-20T10:00:00.000000Z"
       }
     }
   ],
@@ -36,9 +41,13 @@ All enrollment operations are scoped to the teacher's own groups — a teacher c
 |-------|-------------|
 | `id` | Unique exam identifier |
 | `name` | Name or title of the exam |
+| `exam_type` | Type/category of the exam (e.g. `Ielts certificate`, `All sections`) |
 | `date` | Exam date (`YYYY-MM-DD`) |
 | `status` | One of `upcoming`, `to_be_corrected`, `passed`, `failed` |
-| `students` | Students currently enrolled, with their `score` and `feedback` from the pivot |
+| `students[].pivot.score` | Admin-assigned numeric score (decimal); `null` if not yet graded |
+| `students[].pivot.feedback` | Admin text feedback for the student; `null` if not yet provided |
+| `students[].pivot.student_score` | Score the student self-reported (free text); `null` if not set |
+| `students[].pivot.notes` | Student's own notes for this exam; `null` if not set |
 
 ---
 
