@@ -7,6 +7,7 @@ use App\Models\InvoicePayment;
 use App\Models\ProductAcquisition;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class EuPlatescController extends Controller
@@ -22,6 +23,12 @@ class EuPlatescController extends Controller
         Log::info('EuPlatesc IPN received', $request->all());
 
         $this->handleCallback($request);
+
+        try {
+            Http::asForm()->post('https://andreeaberkhout.com/notify-url-euplatesc', $request->all());
+        } catch (\Throwable $e) {
+            Log::warning('EuPlatesc forward failed: ' . $e->getMessage());
+        }
 
         // EuPlatesc expects a plain-text "<EPAYMENT>" response to acknowledge IPN
         return response('<EPAYMENT>' . date('YmdHis') . '|OK', 200)
