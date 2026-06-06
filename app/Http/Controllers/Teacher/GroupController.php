@@ -311,7 +311,9 @@ class GroupController extends Controller
             ], 422);
         }
 
-        $student = Student::where('username', $request->username)->first();
+        $student = Student::where('username', $request->username)
+                         ->orWhere('email', $request->username)
+                         ->first();
 
         if (!$student) {
             return response()->json([
