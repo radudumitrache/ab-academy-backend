@@ -17,9 +17,7 @@ class ExamController extends Controller
      */
     public function index()
     {
-        $exams = Exam::with(['students' => function ($q) {
-            $q->withPivot('score', 'feedback', 'student_score', 'notes');
-        }])->get();
+        $exams = Exam::with(['students'])->get();
 
         return response()->json([
             'message' => 'Exams retrieved successfully',
@@ -80,10 +78,7 @@ class ExamController extends Controller
      */
     public function show($id)
     {
-        $exam = Exam::with([
-            'students' => fn($q) => $q->withPivot('score', 'feedback', 'student_score', 'notes'),
-            'statusHistory',
-        ])->find($id);
+        $exam = Exam::with(['students', 'statusHistory'])->find($id);
 
         if (!$exam) {
             return response()->json(['message' => 'Exam not found'], 404);
@@ -231,7 +226,7 @@ class ExamController extends Controller
 
         return response()->json([
             'message' => 'Student graded successfully',
-            'exam'    => $exam->load(['students' => fn($q) => $q->withPivot('score', 'feedback', 'student_score', 'notes')]),
+            'exam'    => $exam->load(['students']),
         ], 200);
     }
 

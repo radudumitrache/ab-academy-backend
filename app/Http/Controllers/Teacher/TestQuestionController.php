@@ -27,7 +27,7 @@ class TestQuestionController extends Controller
 {
     private function findOwnedTest($testId)
     {
-        return Test::where('test_teacher', Auth::id())->find($testId);
+        return Test::find($testId);
     }
 
     private function loadDetailRelation(TestQuestion $question): TestQuestion
@@ -78,11 +78,22 @@ class TestQuestionController extends Controller
             'instruction_files'   => 'nullable|array',
             'instruction_files.*' => 'integer|exists:materials,material_id',
             'variants'            => 'nullable|array',
-            'variants.*'          => 'string',
-            'correct_variant'     => 'nullable|integer',
+            'variants.*'          => 'nullable|string',
+            'correct_variant'     => ['nullable', function ($attribute, $value, $fail) {
+                if (!is_int($value) && !is_array($value)) {
+                    $fail("The $attribute must be an integer or an array of integers.");
+                }
+                if (is_array($value)) {
+                    foreach ($value as $v) {
+                        if (!is_int($v)) {
+                            $fail("Each value in $attribute must be an integer.");
+                        }
+                    }
+                }
+            }],
             'with_variants'       => 'nullable|boolean',
             'correct_answers'     => 'nullable|array',
-            'correct_answers.*'   => 'string',
+            'correct_answers.*' => 'nullable|string',
             'sample_answer'       => 'nullable|string',
             'base_word'           => 'nullable|string',
             'root_word'           => 'nullable|string',
@@ -90,9 +101,9 @@ class TestQuestionController extends Controller
             'incorrect_text'      => 'nullable|string',
             'full_text'           => 'nullable|string',
             'column_a'            => 'nullable|array',
-            'column_a.*'          => 'string',
+            'column_a.*' => 'nullable|string',
             'column_b'            => 'nullable|array',
-            'column_b.*'          => 'string',
+            'column_b.*' => 'nullable|string',
             'correct_pairs'                   => 'nullable|array',
             'speaking_instruction_files'      => 'nullable|array',
             'speaking_instruction_files.*'    => 'integer|exists:materials,material_id',
@@ -149,11 +160,22 @@ class TestQuestionController extends Controller
             'instruction_files'   => 'nullable|array',
             'instruction_files.*' => 'integer|exists:materials,material_id',
             'variants'            => 'nullable|array',
-            'variants.*'          => 'string',
-            'correct_variant'     => 'nullable|integer',
+            'variants.*'          => 'nullable|string',
+            'correct_variant'     => ['nullable', function ($attribute, $value, $fail) {
+                if (!is_int($value) && !is_array($value)) {
+                    $fail("The $attribute must be an integer or an array of integers.");
+                }
+                if (is_array($value)) {
+                    foreach ($value as $v) {
+                        if (!is_int($v)) {
+                            $fail("Each value in $attribute must be an integer.");
+                        }
+                    }
+                }
+            }],
             'with_variants'       => 'nullable|boolean',
             'correct_answers'     => 'nullable|array',
-            'correct_answers.*'   => 'string',
+            'correct_answers.*' => 'nullable|string',
             'sample_answer'       => 'nullable|string',
             'base_word'           => 'nullable|string',
             'root_word'           => 'nullable|string',
@@ -161,9 +183,9 @@ class TestQuestionController extends Controller
             'incorrect_text'      => 'nullable|string',
             'full_text'           => 'nullable|string',
             'column_a'            => 'nullable|array',
-            'column_a.*'          => 'string',
+            'column_a.*' => 'nullable|string',
             'column_b'            => 'nullable|array',
-            'column_b.*'          => 'string',
+            'column_b.*' => 'nullable|string',
             'correct_pairs'                   => 'nullable|array',
             'speaking_instruction_files'      => 'nullable|array',
             'speaking_instruction_files.*'    => 'integer|exists:materials,material_id',
@@ -216,7 +238,9 @@ class TestQuestionController extends Controller
                 => TestMultipleChoiceQuestion::create([
                     'test_question_id' => $qId,
                     'variants'         => $data['variants'] ?? [],
-                    'correct_variant'  => $data['correct_variant'] ?? 0,
+                    'correct_variant'  => is_array($data['correct_variant'] ?? null)
+                        ? $data['correct_variant']
+                        : (isset($data['correct_variant']) ? [$data['correct_variant']] : []),
                 ]),
 
             $type === 'gap_fill'
@@ -313,9 +337,12 @@ class TestQuestionController extends Controller
             in_array($type, ['multiple_choice', 'reading_multiple_choice', 'listening_multiple_choice']) => (function () use ($qId, $data) {
                 $detail = TestMultipleChoiceQuestion::where('test_question_id', $qId)->first();
                 if ($detail) {
+                    $correctVariant = isset($data['correct_variant'])
+                        ? (is_array($data['correct_variant']) ? $data['correct_variant'] : [$data['correct_variant']])
+                        : null;
                     $detail->update(array_filter([
                         'variants'        => $data['variants'] ?? null,
-                        'correct_variant' => $data['correct_variant'] ?? null,
+                        'correct_variant' => $correctVariant,
                     ], fn ($v) => !is_null($v)));
                 }
             })(),

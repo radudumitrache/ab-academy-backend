@@ -297,6 +297,61 @@ class HomeworkController extends Controller
     // ── Submissions (view only) ───────────────────────────────────────────────
 
     /**
+     * Get a single submission with all responses and full question details.
+     */
+    public function submissionShow($homeworkId, $submissionId)
+    {
+        if (!Homework::find($homeworkId)) {
+            return response()->json(['message' => 'Homework not found'], 404);
+        }
+
+        $submission = HomeworkSubmission::with([
+            'student:id,username,email',
+            'responses.question.multipleChoiceDetails',
+            'responses.question.gapFillDetails',
+            'responses.question.textCompletionDetails',
+            'responses.question.correlationDetails',
+            'responses.question.correctDetails',
+            'responses.question.wordFormationDetails',
+            'responses.question.rephraseDetails',
+            'responses.question.replaceDetails',
+            'responses.question.wordDerivationDetails',
+            'responses.question.writingQuestionDetails',
+            'responses.question.speakingQuestionDetails',
+            'responses.question.readingQuestionDetails',
+            'responses.question.mixedQuestionDetails',
+        ])
+            ->where('homework_id', $homeworkId)
+            ->find($submissionId);
+
+        if (!$submission) {
+            return response()->json(['message' => 'Submission not found'], 404);
+        }
+
+        $submission->responses->each(function ($response) {
+            try {
+                $response->file_url = $response->file_path
+                    ? $this->gcs->signedUrl($response->file_path, 60)
+                    : null;
+            } catch (\Throwable) {
+                $response->file_url = null;
+            }
+            try {
+                $response->correction_file_url = $response->correction_file_path
+                    ? $this->gcs->signedUrl($response->correction_file_path, 60)
+                    : null;
+            } catch (\Throwable) {
+                $response->correction_file_url = null;
+            }
+        });
+
+        return response()->json([
+            'message'    => 'Submission retrieved successfully',
+            'submission' => $submission,
+        ]);
+    }
+
+    /**
      * List all student submissions for a homework.
      * File responses include a signed GCS download URL.
      */

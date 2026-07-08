@@ -94,9 +94,9 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | PUT | `/api/teacher/homework/{homeworkId}/questions/{qId}` | Yes | Update a question |
 | DELETE | `/api/teacher/homework/{homeworkId}/questions/{qId}` | Yes | Delete a question |
 | GET | `/api/teacher/homework/{homeworkId}/submissions` | Yes | List submitted submissions for a homework |
-| GET | `/api/teacher/homework/{homeworkId}/submissions/{sId}` | Yes | Get a single homework submission with responses |
-| PATCH | `/api/teacher/homework/{homeworkId}/submissions/{sId}/grade` | Yes | Grade a homework submission |
-| PATCH | `/api/teacher/homework/{homeworkId}/submissions/{sId}/grade-responses` | Yes | Grade individual question responses |
+| GET | `/api/teacher/homework/{homeworkId}/submissions/{sId}` | Yes | Get a single homework submission with full question details |
+| PATCH | `/api/teacher/homework/{homeworkId}/submissions/{sId}/grade` | Yes | Set overall grade, observation, and/or `generated_report` (HTML) |
+| PATCH | `/api/teacher/homework/{homeworkId}/submissions/{sId}/grade-responses` | Yes | Grade individual question responses, optionally with correction files |
 | GET | `/api/teacher/tests` | Yes | List own tests |
 | POST | `/api/teacher/tests` | Yes | Create a test |
 | GET | `/api/teacher/tests/{id}` | Yes | Get test with all sections and questions |

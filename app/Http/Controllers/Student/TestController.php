@@ -9,6 +9,7 @@ use App\Models\Test;
 use App\Models\TestSubmission;
 use App\Models\TestQuestionResponse;
 use App\Services\AchievementService;
+use App\Services\AutoGradingService;
 use App\Services\GcsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -169,15 +170,26 @@ class TestController extends Controller
         }
 
         foreach ($request->answers ?? [] as $item) {
+            $autoGrade = AutoGradingService::gradeTestResponse(
+                (int) $item['question_id'],
+                $item['answer'] ?? null
+            );
+
+            $updateData = [
+                'related_student' => $studentId,
+                'answer'          => $item['answer'],
+            ];
+
+            if ($autoGrade !== null) {
+                $updateData['grade'] = $autoGrade;
+            }
+
             TestQuestionResponse::updateOrCreate(
                 [
                     'submission_id'    => $submission->id,
                     'related_question' => $item['question_id'],
                 ],
-                [
-                    'related_student' => $studentId,
-                    'answer'          => $item['answer'],
-                ]
+                $updateData
             );
         }
 
@@ -341,7 +353,11 @@ class TestController extends Controller
                             $answerText = $variants[(int) $r->answer] ?? $r->answer;
                         }
                         if ($correct !== null) {
-                            $correctAnswer = $variants[(int) $correct] ?? null;
+                            $correctIndices = is_array($correct) ? $correct : [$correct];
+                            $correctAnswer = array_values(array_filter(
+                                array_map(fn ($i) => $variants[(int) $i] ?? null, $correctIndices),
+                                fn ($v) => $v !== null
+                            ));
                         }
                         break;
                     case 'gap_fill':

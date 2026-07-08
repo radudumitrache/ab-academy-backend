@@ -1,98 +1,34 @@
 <?php
 
-namespace App\Http\Controllers\Teacher;
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Homework;
+use App\Models\HomeworkSubmission;
 use App\Models\Material;
-use App\Models\Test;
-use App\Models\TestSubmission;
-use App\Models\TestQuestionResponse;
+use App\Models\QuestionResponse;
 use App\Services\GcsService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
-class TestSubmissionController extends Controller
+class HomeworkSubmissionController extends Controller
 {
     public function __construct(private GcsService $gcs) {}
 
     /**
-     * List all submitted submissions for a test the teacher owns.
+     * Save a grade and/or observation on a submitted homework.
+     * Admins have blanket access to all homework — no teacher-ownership check.
      */
-    public function index($testId)
+    public function grade(Request $request, $homeworkId, $submissionId)
     {
-        $test = Test::find($testId);
+        $homework = Homework::find($homeworkId);
 
-        if (!$test) {
-            return response()->json(['message' => 'Test not found'], 404);
+        if (!$homework) {
+            return response()->json(['message' => 'Homework not found'], 404);
         }
 
-        $submissions = TestSubmission::with(['student:id,username,email', 'responses.question.multipleChoiceDetails',
-                'responses.question.gapFillDetails',
-                'responses.question.textCompletionDetails',
-                'responses.question.correlationDetails',
-                'responses.question.correctDetails',
-                'responses.question.wordFormationDetails',
-                'responses.question.rephraseDetails',
-                'responses.question.replaceDetails',
-                'responses.question.wordDerivationDetails'])
-            ->where('test_id', $testId)
-            ->where('status', 'submitted')
-            ->get()
-            ->map(fn($s) => $this->formatSubmission($s));
-
-        return response()->json([
-            'message'     => 'Submissions retrieved successfully',
-            'count'       => $submissions->count(),
-            'submissions' => $submissions,
-        ]);
-    }
-
-    /**
-     * Get a single submission with all responses.
-     */
-    public function show($testId, $submissionId)
-    {
-        $test = Test::find($testId);
-
-        if (!$test) {
-            return response()->json(['message' => 'Test not found'], 404);
-        }
-
-        $submission = TestSubmission::with(['student:id,username,email', 'responses.question.multipleChoiceDetails',
-                'responses.question.gapFillDetails',
-                'responses.question.textCompletionDetails',
-                'responses.question.correlationDetails',
-                'responses.question.correctDetails',
-                'responses.question.wordFormationDetails',
-                'responses.question.rephraseDetails',
-                'responses.question.replaceDetails',
-                'responses.question.wordDerivationDetails'])
-            ->where('test_id', $testId)
-            ->find($submissionId);
-
-        if (!$submission) {
-            return response()->json(['message' => 'Submission not found'], 404);
-        }
-
-        return response()->json([
-            'message'    => 'Submission retrieved successfully',
-            'submission' => $this->formatSubmission($submission),
-        ]);
-    }
-
-    /**
-     * Save a grade and/or observation on a submitted test.
-     */
-    public function grade(Request $request, $testId, $submissionId)
-    {
-        $test = Test::find($testId);
-
-        if (!$test) {
-            return response()->json(['message' => 'Test not found'], 404);
-        }
-
-        $submission = TestSubmission::where('test_id', $testId)->find($submissionId);
+        $submission = HomeworkSubmission::where('homework_id', $homeworkId)->find($submissionId);
 
         if (!$submission) {
             return response()->json(['message' => 'Submission not found'], 404);
@@ -103,8 +39,9 @@ class TestSubmissionController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'grade'       => 'nullable|string|max:50',
-            'observation' => 'nullable|string',
+            'grade'            => 'nullable|string|max:50',
+            'observation'      => 'nullable|string',
+            'generated_report' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -124,7 +61,18 @@ class TestSubmissionController extends Controller
                 'responses.question.wordFormationDetails',
                 'responses.question.rephraseDetails',
                 'responses.question.replaceDetails',
-                'responses.question.wordDerivationDetails']);
+                'responses.question.wordDerivationDetails',
+                'responses.question.writingQuestionDetails',
+                'responses.question.readingQuestionDetails',
+                'responses.question.speakingQuestionDetails',
+                'responses.question.mixedQuestionDetails']);
+
+        NotificationService::notify(
+            $submission->student_id,
+            "Your homework '{$homework->homework_title}' has been graded.",
+            'Teacher',
+            'Homework'
+        );
 
         return response()->json([
             'message'    => 'Submission graded successfully',
@@ -133,24 +81,27 @@ class TestSubmissionController extends Controller
     }
 
     /**
-     * Grade individual question responses within a test submission.
+     * Grade individual question responses within a submission.
      *
      * Accepts multipart/form-data:
      *   - responses: JSON string of [{ response_id, grade, observation }]
      *   - files[{response_id}]: optional correction file per response
      *
      * Correction files are stored at:
-     *   teachers/{username}/private/corrections/{submissionId}_{responseId}.{ext}
+     *   admin/private/corrections/{submissionId}_{responseId}.{ext}
+     *
+     * Note: Laravel/Symfony does not parse multipart/form-data on PATCH requests,
+     * so the raw body is parsed manually.
      */
-    public function gradeResponses(Request $request, $testId, $submissionId)
+    public function gradeResponses(Request $request, $homeworkId, $submissionId)
     {
-        $test = Test::find($testId);
+        $homework = Homework::find($homeworkId);
 
-        if (!$test) {
-            return response()->json(['message' => 'Test not found'], 404);
+        if (!$homework) {
+            return response()->json(['message' => 'Homework not found'], 404);
         }
 
-        $submission = TestSubmission::where('test_id', $testId)->find($submissionId);
+        $submission = HomeworkSubmission::where('homework_id', $homeworkId)->find($submissionId);
 
         if (!$submission) {
             return response()->json(['message' => 'Submission not found'], 404);
@@ -160,26 +111,60 @@ class TestSubmissionController extends Controller
             return response()->json(['message' => 'Cannot grade a submission that has not been submitted'], 422);
         }
 
-        // responses can be sent as:
-        // - a plain array (JSON body: {"responses": [...]})
-        // - a JSON-encoded string (multipart form: responses="[...]")
-        // Laravel (Symfony) does not parse multipart/form-data for PATCH requests.
-        // Parse the raw body manually to extract form fields and files.
         $parsedBody   = [];
+        $parsedFiles  = [];
         $contentType  = $request->header('Content-Type', '');
 
         if (str_contains($contentType, 'multipart/form-data')) {
-            preg_match('/boundary=(.+)$/', $contentType, $matches);
-            $boundary = $matches[1] ?? null;
+            preg_match('/boundary=("?)(.+?)\1\s*$/i', $contentType, $matches);
+            $boundary = $matches[2] ?? '';
             if ($boundary) {
-                $raw  = $request->getContent();
-                $parts = array_slice(explode('--' . $boundary, $raw), 1, -1);
-                foreach ($parts as $part) {
-                    if (trim($part) === '--') continue;
-                    [$headers, $body] = explode("\r\n\r\n", $part, 2);
-                    $body = rtrim($body, "\r\n");
-                    if (preg_match('/name="([^"]+)"/', $headers, $nm)) {
-                        $parsedBody[$nm[1]] = $body;
+                $raw = $request->getContent();
+                if ($raw === '') {
+                    $raw = file_get_contents('php://input');
+                }
+
+                $delimiter = "\r\n--" . $boundary;
+                $start = strpos($raw, '--' . $boundary);
+                if ($start !== false) {
+                    $pos = $start;
+                    while (true) {
+                        $lineEnd = strpos($raw, "\r\n", $pos);
+                        if ($lineEnd === false) break;
+                        $boundaryLine = substr($raw, $pos, $lineEnd - $pos);
+                        if (str_ends_with(trim($boundaryLine), '--')) break;
+
+                        $partStart = $lineEnd + 2;
+                        $nextBoundary = strpos($raw, "\r\n--" . $boundary, $partStart);
+                        if ($nextBoundary === false) break;
+
+                        $partRaw = substr($raw, $partStart, $nextBoundary - $partStart);
+
+                        $headerEnd = strpos($partRaw, "\r\n\r\n");
+                        if ($headerEnd === false) {
+                            $pos = $nextBoundary + 2;
+                            continue;
+                        }
+                        $partHeaders = substr($partRaw, 0, $headerEnd);
+                        $partBody    = substr($partRaw, $headerEnd + 4);
+
+                        preg_match('/name="([^"]+)"/i', $partHeaders, $nm);
+                        $fieldName = $nm[1] ?? null;
+
+                        if ($fieldName) {
+                            if (preg_match('/filename="([^"]*)"/i', $partHeaders, $fn)) {
+                                preg_match('/Content-Type:\s*(\S+)/i', $partHeaders, $ct);
+                                $parsedFiles[$fieldName] = [
+                                    'filename'    => $fn[1],
+                                    'content'     => $partBody,
+                                    'contentType' => $ct[1] ?? 'application/octet-stream',
+                                ];
+                            } else {
+                                $parsedBody[$fieldName] = $partBody;
+                            }
+                        }
+
+                        $pos = $nextBoundary + 2;
                     }
                 }
             }
@@ -215,13 +200,12 @@ class TestSubmissionController extends Controller
             ], 422);
         }
 
-        $teacher           = Auth::user();
-        $correctionsFolder = "teachers/{$teacher->username}/private/corrections";
+        $correctionsFolder = 'admin/private/corrections';
 
         foreach ($responsesInput as $item) {
             $responseId = (int) $item['response_id'];
 
-            $response = TestQuestionResponse::where('submission_id', $submissionId)
+            $response = QuestionResponse::where('submission_id', $submissionId)
                 ->where('response_id', $responseId)
                 ->first();
 
@@ -236,13 +220,25 @@ class TestSubmissionController extends Controller
                 'observation' => array_key_exists('observation', $item) ? $item['observation'] : $response->observation,
             ];
 
-            // Handle optional correction file for this response
-            if ($request->hasFile("files.{$responseId}")) {
-                $file = $request->file("files.{$responseId}");
-                $ext  = $file->getClientOriginalExtension();
-                $path = "{$correctionsFolder}/{$submissionId}_{$responseId}.{$ext}";
+            $fileKey     = "files.{$responseId}";
+            $parsedKey   = "files[{$responseId}]";
+            $fileContent = null;
+            $fileExt     = null;
+            $parsed      = null;
 
-                // Delete old correction file and its Material record if present
+            if ($request->hasFile($fileKey)) {
+                $file        = $request->file($fileKey);
+                $fileExt     = $file->getClientOriginalExtension();
+                $fileContent = file_get_contents($file->getRealPath());
+            } elseif (isset($parsedFiles[$parsedKey]) && $parsedFiles[$parsedKey]['content'] !== '') {
+                $parsed      = $parsedFiles[$parsedKey];
+                $fileExt     = pathinfo($parsed['filename'], PATHINFO_EXTENSION) ?: 'bin';
+                $fileContent = $parsed['content'];
+            }
+
+            if ($fileContent !== null) {
+                $path = "{$correctionsFolder}/{$submissionId}_{$responseId}.{$fileExt}";
+
                 if ($response->correction_file_path) {
                     try {
                         $this->gcs->delete($response->correction_file_path);
@@ -251,18 +247,22 @@ class TestSubmissionController extends Controller
                 }
 
                 $this->gcs->createFolder($correctionsFolder);
-                $this->gcs->upload($file, $path);
+                $this->gcs->uploadContent($fileContent, $path);
                 $updates['correction_file_path'] = $path;
 
+                $originalName = isset($parsed)
+                    ? $parsed['filename']
+                    : ($request->hasFile($fileKey) ? $request->file($fileKey)->getClientOriginalName() : basename($path));
+
                 Material::create([
-                    'material_name'  => $file->getClientOriginalName(),
-                    'file_type'      => $file->getClientMimeType(),
+                    'material_name'  => $originalName,
+                    'file_type'      => isset($parsed) ? ($parsed['contentType'] ?? 'application/octet-stream') : ($request->hasFile($fileKey) ? $request->file($fileKey)->getClientMimeType() : 'application/octet-stream'),
                     'date_created'   => now(),
-                    'authors'        => [$teacher->id],
+                    'authors'        => [],
                     'allowed_users'  => [],
                     'allowed_groups' => [],
                     'gcs_path'       => $path,
-                    'uploader_id'    => $teacher->id,
+                    'uploader_id'    => null,
                     'folder'         => 'private/corrections',
                 ]);
             }
@@ -278,7 +278,18 @@ class TestSubmissionController extends Controller
                 'responses.question.wordFormationDetails',
                 'responses.question.rephraseDetails',
                 'responses.question.replaceDetails',
-                'responses.question.wordDerivationDetails']);
+                'responses.question.wordDerivationDetails',
+                'responses.question.writingQuestionDetails',
+                'responses.question.readingQuestionDetails',
+                'responses.question.speakingQuestionDetails',
+                'responses.question.mixedQuestionDetails']);
+
+        NotificationService::notify(
+            $submission->student_id,
+            "Your homework '{$homework->homework_title}' has been graded.",
+            'Teacher',
+            'Homework'
+        );
 
         return response()->json([
             'message'    => 'Responses graded successfully',
@@ -286,12 +297,7 @@ class TestSubmissionController extends Controller
         ]);
     }
 
-    // ── Helpers ────────────────────────────────────────────────────────────────
-
-    /**
-     * Format a submission, resolving multiple_choice answer index to variant text.
-     */
-    private function formatSubmission(TestSubmission $submission): array
+    private function formatSubmission(HomeworkSubmission $submission): array
     {
         $data = $submission->toArray();
 
@@ -301,6 +307,9 @@ class TestSubmissionController extends Controller
 
             $row['answer_text']         = null;
             $row['correct_answer']      = null;
+            $row['file_url']            = $response->file_path
+                ? $this->gcs->signedUrl($response->file_path, 60)
+                : null;
             $row['correction_file_url'] = $response->correction_file_path
                 ? $this->gcs->signedUrl($response->correction_file_path, 60)
                 : null;
@@ -315,11 +324,7 @@ class TestSubmissionController extends Controller
                         $row['answer_text'] = $variants[(int) $response->answer] ?? $response->answer;
                     }
                     if ($correct !== null) {
-                        $correctIndices = is_array($correct) ? $correct : [$correct];
-                        $row['correct_answer'] = array_values(array_filter(
-                            array_map(fn ($i) => $variants[(int) $i] ?? null, $correctIndices),
-                            fn ($v) => $v !== null
-                        ));
+                        $row['correct_answer'] = $variants[(int) $correct] ?? null;
                     }
                     break;
 

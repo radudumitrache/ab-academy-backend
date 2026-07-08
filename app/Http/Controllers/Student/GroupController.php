@@ -8,6 +8,7 @@ use App\Models\Attendance;
 use App\Models\Group;
 use App\Models\Homework;
 use App\Models\HomeworkSubmission;
+use App\Models\StudentStreak;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -227,6 +228,53 @@ class GroupController extends Controller
             'total_minutes_scheduled' => $totalMinutesScheduled,
             'total_minutes_attended'  => $totalMinutesAttended,
             'groups'                 => $summary,
+        ]);
+    }
+
+    /**
+     * Streak leaderboard for a group — ranked by current streak descending.
+     */
+    public function leaderboard($id)
+    {
+        $studentId = Auth::id();
+
+        $group = Group::whereHas('students', fn($q) => $q->where('student_id', $studentId))
+            ->find($id);
+
+        if (!$group) {
+            return response()->json(['message' => 'Group not found'], 404);
+        }
+
+        $memberIds = $group->students()->pluck('users.id')->toArray();
+
+        $streaks = StudentStreak::whereIn('student_id', $memberIds)
+            ->with('student:id,username')
+            ->orderByDesc('current_streak')
+            ->get();
+
+        $streakMap = $streaks->keyBy('student_id');
+
+        $leaderboard = collect($memberIds)->map(function ($id) use ($streakMap) {
+            $streak = $streakMap->get($id);
+            return [
+                'student_id'      => $id,
+                'username'        => $streak?->student?->username ?? 'Unknown',
+                'current_streak'  => $streak?->current_streak ?? 0,
+                'longest_streak'  => $streak?->longest_streak ?? 0,
+            ];
+        })
+        ->sortByDesc('current_streak')
+        ->values()
+        ->map(function ($entry, $index) use ($studentId) {
+            $entry['rank']    = $index + 1;
+            $entry['is_you']  = $entry['student_id'] === $studentId;
+            return $entry;
+        });
+
+        return response()->json([
+            'message'      => 'Leaderboard retrieved successfully',
+            'group_name'   => $group->group_name,
+            'leaderboard'  => $leaderboard,
         ]);
     }
 }

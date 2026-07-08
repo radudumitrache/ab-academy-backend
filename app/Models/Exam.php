@@ -54,6 +54,7 @@ class Exam extends Model
     public function students(): BelongsToMany
     {
         return $this->belongsToMany(Student::class, 'student_exam')
+                    ->withPivot('score', 'feedback', 'student_score', 'notes')
                     ->withTimestamps();
     }
 

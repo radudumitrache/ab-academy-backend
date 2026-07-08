@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
+use App\Models\Group;
 use App\Models\Homework;
 use App\Models\Material;
 use App\Services\GcsService;
@@ -14,15 +15,37 @@ class HomeworkController extends Controller
 {
     public function __construct(private GcsService $gcs) {}
 
+    private function teacherGroupIds(): array
+    {
+        $teacherId = Auth::id();
+
+        $mainGroupIds = Group::where('group_teacher', $teacherId)->pluck('group_id')->toArray();
+        $assistantGroupIds = Group::whereHas('assistantTeachers', fn($q) => $q->where('teacher_id', $teacherId))
+            ->pluck('group_id')
+            ->toArray();
+
+        return array_unique(array_merge($mainGroupIds, $assistantGroupIds));
+    }
+
     /**
-     * List all homework created by the authenticated teacher.
+     * List all homework created by the teacher or assigned to any of their groups.
      */
     public function index()
     {
-        $homework = Homework::where('homework_teacher', Auth::id())
+        $teacherId = Auth::id();
+        $groupIds  = $this->teacherGroupIds();
+
+        $homework = Homework::where('homework_teacher', $teacherId)
+            ->orWhere(function ($q) use ($groupIds) {
+                foreach ($groupIds as $gid) {
+                    $q->orWhereJsonContains('groups_assigned', $gid);
+                }
+            })
             ->withCount('allQuestions')
             ->orderByDesc('created_at')
-            ->get();
+            ->get()
+            ->unique('id')
+            ->values();
 
         return response()->json([
             'message'  => 'Homework retrieved successfully',
@@ -33,10 +56,19 @@ class HomeworkController extends Controller
 
     /**
      * Show a single homework with all questions, sections and their detail records.
+     * Accessible if the teacher created it or it is assigned to one of their groups.
      */
     public function show($id)
     {
-        $homework = Homework::where('homework_teacher', Auth::id())->find($id);
+        $teacherId = Auth::id();
+        $groupIds  = $this->teacherGroupIds();
+
+        $homework = Homework::where(function ($q) use ($teacherId, $groupIds) {
+            $q->where('homework_teacher', $teacherId);
+            foreach ($groupIds as $gid) {
+                $q->orWhereJsonContains('groups_assigned', $gid);
+            }
+        })->find($id);
 
         if (!$homework) {
             return response()->json(['message' => 'Homework not found'], 404);

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\TestController;
 use App\Http\Controllers\Admin\TestQuestionController;
+use App\Http\Controllers\Admin\TestSubmissionController;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -32,5 +33,8 @@ Route::post('/tests/{testId}/questions',                [TestQuestionController:
 Route::put('/tests/{testId}/questions/{questionId}',    [TestQuestionController::class, 'update']);
 Route::delete('/tests/{testId}/questions/{questionId}', [TestQuestionController::class, 'destroy']);
 
-// ── Submissions (read-only) ───────────────────────────────────────────────────
-Route::get('/tests/{id}/submissions', [TestController::class, 'submissions']);
+// ── Submissions ───────────────────────────────────────────────────────────────
+Route::get('/tests/{id}/submissions',                                              [TestController::class,           'submissions']);
+Route::get('/tests/{testId}/submissions/{submissionId}',                           [TestSubmissionController::class, 'show']);
+Route::patch('/tests/{testId}/submissions/{submissionId}/grade',                   [TestSubmissionController::class, 'grade']);
+Route::patch('/tests/{testId}/submissions/{submissionId}/grade-responses',         [TestSubmissionController::class, 'gradeResponses']);
