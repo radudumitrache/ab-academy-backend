@@ -24,6 +24,7 @@ Route::get('/hello', [HelloController::class, 'index']);
  * cookie values.
  */
 Route::match(['get', 'post'], '/diagnostics', [DiagnosticsController::class, 'index']);
+Route::get('/diagnostics/view', [DiagnosticsController::class, 'page']);
 
 /**
  * API Documentation Route

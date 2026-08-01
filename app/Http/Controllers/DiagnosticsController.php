@@ -43,9 +43,32 @@ class DiagnosticsController extends Controller
      */
     public function index(Request $request)
     {
+        return response()->json($this->report($request))
+            ->header('Cache-Control', 'no-store');
+    }
+
+    /**
+     * Human-readable version of the same report, served as a self-testing page.
+     *
+     * Runs same-origin, so it cannot exercise a CORS preflight — but it does
+     * test the two failures that actually strand a device: a stripped
+     * Authorization header and a blocked OPTIONS verb.
+     */
+    public function page(Request $request)
+    {
+        return response()
+            ->view('diagnostics', ['report' => $this->report($request)])
+            ->header('Cache-Control', 'no-store');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function report(Request $request): array
+    {
         $authorization = $request->header('Authorization');
 
-        return response()->json([
+        return [
             'ok' => true,
             'server_time' => now()->toIso8601String(),
 
@@ -80,7 +103,7 @@ class DiagnosticsController extends Controller
 
             // Names only. Enough to spot a stripped header without leaking values.
             'headers_seen' => $this->headerNames($request),
-        ]);
+        ];
     }
 
     /**
