@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DiagnosticsController;
 use App\Http\Controllers\HelloController;
 use Illuminate\Http\Request;
 
@@ -12,6 +13,17 @@ use Illuminate\Http\Request;
  */
 
 Route::get('/hello', [HelloController::class, 'index']);
+
+/**
+ * Connectivity Diagnostics Route
+ *
+ * Reports what the server actually received from the client: whether the
+ * Authorization header survived the trip, and whether any proxy or filtering
+ * middlebox sits between the device and the server. Public by design — it
+ * diagnoses devices that cannot authenticate at all. Never echoes token or
+ * cookie values.
+ */
+Route::match(['get', 'post'], '/diagnostics', [DiagnosticsController::class, 'index']);
 
 /**
  * API Documentation Route
