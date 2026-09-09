@@ -58,7 +58,9 @@ class AutoGradingService
     private static function compute(string $type, ?string $answer, object $question): ?string
     {
         return match ($type) {
-            'multiple_choice'  => self::gradeMultipleChoice($answer, $question->multipleChoiceDetails),
+            'multiple_choice',
+            'reading_multiple_choice',
+            'listening_multiple_choice' => self::gradeMultipleChoice($answer, $question->multipleChoiceDetails),
             'gap_fill'         => self::gradeKeyedAnswers($answer, $question->gapFillDetails?->correct_answers ?? []),
             'text_completion'  => self::gradeKeyedAnswers($answer, $question->textCompletionDetails?->correct_answers ?? []),
             'correlation'      => self::gradeCorrelation($answer, $question->correlationDetails?->correct_pairs ?? []),

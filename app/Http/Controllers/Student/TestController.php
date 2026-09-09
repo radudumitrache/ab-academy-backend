@@ -347,6 +347,8 @@ class TestController extends Controller
             if ($q) {
                 switch ($q->question_type) {
                     case 'multiple_choice':
+                    case 'reading_multiple_choice':
+                    case 'listening_multiple_choice':
                         $variants = $q->multipleChoiceDetails?->variants ?? [];
                         $correct  = $q->multipleChoiceDetails?->correct_variant;
                         if ($r->answer !== null) {
