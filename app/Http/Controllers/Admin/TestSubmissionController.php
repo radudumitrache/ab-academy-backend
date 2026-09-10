@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Helpers\ChoiceAnswerHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Material;
 use App\Models\Test;
@@ -341,7 +342,8 @@ class TestSubmissionController extends Controller
                     $variants = $q->multipleChoiceDetails?->variants ?? [];
                     $correct  = $q->multipleChoiceDetails?->correct_variant;
                     if ($response->answer !== null) {
-                        $row['answer_text'] = $variants[(int) $response->answer] ?? $response->answer;
+                        $answerTexts = ChoiceAnswerHelper::texts($variants, $response->answer);
+                        $row['answer_text'] = $answerTexts ? implode(', ', $answerTexts) : $response->answer;
                     }
                     if ($correct !== null) {
                         $correctIndices = is_array($correct) ? $correct : [$correct];

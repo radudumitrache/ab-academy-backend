@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Helpers\ChoiceAnswerHelper;
 use App\Models\Question;
 use App\Models\TestQuestion;
 
@@ -69,9 +70,10 @@ class AutoGradingService
     }
 
     /**
-     * Multiple choice: student submits a single index (e.g. "1").
+     * Multiple choice: the student submits either a single index ("1") or,
+     * when several variants are ticked, a JSON array of indices ('["1","3"]').
      * correct_variant is an array of correct indices.
-     * Grade: "correct" or "incorrect".
+     * Grade: "correct" only on an exact set match, otherwise "incorrect".
      */
     private static function gradeMultipleChoice(?string $answer, ?object $details): string
     {
@@ -81,14 +83,16 @@ class AutoGradingService
 
         $correctVariants = $details->correct_variant ?? [];
 
-        if ($answer === null || trim($answer) === '') {
+        $studentIdxs = ChoiceAnswerHelper::indices($answer);
+
+        if (empty($studentIdxs)) {
             return 'incorrect';
         }
 
-        $studentIdx = (int) $answer;
-        $correctIdxs = array_map('intval', (array) $correctVariants);
+        $correctIdxs = array_values(array_unique(array_map('intval', (array) $correctVariants)));
+        sort($correctIdxs);
 
-        return in_array($studentIdx, $correctIdxs, true) ? 'correct' : 'incorrect';
+        return $studentIdxs === $correctIdxs ? 'correct' : 'incorrect';
     }
 
     /**

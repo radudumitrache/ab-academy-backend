@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Student;
 
+use App\Helpers\ChoiceAnswerHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Homework;
 use App\Models\HomeworkSubmission;
@@ -410,7 +411,8 @@ class HomeworkController extends Controller
                         $variants = $q->multipleChoiceDetails?->variants ?? [];
                         $correct  = $q->multipleChoiceDetails?->correct_variant;
                         if ($r->answer !== null) {
-                            $answerText = $variants[(int) $r->answer] ?? $r->answer;
+                            $answerTexts = ChoiceAnswerHelper::texts($variants, $r->answer);
+                            $answerText  = $answerTexts ? implode(', ', $answerTexts) : $r->answer;
                         }
                         if ($correct !== null) {
                             $correctIndices = is_array($correct) ? $correct : [$correct];
