@@ -137,6 +137,9 @@ class MeetingAccountController extends Controller
 
     /**
      * Test the credentials by attempting to fetch a Zoom access token.
+     *
+     * Always bypasses the token cache — a credentials test that can be answered from
+     * cache would report success without contacting Zoom at all.
      */
     public function test(ZoomService $zoom, $id)
     {
@@ -147,7 +150,7 @@ class MeetingAccountController extends Controller
         }
 
         try {
-            $token = $zoom->getAccessToken($account);
+            $token = $zoom->getAccessToken($account, true);
         } catch (\Throwable $e) {
             return response()->json([
                 'message' => 'Credentials test failed: ' . $e->getMessage(),
@@ -286,8 +289,9 @@ class MeetingAccountController extends Controller
      * Determine which active account would be selected for a new meeting at the
      * given UTC start time + duration window.
      *
-     * Mirrors the selection logic used in EventController::createZoomMeeting:
-     * iterate active accounts in DB order, return the first with no overlap.
+     * Delegates to ZoomService::selectAvailableAccount, which is the same code path
+     * EventController::createZoomMeeting books through — this used to be a private
+     * copy of that loop, and the two drifted apart.
      *
      * Returns:
      *   suggested_account — ['id', 'name'] or null when all are busy/errored
@@ -296,38 +300,14 @@ class MeetingAccountController extends Controller
      */
     private function resolveAvailableAccount(ZoomService $zoom, Carbon $startUtc, int $duration): array
     {
-        $accounts      = MeetingAccount::where('is_active', true)->get();
-        $busyAccounts  = [];
-        $errorAccounts = [];
-        $suggested     = null;
-
-        foreach ($accounts as $candidate) {
-            try {
-                $overlap = $zoom->findOverlappingMeeting($candidate, $startUtc, $duration);
-                if ($overlap) {
-                    $busyAccounts[] = [
-                        'id'                 => $candidate->id,
-                        'name'               => $candidate->name,
-                        'conflicting_topic'  => $overlap['topic'] ?? null,
-                        'conflicting_start'  => $overlap['start_time'] ?? null,
-                    ];
-                    continue;
-                }
-                $suggested = ['id' => $candidate->id, 'name' => $candidate->name];
-                break;
-            } catch (\Throwable $e) {
-                $errorAccounts[] = [
-                    'id'    => $candidate->id,
-                    'name'  => $candidate->name,
-                    'error' => $e->getMessage(),
-                ];
-            }
-        }
+        $outcome = $zoom->selectAvailableAccount($startUtc, $duration);
 
         return [
-            'suggested_account' => $suggested,
-            'busy_accounts'     => $busyAccounts,
-            'error_accounts'    => $errorAccounts,
+            'suggested_account' => $outcome['account']
+                ? ['id' => $outcome['account']->id, 'name' => $outcome['account']->name]
+                : null,
+            'busy_accounts'     => $outcome['busy'],
+            'error_accounts'    => $outcome['errors'],
         ];
     }
 

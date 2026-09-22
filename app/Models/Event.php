@@ -22,6 +22,7 @@ class Event extends Model
         'event_start_link',
         'event_notes',
         'meeting_account_id',
+        'zoom_meeting_id',
         'recurrence_parent_id',
     ];
 

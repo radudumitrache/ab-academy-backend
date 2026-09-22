@@ -16,5 +16,6 @@ Route::middleware('auth:api')->group(function () {
     Route::delete('/events/{id}', [EventController::class, 'destroy']);
     Route::get('/events/{id}/attendance',        [EventController::class, 'getAttendance']);
     Route::post('/events/{id}/create-zoom-meeting', [EventController::class, 'createZoomMeeting']);
+    Route::get('/events/{id}/zoom-start-link',      [EventController::class, 'zoomStartLink']);
     Route::post('/events/{id}/recur-monthly', [EventController::class, 'recurMonthly']);
 });

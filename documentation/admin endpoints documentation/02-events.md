@@ -154,6 +154,8 @@ All fields are optional (`sometimes`). Only include the fields you want to chang
 }
 ```
 
+If the event has a Zoom meeting and the edit changed `title`, `event_date`, `event_time` or `event_duration`, the Zoom meeting is rescheduled to match. If that call fails the edit is still saved and a `zoom_warning` string is added to the response; until the edit is retried successfully the meeting link points at the old slot, and the old slot stays blocked on that account.
+
 **Errors**: `404` if not found.
 
 ---
@@ -162,12 +164,16 @@ All fields are optional (`sometimes`). Only include the fields you want to chang
 
 `DELETE /api/admin/events/{id}`
 
+Cancels the event's Zoom meeting first, if it has one, so the time slot returns to the pool.
+
 **Response** `200`:
 ```json
 {
   "message": "Event deleted successfully"
 }
 ```
+
+If the Zoom meeting could not be cancelled the event is still deleted and a `zoom_warning` string is added to the response. An orphaned Zoom meeting keeps occupying its account for that window and has to be removed from the Zoom side.
 
 **Errors**: `404` if not found.
 
@@ -201,9 +207,41 @@ Iterates all active meeting accounts and checks the **Zoom API directly** for ea
 - `404` — event not found
 - `422` — no active meeting accounts configured
 - `422` — all meeting accounts are busy during this time slot (checked live against Zoom API)
-- `502` — Zoom API call failed (message included)
+- `502` — one or more accounts could not be reached, so availability is unknown — retry
 
-**Account selection**: every active meeting account is queried via the Zoom API. The first account that has no scheduled meeting overlapping the event's date/time window is used. Accounts that are unreachable are silently skipped.
+A failure response also includes `busy_accounts`, `error_accounts` and the `checked_window` that was tested, so the reason is inspectable.
+
+**Account selection**: every active meeting account is queried via the Zoom API. The first account with no meeting overlapping the event's date/time window is used.
+
+A meeting already in progress counts against an account only when it actually overlaps the requested window — including when it has overrun its scheduled end, in which case it holds the account until it truly finishes. A meeting running right now does not block a slot next week.
+
+Unreachable accounts are **not** silently skipped. Busy accounts land in `busy_accounts` and unreachable ones in `error_accounts`, and the status code says which happened: `422` means the pool is genuinely full, `502` means the answer is inconclusive and the request should be retried.
+
+**Changeover buffer**: an account needs `ZOOM_MEETING_BUFFER_MINUTES` (default `20`) of clearance after a meeting ends before hosting the next. It applies only *after* an existing meeting. Any non-zero value prevents back-to-back bookings on one account, so set it to `0` if lessons run on the hour.
+
+---
+
+## Get Zoom Start Link
+
+`GET /api/admin/events/{id}/zoom-start-link`
+
+Fetches a freshly issued host start URL from Zoom and refreshes the stored `event_start_link`. The `start_url` captured when a meeting is created embeds a token that expires about 2 hours later, so for anything booked further ahead the stored value is stale by class time. Call this at the moment the host starts the meeting rather than using `event_start_link` directly.
+
+**Body**: none
+
+**Response** `200`:
+```json
+{
+  "message": "Start link retrieved successfully",
+  "start_link": "https://us05web.zoom.us/s/12345678?zak=...",
+  "meeting_link": "https://us05web.zoom.us/j/12345678?pwd=..."
+}
+```
+
+**Errors**:
+- `404` — event not found
+- `422` — this event has no Zoom meeting to start
+- `502` — Zoom could not be reached (message included)
 
 ---
 

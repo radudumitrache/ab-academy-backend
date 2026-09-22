@@ -221,6 +221,16 @@ All fields are optional — only provided fields are changed.
   }
   ```
 
+  If the event has a Zoom meeting and the edit changed `title`, `event_date`, `event_time` or `event_duration`, the Zoom meeting is rescheduled to match. Should that call fail, the edit is still saved and the response carries an extra field:
+  ```json
+  {
+    "message": "Event updated successfully",
+    "event": { ... },
+    "zoom_warning": "The event was saved, but its Zoom meeting could not be updated and is still scheduled at the previous time: ..."
+  }
+  ```
+  Treat `zoom_warning` as a prompt to retry the edit — until it succeeds the meeting link points at the old slot, and the old slot stays blocked on that account.
+
 - **Error Responses**:
   - **404** — event not found:
     ```json
@@ -236,7 +246,7 @@ All fields are optional — only provided fields are changed.
 
 ## Delete Event
 
-Deletes an event. The organizer **or** any assistant teacher of a group in the event's `guest_groups` may delete it.
+Deletes an event. The organizer **or** any assistant teacher of a group in the event's `guest_groups` may delete it. If the event has a Zoom meeting, that meeting is cancelled on Zoom first so its time slot returns to the pool.
 
 - **URL**: `/api/teacher/events/{id}`
 - **Method**: `DELETE`
@@ -246,6 +256,15 @@ Deletes an event. The organizer **or** any assistant teacher of a group in the e
   ```json
   { "message": "Event deleted successfully" }
   ```
+
+  If the Zoom meeting could not be cancelled the event is still deleted, and the response carries a warning:
+  ```json
+  {
+    "message": "Event deleted successfully",
+    "zoom_warning": "The event was deleted, but its Zoom meeting could not be cancelled and may still block that time slot: ..."
+  }
+  ```
+  An orphaned Zoom meeting keeps occupying its account for that window, so surface this to an admin — it can be removed from the Zoom side.
 
 - **Error Responses**:
   - **404** — event not found:
@@ -342,13 +361,63 @@ Iterates all active meeting accounts and checks the **Zoom API directly** for ea
   - `404` — event not found
   - `422` — no active meeting accounts configured
   - `422` — all meeting accounts are busy during this time slot (checked live against Zoom API)
-  - `502` — Zoom API call failed (error message included)
+  - `502` — one or more accounts could not be reached, so availability is unknown — retry
 
-**How account selection works**: Every active meeting account is queried via the Zoom API. The first account with no scheduled meeting overlapping the event's time window is used. Accounts that are unreachable are silently skipped.
+  A failure response also carries the detail behind the verdict:
+  ```json
+  {
+    "message": "All meeting accounts are busy during this time slot",
+    "busy_accounts": [
+      {
+        "account_id": 1,
+        "account_name": "Main",
+        "conflicting_topic": "English B2",
+        "conflicting_start": "2026-10-01T10:00:00Z",
+        "conflicting_duration_min": 60
+      }
+    ],
+    "error_accounts": [],
+    "checked_window": {
+      "start_utc": "2026-10-01T10:30:00+00:00",
+      "end_utc": "2026-10-01T11:30:00+00:00"
+    }
+  }
+  ```
+
+**How account selection works**: Every active meeting account is queried via the Zoom API. The first account with no meeting overlapping the event's time window is used.
+
+A meeting already in progress only counts against an account when it actually overlaps the requested window — including when it has run past its scheduled end, in which case it holds the account until it really finishes. A meeting running right now therefore does not block a slot next week.
+
+Accounts are **not** silently skipped when unreachable. Busy accounts land in `busy_accounts` and unreachable ones in `error_accounts`, and the status code reflects which happened: `422` means the pool is genuinely full, so pick another slot; `502` means at least one account could not be reached and the answer is inconclusive, so retry.
+
+**Changeover buffer**: an account needs `ZOOM_MEETING_BUFFER_MINUTES` (default `20`) of clearance after one meeting ends before it may host the next. The buffer applies only *after* an existing meeting, so an event may end exactly when the following one begins. Note that any non-zero value prevents back-to-back bookings on a single account — with the default of 20, a 10:00–11:00 meeting blocks an 11:00 start. Set it to `0` if lessons are scheduled on the hour.
 
 **Host vs guest URLs**:
 - `meeting_link` / `event_meet_link` — the guest join URL. Share this with students and other attendees.
-- `start_link` / `event_start_link` — the host start URL. Show this **only to managers** (organizer or assistant teachers of invited groups). Opening it launches the meeting with the organizer as the Zoom host (owner). Contains an embedded token that expires approximately 2 hours after creation — for events scheduled further in advance, re-fetch via the Zoom API if needed.
+- `start_link` / `event_start_link` — the host start URL. Show this **only to managers** (organizer or assistant teachers of invited groups). Opening it launches the meeting with the organizer as the Zoom host (owner). Its embedded token expires roughly 2 hours after issue, so for anything booked further ahead the stored value is stale by class time — fetch a fresh one from **Get Zoom Start Link** below rather than using `event_start_link` directly.
+
+---
+
+## Get Zoom Start Link
+
+Fetches a freshly issued host start URL for the event's Zoom meeting, and refreshes the stored `event_start_link` with it. Call this when a manager actually starts the meeting: the link captured at creation time contains a token that expires about 2 hours later, so it is almost always dead by the time a scheduled class begins.
+
+- **URL**: `GET /api/teacher/events/{id}/zoom-start-link`
+- **Auth Required**: Yes
+- **Body**: none
+- **Success Response** `200`:
+  ```json
+  {
+    "message": "Start link retrieved successfully",
+    "start_link": "https://us05web.zoom.us/s/12345678?zak=...",
+    "meeting_link": "https://us05web.zoom.us/j/12345678?pwd=..."
+  }
+  ```
+- **Error Responses**:
+  - `403` — teacher is not a manager of this event
+  - `404` — event not found
+  - `422` — this event has no Zoom meeting to start
+  - `502` — Zoom could not be reached (error message included)
 
 ---
 

@@ -194,7 +194,12 @@ If one account's Zoom API call fails, that account's entry will contain an `erro
 
 ## Suggest an Account for a Future Meeting
 
-Returns which account would be automatically selected if a new meeting were scheduled at a given date and time. Uses the same first-available selection logic as the event Zoom meeting creator: iterates active accounts in database order and picks the first one with no overlapping scheduled meeting.
+Returns which account would be automatically selected if a new meeting were scheduled at a given date and time. This runs the **same code path** the event Zoom meeting creator books through (`ZoomService::selectAvailableAccount`), so its answer cannot drift from what creating a meeting actually does: active accounts are walked in database order and the first with no overlapping meeting wins.
+
+Two details shape the result:
+
+- A meeting **in progress** counts against an account only when it overlaps the window being asked about — including when it has overrun its scheduled end, in which case it holds the account until it really finishes. An account hosting a lesson right now is still available for a slot next week.
+- An account needs `ZOOM_MEETING_BUFFER_MINUTES` (default `20`) of clearance *after* an existing meeting ends before it can host the next one. Any non-zero value prevents back-to-back bookings on a single account; set it to `0` if lessons are scheduled on the hour.
 
 - **URL**: `GET /api/admin/meeting-accounts/suggest-account`
 - **Auth Required**: Yes

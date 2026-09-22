@@ -188,7 +188,7 @@ class EventController extends Controller
     /**
      * Update an event — only the organizer (teacher who created it) may edit.
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, ZoomService $zoom, $id)
     {
         $event = Event::find($id);
 
@@ -223,10 +223,56 @@ class EventController extends Controller
 
         $event->update($validated);
 
-        return response()->json([
+        $response = [
             'message' => 'Event updated successfully',
             'event'   => $this->formatEvent($event->load('organizer'), Auth::user()->effective_timezone, true),
-        ]);
+        ];
+
+        $warning = $this->syncZoomMeeting($zoom, $event, $validated);
+
+        if ($warning) {
+            $response['zoom_warning'] = $warning;
+        }
+
+        return response()->json($response);
+    }
+
+    /**
+     * Push a rescheduled or retitled event onto its existing Zoom meeting.
+     *
+     * Editing an event used to leave its Zoom meeting untouched, so the link pointed at
+     * the old time, the old slot stayed blocked for the account and the new slot was
+     * never reserved.
+     *
+     * Returns a warning string when the sync failed. The edit itself is already saved,
+     * so a Zoom outage must not fail the request — but the caller should be told the
+     * meeting still sits at the old time.
+     */
+    private function syncZoomMeeting(ZoomService $zoom, Event $event, array $changed): ?string
+    {
+        $relevant = array_intersect_key($changed, array_flip(['title', 'event_date', 'event_time', 'event_duration']));
+
+        if (!$relevant) {
+            return null;
+        }
+
+        $event->loadMissing('meetingAccount');
+
+        if (!$event->zoom_meeting_id || !$event->meetingAccount) {
+            return null;
+        }
+
+        try {
+            $zoom->updateMeeting($event->meetingAccount, $event->zoom_meeting_id, $event);
+            return null;
+        } catch (\Throwable $e) {
+            Log::warning('Could not sync Zoom meeting after editing event ' . $event->id, [
+                'zoom_meeting_id' => $event->zoom_meeting_id,
+                'error'           => $e->getMessage(),
+            ]);
+
+            return 'The event was saved, but its Zoom meeting could not be updated and is still scheduled at the previous time: ' . $e->getMessage();
+        }
     }
 
     /**
@@ -374,92 +420,117 @@ class EventController extends Controller
             return response()->json(['message' => 'Unauthorized — only the event organizer or an assistant teacher of the event\'s groups can create a Zoom meeting'], 403);
         }
 
-        $eventStart = Carbon::createFromFormat(
-            'Y-m-d H:i',
-            $event->event_date->format('Y-m-d') . ' ' . substr($event->event_time, 0, 5),
-            'UTC'
-        );
+        $outcome = $zoom->bookMeetingFor($event);
 
-        $accounts = MeetingAccount::where('is_active', true)->get();
-
-        if ($accounts->isEmpty()) {
-            return response()->json(['message' => 'No active meeting accounts configured'], 422);
-        }
-
-        $urls          = null;
-        $account       = null;
-        $busyAccounts  = [];
-        $errorAccounts = [];
-
-        foreach ($accounts as $candidate) {
-            try {
-                $conflict = $zoom->findOverlappingMeeting($candidate, $eventStart, $event->event_duration);
-                if ($conflict !== null) {
-                    $busyAccounts[] = [
-                        'account_id'        => $candidate->id,
-                        'account_name'      => $candidate->name ?? null,
-                        'conflicting_topic' => $conflict['topic'] ?? null,
-                        'conflicting_start' => $conflict['start_time'] ?? null,
-                        'conflicting_duration_min' => $conflict['duration'] ?? null,
-                    ];
-                    continue;
-                }
-                $urls    = $zoom->createMeeting($candidate, $event);
-                $account = $candidate;
-                break;
-            } catch (\Throwable $e) {
-                Log::warning('Zoom account unavailable for event ' . $event->id, [
-                    'account_id'   => $candidate->id,
-                    'account_name' => $candidate->name ?? null,
-                    'error'        => $e->getMessage(),
-                ]);
-                $errorAccounts[] = [
-                    'account_id'   => $candidate->id,
-                    'account_name' => $candidate->name ?? null,
-                    'error'        => $e->getMessage(),
-                ];
-                continue;
-            }
-        }
-
-        if (!$account || !$urls) {
-            $message = 'All meeting accounts are busy or unavailable during this time slot';
-            if ($errorAccounts && !$busyAccounts) {
-                $message = 'All meeting accounts failed to respond (Zoom API error)';
-            } elseif ($busyAccounts && $errorAccounts) {
-                $message = 'Some meeting accounts are busy and others failed to respond';
-            }
-            return response()->json([
-                'message'       => $message,
-                'busy_accounts' => $busyAccounts,
-                'error_accounts' => $errorAccounts,
-                'checked_window' => [
-                    'start_utc' => $eventStart->toIso8601String(),
-                    'end_utc'   => $eventStart->copy()->addMinutes((int) $event->event_duration)->toIso8601String(),
-                ],
-            ], 422);
+        if (!$outcome['account']) {
+            return $this->noAccountResponse($zoom, $event, $outcome);
         }
 
         $event->update([
-            'meeting_account_id' => $account->id,
-            'event_meet_link'    => $urls['join_url'],
-            'event_start_link'   => $urls['start_url'],
+            'meeting_account_id' => $outcome['account']->id,
+            'zoom_meeting_id'    => $outcome['meeting']['meeting_id'],
+            'event_meet_link'    => $outcome['meeting']['join_url'],
+            'event_start_link'   => $outcome['meeting']['start_url'],
         ]);
 
         return response()->json([
             'message'      => 'Zoom meeting created successfully',
             'event'        => $this->formatEvent($event->fresh('organizer'), Auth::user()->effective_timezone, true),
-            'meeting_link' => $urls['join_url'],
-            'start_link'   => $urls['start_url'],
+            'meeting_link' => $outcome['meeting']['join_url'],
+            'start_link'   => $outcome['meeting']['start_url'],
+        ]);
+    }
+
+    /**
+     * Build the failure response when no account could be booked.
+     *
+     * A pool that is genuinely full (422) and a pool we could not reach (502) are
+     * different answers: the first means "pick another slot", the second means "retry".
+     * These used to collapse into one 422 that read as "all accounts are busy", which
+     * is why a rate-limited Zoom API looked like a fully booked one.
+     */
+    private function noAccountResponse(ZoomService $zoom, Event $event, array $outcome)
+    {
+        if ($outcome['total'] === 0) {
+            return response()->json(['message' => 'No active meeting accounts configured'], 422);
+        }
+
+        $eventStart = $zoom->eventStartUtc($event);
+        $unreachable = !empty($outcome['errors']);
+
+        if ($unreachable) {
+            $message = $outcome['busy']
+                ? 'Some meeting accounts are busy and the rest could not be reached — please retry'
+                : 'No meeting account could be reached (Zoom API error) — please retry';
+        } else {
+            $message = 'All meeting accounts are busy during this time slot';
+        }
+
+        return response()->json([
+            'message'        => $message,
+            'busy_accounts'  => $outcome['busy'],
+            'error_accounts' => $outcome['errors'],
+            'checked_window' => [
+                'start_utc' => $eventStart->toIso8601String(),
+                'end_utc'   => $eventStart->copy()->addMinutes((int) $event->event_duration)->toIso8601String(),
+            ],
+        ], $unreachable ? 502 : 422);
+    }
+
+    /**
+     * Return a freshly issued host start link for the event's Zoom meeting.
+     *
+     * The start_url captured at creation embeds a token that expires about two hours
+     * later, so for anything booked further ahead the stored link is already dead by
+     * class time. Managers should call this when they actually start the meeting.
+     */
+    public function zoomStartLink(ZoomService $zoom, $id)
+    {
+        $event = Event::with('meetingAccount')->find($id);
+
+        if (!$event) {
+            return response()->json(['message' => 'Event not found'], 404);
+        }
+
+        if (!$this->canManageEvent($event, Auth::id())) {
+            return response()->json(['message' => 'Unauthorized — only the event organizer or an assistant teacher of the event\'s groups can start this meeting'], 403);
+        }
+
+        if (!$event->zoom_meeting_id || !$event->meetingAccount) {
+            return response()->json(['message' => 'This event has no Zoom meeting to start'], 422);
+        }
+
+        try {
+            $meeting = $zoom->getMeeting($event->meetingAccount, $event->zoom_meeting_id);
+        } catch (\Throwable $e) {
+            Log::warning('Could not refresh Zoom start link for event ' . $event->id, [
+                'zoom_meeting_id' => $event->zoom_meeting_id,
+                'error'           => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Could not retrieve a start link from Zoom: ' . $e->getMessage(),
+            ], 502);
+        }
+
+        // Keep the stored copy in step so listings show the newest link we have seen.
+        if (!empty($meeting['start_url'])) {
+            $event->update(['event_start_link' => $meeting['start_url']]);
+        }
+
+        return response()->json([
+            'message'      => 'Start link retrieved successfully',
+            'start_link'   => $meeting['start_url'] ?? null,
+            'meeting_link' => $meeting['join_url'] ?? $event->event_meet_link,
         ]);
     }
 
     /**
      * Delete an event — only the organizer (teacher who created it) may delete.
      */
-    public function destroy($id)
+    public function destroy(ZoomService $zoom, $id)
     {
-        $event = Event::find($id);
+        $event = Event::with('meetingAccount')->find($id);
 
         if (!$event) {
             return response()->json(['message' => 'Event not found'], 404);
@@ -469,9 +540,46 @@ class EventController extends Controller
             return response()->json(['message' => 'Unauthorized — only the event organizer or an assistant teacher of the event\'s groups can delete this event'], 403);
         }
 
+        $warning = $this->releaseZoomMeeting($zoom, $event);
+
         $event->delete();
 
-        return response()->json(['message' => 'Event deleted successfully']);
+        $response = ['message' => 'Event deleted successfully'];
+
+        if ($warning) {
+            $response['zoom_warning'] = $warning;
+        }
+
+        return response()->json($response);
+    }
+
+    /**
+     * Cancel the event's Zoom meeting so its slot goes back into the pool.
+     *
+     * Deleting an event used to leave the Zoom meeting scheduled, and because account
+     * availability is read from the Zoom API those orphans blocked their slot forever.
+     * Enough deletions and reschedules and every account looks permanently busy.
+     *
+     * Returns a warning string on failure — the event still gets deleted, since
+     * refusing to delete it would leave the user stuck behind a Zoom outage.
+     */
+    private function releaseZoomMeeting(ZoomService $zoom, Event $event): ?string
+    {
+        if (!$event->zoom_meeting_id || !$event->meetingAccount) {
+            return null;
+        }
+
+        try {
+            $zoom->deleteMeeting($event->meetingAccount, $event->zoom_meeting_id);
+            return null;
+        } catch (\Throwable $e) {
+            Log::warning('Could not delete Zoom meeting for event ' . $event->id, [
+                'zoom_meeting_id' => $event->zoom_meeting_id,
+                'error'           => $e->getMessage(),
+            ]);
+
+            return 'The event was deleted, but its Zoom meeting could not be cancelled and may still block that time slot: ' . $e->getMessage();
+        }
     }
 
     /**

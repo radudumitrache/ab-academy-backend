@@ -19,4 +19,5 @@ Route::middleware('auth:api')->group(function () {
     Route::put('/events/{id}/attendance',              [EventController::class, 'markAttendance']);
     Route::post('/events/{id}/guests/by-username',     [EventController::class, 'addGuestsByUsername']);
     Route::post('/events/{id}/create-zoom-meeting',    [EventController::class, 'createZoomMeeting']);
+    Route::get('/events/{id}/zoom-start-link',         [EventController::class, 'zoomStartLink']);
 });
