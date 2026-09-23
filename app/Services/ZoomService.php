@@ -257,11 +257,31 @@ class ZoomService
         $now           = \Carbon\Carbon::now('UTC');
 
         foreach ($this->listLiveMeetings($account) as $live) {
-            // An instant meeting may not report a start_time; treat it as starting now.
-            $lStart = !empty($live['start_time'])
-                ? \Carbon\Carbon::parse($live['start_time'])->utc()
-                : $now->copy();
-            $lEnd = $this->occupiedUntil($lStart, (int) ($live['duration'] ?? 0), $account, $live);
+            /*
+             * Zoom's live list includes Personal Meeting Rooms and instant meetings that
+             * report neither a start_time nor a duration — typically rooms someone opened
+             * and never ended, carrying Zoom's default topic. There is no window to
+             * reason about, and inventing a zero-width one at "now" made every such entry
+             * block any slot within the changeover buffer of the present moment. Skip
+             * them: what is known about them cannot place them in the requested window.
+             *
+             * The case worth catching still works, because it has both fields — a meeting
+             * that has overrun its scheduled end is clamped to "now" below.
+             */
+            if (empty($live['start_time']) || empty($live['duration'])) {
+                Log::debug('Zoom live meeting has no usable window — ignoring it', [
+                    'account_id'      => $account->id,
+                    'account_name'    => $account->name ?? null,
+                    'zoom_meeting_id' => $live['id'] ?? null,
+                    'live_topic'      => $live['topic'] ?? null,
+                    'start_time'      => $live['start_time'] ?? null,
+                    'duration'        => $live['duration'] ?? null,
+                ]);
+                continue;
+            }
+
+            $lStart = \Carbon\Carbon::parse($live['start_time'])->utc();
+            $lEnd   = $this->occupiedUntil($lStart, (int) $live['duration'], $account, $live);
 
             // Still live past its scheduled end — it holds the host until at least now.
             if ($lEnd->lt($now)) {
@@ -278,7 +298,12 @@ class ZoomService
                     'event_start'  => $eventStart->toIso8601String(),
                     'event_end'    => $eventEnd->toIso8601String(),
                 ]);
-                return $live;
+
+                return $live + [
+                    'conflict_source'        => 'live',
+                    'effective_end'          => $lEnd->toIso8601String(),
+                    'effective_duration_min' => $lStart->diffInMinutes($lEnd),
+                ];
             }
         }
 
@@ -315,7 +340,8 @@ class ZoomService
                 // Hand back the effective window alongside the raw meeting, so the
                 // caller can report why this counted as a conflict.
                 return $meeting + [
-                    'effective_end'        => $mEnd->toIso8601String(),
+                    'conflict_source'        => 'scheduled',
+                    'effective_end'          => $mEnd->toIso8601String(),
                     'effective_duration_min' => $mStart->diffInMinutes($mEnd),
                 ];
             }
@@ -424,6 +450,8 @@ class ZoomService
                         // when an implausible one had to be capped.
                         'conflicting_end'          => $conflict['effective_end'] ?? null,
                         'effective_duration_min'   => $conflict['effective_duration_min'] ?? null,
+                        // Whether an in-progress or a scheduled meeting flagged this.
+                        'conflict_source'          => $conflict['conflict_source'] ?? null,
                     ];
                     continue;
                 }

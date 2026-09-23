@@ -213,7 +213,11 @@ A failure response also includes `busy_accounts`, `error_accounts` and the `chec
 
 **Account selection**: every active meeting account is queried via the Zoom API. The first account with no meeting overlapping the event's date/time window is used.
 
-A meeting already in progress counts against an account only when it actually overlaps the requested window — including when it has overrun its scheduled end, in which case it holds the account until it truly finishes. A meeting running right now does not block a slot next week.
+A meeting already in progress counts against an account only when it actually overlaps the requested window — including when it has run past its scheduled end, in which case it holds the account until it really finishes. A meeting running right now does not block a slot next week.
+
+An in-progress meeting is only weighed when Zoom reports **both** a `start_time` and a `duration` for it. Zoom's live list also returns Personal Meeting Rooms and instant meetings with neither field — usually rooms someone opened and never ended, carrying Zoom's default topic. Those describe no window, so they are ignored rather than treated as occupying the present moment.
+
+Each entry in `busy_accounts` carries a `conflict_source` of `scheduled` or `live`, saying which check flagged it.
 
 Unreachable accounts are **not** silently skipped. Busy accounts land in `busy_accounts` and unreachable ones in `error_accounts`, and the status code says which happened: `422` means the pool is genuinely full, `502` means the answer is inconclusive and the request should be retried.
 

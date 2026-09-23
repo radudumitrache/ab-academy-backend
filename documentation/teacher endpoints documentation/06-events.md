@@ -388,6 +388,10 @@ Iterates all active meeting accounts and checks the **Zoom API directly** for ea
 
 A meeting already in progress only counts against an account when it actually overlaps the requested window — including when it has run past its scheduled end, in which case it holds the account until it really finishes. A meeting running right now therefore does not block a slot next week.
 
+An in-progress meeting is only weighed when Zoom reports **both** a `start_time` and a `duration` for it. Zoom's live list also returns Personal Meeting Rooms and instant meetings with neither field — usually rooms someone opened and never ended, carrying Zoom's default topic. Those describe no window, so they are ignored rather than treated as occupying the present moment.
+
+Each entry in `busy_accounts` carries a `conflict_source` of `scheduled` or `live`, saying which check flagged it.
+
 Accounts are **not** silently skipped when unreachable. Busy accounts land in `busy_accounts` and unreachable ones in `error_accounts`, and the status code reflects which happened: `422` means the pool is genuinely full, so pick another slot; `502` means at least one account could not be reached and the answer is inconclusive, so retry.
 
 **Meeting length cap**: no meeting may exceed `ZOOM_MAX_MEETING_MINUTES` (default `240`, i.e. 4 hours). The limit is enforced in three places: `event_duration` is rejected by validation above it, the duration sent to Zoom is clamped to it (covering events stored before the limit existed), and an existing meeting counts as occupying its account for at most that long. That last point matters because Zoom stores whatever duration it is given, and some accounts hold meetings created with placeholder lengths of 9999, 99999 and 999999 minutes (7, 69 and 694 days); taken literally, one stale meeting blocked its account for years. Meetings at or under the cap are unaffected, every clamp is logged as a warning, and `busy_accounts` reports both the raw `conflicting_duration_min` and the `effective_duration_min` actually used.
