@@ -63,7 +63,7 @@ Returns every event ordered by date and time, with the organizer relation resolv
 | `type` | string | yes | `class`, `meeting`, or `other` |
 | `event_date` | date | yes | e.g. `2026-03-15` |
 | `event_time` | string | yes | `HH:MM` (24-hour) |
-| `event_duration` | integer | yes | minutes, min 1 |
+| `event_duration` | integer | yes | minutes, min 1, max 240 (4h — see `ZOOM_MAX_MEETING_MINUTES`) |
 | `event_organizer` | integer | yes | must be a user with role `teacher` or `admin` |
 | `guests` | array of int | no | user IDs — each must exist in `users` |
 | `guest_groups` | array of int | no | group IDs — each must exist in `groups` |
@@ -216,6 +216,8 @@ A failure response also includes `busy_accounts`, `error_accounts` and the `chec
 A meeting already in progress counts against an account only when it actually overlaps the requested window — including when it has overrun its scheduled end, in which case it holds the account until it truly finishes. A meeting running right now does not block a slot next week.
 
 Unreachable accounts are **not** silently skipped. Busy accounts land in `busy_accounts` and unreachable ones in `error_accounts`, and the status code says which happened: `422` means the pool is genuinely full, `502` means the answer is inconclusive and the request should be retried.
+
+**Meeting length cap**: no meeting may exceed `ZOOM_MAX_MEETING_MINUTES` (default `240`, i.e. 4 hours). The limit is enforced in three places: `event_duration` is rejected by validation above it, the duration sent to Zoom is clamped to it (covering events stored before the limit existed), and an existing meeting counts as occupying its account for at most that long. That last point matters because Zoom stores whatever duration it is given, and some accounts hold meetings created with placeholder lengths of 9999, 99999 and 999999 minutes (7, 69 and 694 days); taken literally, one stale meeting blocked its account for years. Meetings at or under the cap are unaffected, every clamp is logged as a warning, and `busy_accounts` reports both the raw `conflicting_duration_min` and the `effective_duration_min` actually used.
 
 **Changeover buffer**: an account needs `ZOOM_MEETING_BUFFER_MINUTES` (default `20`) of clearance after a meeting ends before hosting the next. It applies only *after* an existing meeting. Any non-zero value prevents back-to-back bookings on one account, so set it to `0` if lessons run on the hour.
 

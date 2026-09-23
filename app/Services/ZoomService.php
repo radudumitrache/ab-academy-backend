@@ -123,6 +123,33 @@ class ZoomService
     }
 
     /**
+     * The duration to send to Zoom for an event, never longer than the configured cap.
+     *
+     * Validation keeps new events within the cap, but events stored before it existed
+     * can still hold any value, and pushing one of those to Zoom would recreate exactly
+     * the multi-day meetings that jammed account selection. Zoom does not end a meeting
+     * when its scheduled duration elapses, so clamping this only affects the booking
+     * length Zoom displays.
+     */
+    private function durationFor(Event $event): int
+    {
+        $cap      = (int) config('services.zoom.max_meeting_minutes', 240);
+        $duration = (int) $event->event_duration;
+
+        if ($cap > 0 && $duration > $cap) {
+            Log::warning('Event duration exceeds the meeting cap — clamping what is sent to Zoom', [
+                'event_id'         => $event->id,
+                'raw_duration_min' => $duration,
+                'capped_to_min'    => $cap,
+            ]);
+
+            return $cap;
+        }
+
+        return max(1, $duration);
+    }
+
+    /**
      * Create a scheduled Zoom meeting for the given event.
      * Returns ['meeting_id' => ..., 'join_url' => ..., 'start_url' => ...].
      */
@@ -133,7 +160,7 @@ class ZoomService
             'type'       => 2, // scheduled
             'start_time' => $this->startTimeFor($event),
             'timezone'   => 'UTC', // start_time is always stored and sent as UTC
-            'duration'   => $event->event_duration,
+            'duration'   => $this->durationFor($event),
             'settings'   => [
                 'join_before_host' => true,
             ],
@@ -185,7 +212,7 @@ class ZoomService
             'topic'      => $event->title,
             'start_time' => $this->startTimeFor($event),
             'timezone'   => 'UTC',
-            'duration'   => $event->event_duration,
+            'duration'   => $this->durationFor($event),
         ]);
 
         // 404 means the meeting is already gone from Zoom — nothing left to update.
@@ -234,7 +261,7 @@ class ZoomService
             $lStart = !empty($live['start_time'])
                 ? \Carbon\Carbon::parse($live['start_time'])->utc()
                 : $now->copy();
-            $lEnd = $lStart->copy()->addMinutes((int) ($live['duration'] ?? 0));
+            $lEnd = $this->occupiedUntil($lStart, (int) ($live['duration'] ?? 0), $account, $live);
 
             // Still live past its scheduled end — it holds the host until at least now.
             if ($lEnd->lt($now)) {
@@ -271,7 +298,7 @@ class ZoomService
                 continue;
             }
             $mStart          = \Carbon\Carbon::parse($meeting['start_time'])->utc();
-            $mEnd            = $mStart->copy()->addMinutes((int) $meeting['duration']);
+            $mEnd            = $this->occupiedUntil($mStart, (int) $meeting['duration'], $account, $meeting);
             $mEndWithBuffer  = $mEnd->copy()->addMinutes($bufferMinutes);
 
             // Conflict if the existing meeting (plus buffer) overlaps the new event window.
@@ -282,12 +309,56 @@ class ZoomService
                     'conflicting_start'      => $mStart->toIso8601String(),
                     'conflicting_end'        => $mEnd->toIso8601String(),
                     'conflicting_end_buffer' => $mEndWithBuffer->toIso8601String(),
+                    'raw_duration_min'       => (int) $meeting['duration'],
                 ]);
-                return $meeting;
+
+                // Hand back the effective window alongside the raw meeting, so the
+                // caller can report why this counted as a conflict.
+                return $meeting + [
+                    'effective_end'        => $mEnd->toIso8601String(),
+                    'effective_duration_min' => $mStart->diffInMinutes($mEnd),
+                ];
             }
         }
 
         return null;
+    }
+
+    /**
+     * How long an existing meeting should be treated as occupying its account.
+     *
+     * Zoom stores durations well beyond its own 1440-minute maximum, and these accounts
+     * hold meetings created with placeholder lengths of 9999, 99999 and 999999 minutes
+     * — 7, 69 and 694 days. Trusting those literally made a single stale meeting block
+     * its account for months, so every account reported busy for every slot.
+     *
+     * A meeting claiming to run for days is not a real call of that length, so the
+     * window is capped. Meetings at or under the cap are returned unchanged.
+     */
+    private function occupiedUntil(
+        \Carbon\Carbon $start,
+        int $durationMinutes,
+        MeetingAccount $account,
+        array $meeting
+    ): \Carbon\Carbon {
+        $cap = (int) config('services.zoom.max_meeting_minutes', 1440);
+
+        if ($cap > 0 && $durationMinutes > $cap) {
+            Log::warning('Zoom meeting reports an implausible duration — capping it for conflict detection', [
+                'account_id'      => $account->id,
+                'account_name'    => $account->name ?? null,
+                'zoom_meeting_id' => $meeting['id'] ?? null,
+                'topic'           => $meeting['topic'] ?? null,
+                'type'            => $meeting['type'] ?? null,
+                'start_time'      => $meeting['start_time'] ?? null,
+                'raw_duration_min' => $durationMinutes,
+                'capped_to_min'   => $cap,
+            ]);
+
+            $durationMinutes = $cap;
+        }
+
+        return $start->copy()->addMinutes(max(0, $durationMinutes));
     }
 
     /**
@@ -349,6 +420,10 @@ class ZoomService
                         'conflicting_topic'        => $conflict['topic'] ?? null,
                         'conflicting_start'        => $conflict['start_time'] ?? null,
                         'conflicting_duration_min' => $conflict['duration'] ?? null,
+                        // The window actually used, which differs from the raw duration
+                        // when an implausible one had to be capped.
+                        'conflicting_end'          => $conflict['effective_end'] ?? null,
+                        'effective_duration_min'   => $conflict['effective_duration_min'] ?? null,
                     ];
                     continue;
                 }

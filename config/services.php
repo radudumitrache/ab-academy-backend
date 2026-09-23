@@ -19,5 +19,26 @@ return [
          * few minutes) if lessons are scheduled on the hour.
          */
         'buffer_minutes' => (int) env('ZOOM_MEETING_BUFFER_MINUTES', 20),
+
+        /*
+         * The longest a meeting may be, in minutes. Default 240 (4 hours).
+         *
+         * This is enforced in three places:
+         *
+         *   1. Validation — an event cannot be created or updated with a longer
+         *      duration, so the platform can no longer produce an over-long meeting.
+         *   2. Creating/updating a Zoom meeting — the duration sent to Zoom is clamped,
+         *      which covers events stored before this limit existed.
+         *   3. Conflict detection — an existing meeting counts as occupying its account
+         *      for at most this long.
+         *
+         * (3) is what makes this matter. Zoom stores whatever duration it is given, and
+         * these accounts hold meetings created with placeholder lengths of 9999, 99999
+         * and 999999 minutes — 7, 69 and 694 days. Taken literally, one stale meeting
+         * blocked its account into 2028, which is why every account reported as busy.
+         *
+         * Meetings at or under the cap are unaffected.
+         */
+        'max_meeting_minutes' => (int) env('ZOOM_MAX_MEETING_MINUTES', 240),
     ],
 ];

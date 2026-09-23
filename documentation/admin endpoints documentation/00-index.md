@@ -63,6 +63,7 @@ Authorization: Bearer {access_token}
 | DELETE | `/api/admin/events/{id}` | Yes | Delete an event |
 | GET | `/api/admin/events/{id}/attendance` | Yes | View all guest attendance for an event |
 | POST | `/api/admin/events/{id}/create-zoom-meeting` | Yes | Auto-create a Zoom meeting for an event |
+| GET | `/api/admin/events/{id}/zoom-start-link` | Yes | Get a freshly issued host start link — the stored one expires ~2h after creation |
 | POST | `/api/admin/events/{id}/recur-monthly` | Yes | Create recurring weekly copies for the rest of the month |
 | GET | `/api/admin/groups` | Yes | List all groups |
 | POST | `/api/admin/groups` | Yes | Create a group |

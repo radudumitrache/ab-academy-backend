@@ -199,6 +199,7 @@ Returns which account would be automatically selected if a new meeting were sche
 Two details shape the result:
 
 - A meeting **in progress** counts against an account only when it overlaps the window being asked about — including when it has overrun its scheduled end, in which case it holds the account until it really finishes. An account hosting a lesson right now is still available for a slot next week.
+- A meeting counts as occupying its account for at most `ZOOM_MAX_MEETING_MINUTES` (default `240`, i.e. 4 hours). Some accounts hold meetings created with placeholder durations of 9999 or 999999 minutes, which taken literally would block them for weeks or years.
 - An account needs `ZOOM_MEETING_BUFFER_MINUTES` (default `20`) of clearance *after* an existing meeting ends before it can host the next one. Any non-zero value prevents back-to-back bookings on a single account; set it to `0` if lessons are scheduled on the hour.
 
 - **URL**: `GET /api/admin/meeting-accounts/suggest-account`

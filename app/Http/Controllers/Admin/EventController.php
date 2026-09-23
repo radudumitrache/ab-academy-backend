@@ -42,7 +42,7 @@ class EventController extends Controller
             'type' => ['required', Rule::in(['class', 'meeting', 'other'])],
             'event_date' => 'required|date',
             'event_time' => 'required|date_format:H:i',
-            'event_duration' => 'required|integer|min:1',
+            'event_duration' => 'required|integer|min:1|max:' . config('services.zoom.max_meeting_minutes', 240),
             'event_organizer' => [
                 'required',
                 Rule::exists('users', 'id')->where(function ($query) {
@@ -105,7 +105,7 @@ class EventController extends Controller
             'type' => ['sometimes', Rule::in(['class', 'meeting', 'other'])],
             'event_date' => 'sometimes|date',
             'event_time' => 'sometimes|date_format:H:i',
-            'event_duration' => 'sometimes|integer|min:1',
+            'event_duration' => 'sometimes|integer|min:1|max:' . config('services.zoom.max_meeting_minutes', 240),
             'event_organizer' => [
                 'sometimes',
                 Rule::exists('users', 'id')->where(function ($query) {

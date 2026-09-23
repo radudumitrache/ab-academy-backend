@@ -45,7 +45,7 @@ Plain guests (directly invited but not a manager) can view events but cannot mod
 | `type` | `class`, `meeting`, or `other` |
 | `event_date` | Date of the event (`YYYY-MM-DD`) — in the requesting user's timezone |
 | `event_time` | Start time (`HH:MM`) — in the requesting user's timezone |
-| `event_duration` | Duration in minutes |
+| `event_duration` | Duration in minutes (max 240) |
 | `event_organizer` | User ID of the organizer |
 | `guests` | Array of individual user IDs invited directly |
 | `guest_groups` | Array of group IDs — all members of these groups can see the event |
@@ -159,7 +159,7 @@ Creates a new event. The authenticated teacher is automatically set as the organ
   | `type` | string | Yes | `class`, `meeting`, or `other` |
   | `event_date` | string | Yes | Any valid date (e.g. `2026-03-10`) |
   | `event_time` | string | Yes | `HH:MM` format |
-  | `event_duration` | integer | Yes | Duration in minutes, minimum 1 |
+  | `event_duration` | integer | Yes | Duration in minutes, minimum 1, maximum 240 (4h — see `ZOOM_MAX_MEETING_MINUTES`) |
   | `guests` | array | No | Individual user IDs to invite directly |
   | `guest_groups` | array | No | Group IDs — all members of each group can see and join the event |
   | `event_meet_link` | string | No | Valid URL, max 2048 characters |
@@ -389,6 +389,8 @@ Iterates all active meeting accounts and checks the **Zoom API directly** for ea
 A meeting already in progress only counts against an account when it actually overlaps the requested window — including when it has run past its scheduled end, in which case it holds the account until it really finishes. A meeting running right now therefore does not block a slot next week.
 
 Accounts are **not** silently skipped when unreachable. Busy accounts land in `busy_accounts` and unreachable ones in `error_accounts`, and the status code reflects which happened: `422` means the pool is genuinely full, so pick another slot; `502` means at least one account could not be reached and the answer is inconclusive, so retry.
+
+**Meeting length cap**: no meeting may exceed `ZOOM_MAX_MEETING_MINUTES` (default `240`, i.e. 4 hours). The limit is enforced in three places: `event_duration` is rejected by validation above it, the duration sent to Zoom is clamped to it (covering events stored before the limit existed), and an existing meeting counts as occupying its account for at most that long. That last point matters because Zoom stores whatever duration it is given, and some accounts hold meetings created with placeholder lengths of 9999, 99999 and 999999 minutes (7, 69 and 694 days); taken literally, one stale meeting blocked its account for years. Meetings at or under the cap are unaffected, every clamp is logged as a warning, and `busy_accounts` reports both the raw `conflicting_duration_min` and the `effective_duration_min` actually used.
 
 **Changeover buffer**: an account needs `ZOOM_MEETING_BUFFER_MINUTES` (default `20`) of clearance after one meeting ends before it may host the next. The buffer applies only *after* an existing meeting, so an event may end exactly when the following one begins. Note that any non-zero value prevents back-to-back bookings on a single account — with the default of 20, a 10:00–11:00 meeting blocks an 11:00 start. Set it to `0` if lessons are scheduled on the hour.
 

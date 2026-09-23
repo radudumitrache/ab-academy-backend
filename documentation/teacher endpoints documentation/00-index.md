@@ -76,6 +76,7 @@ Tokens are issued via Laravel Passport. Each token is scoped to a teacher accoun
 | POST | `/api/teacher/groups/{id}/attendance` | Yes | Record group session attendance (owner or assistant teacher) — see [Attendance](12-attendance.md) |
 | POST | `/api/teacher/events/{id}/guests/by-username` | Yes | Add guests to an event by username (organizer or assistant of invited group) |
 | POST | `/api/teacher/events/{id}/create-zoom-meeting` | Yes | Auto-create a Zoom meeting for an event (organizer or assistant of invited group) |
+| GET | `/api/teacher/events/{id}/zoom-start-link` | Yes | Get a freshly issued host start link — the stored one expires ~2h after creation |
 | GET | `/api/teacher/notifications` | Yes | List own notifications (filterable) |
 | PUT | `/api/teacher/notifications/seen-all` | Yes | Mark all notifications as seen |
 | PUT | `/api/teacher/notifications/{id}/seen` | Yes | Mark a single notification as seen |
