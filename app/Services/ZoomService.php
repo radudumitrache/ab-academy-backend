@@ -260,16 +260,19 @@ class ZoomService
             /*
              * Zoom's live list includes Personal Meeting Rooms and instant meetings that
              * report neither a start_time nor a duration — typically rooms someone opened
-             * and never ended, carrying Zoom's default topic. There is no window to
-             * reason about, and inventing a zero-width one at "now" made every such entry
-             * block any slot within the changeover buffer of the present moment. Skip
-             * them: what is known about them cannot place them in the requested window.
+             * and never ended. They still hold the host: Zoom refuses to start another
+             * meeting on the account while one is live, which is what teachers hit when
+             * the account was booked anyway.
              *
-             * The case worth catching still works, because it has both fields — a meeting
-             * that has overrun its scheduled end is clamped to "now" below.
+             * With no window to go on, assume the meeting occupies the account from now
+             * until the meeting cap. Bounding it keeps such a room from blocking slots
+             * days away, which is what skipping them originally avoided.
              */
             if (empty($live['start_time']) || empty($live['duration'])) {
-                Log::debug('Zoom live meeting has no usable window — ignoring it', [
+                $lStart = $now->copy();
+                $lEnd   = $now->copy()->addMinutes((int) config('services.zoom.max_meeting_minutes', 240));
+
+                Log::debug('Zoom live meeting has no usable window — treating it as occupying the account until now + cap', [
                     'account_id'      => $account->id,
                     'account_name'    => $account->name ?? null,
                     'zoom_meeting_id' => $live['id'] ?? null,
@@ -277,15 +280,14 @@ class ZoomService
                     'start_time'      => $live['start_time'] ?? null,
                     'duration'        => $live['duration'] ?? null,
                 ]);
-                continue;
-            }
+            } else {
+                $lStart = \Carbon\Carbon::parse($live['start_time'])->utc();
+                $lEnd   = $this->occupiedUntil($lStart, (int) $live['duration'], $account, $live);
 
-            $lStart = \Carbon\Carbon::parse($live['start_time'])->utc();
-            $lEnd   = $this->occupiedUntil($lStart, (int) $live['duration'], $account, $live);
-
-            // Still live past its scheduled end — it holds the host until at least now.
-            if ($lEnd->lt($now)) {
-                $lEnd = $now->copy();
+                // Still live past its scheduled end — it holds the host until at least now.
+                if ($lEnd->lt($now)) {
+                    $lEnd = $now->copy();
+                }
             }
 
             if ($this->windowsConflict($lStart, $lEnd, $eventStart, $eventEnd, $bufferMinutes)) {
