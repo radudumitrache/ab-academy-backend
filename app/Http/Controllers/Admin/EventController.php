@@ -317,7 +317,7 @@ class EventController extends Controller
         DatabaseLog::logAction('update', Event::class, $event->id, "Zoom meeting created for event '{$event->title}'");
 
         return response()->json([
-            'message'      => 'Zoom meeting created successfully',
+            'message'      => !empty($outcome['reused']) ? 'This event already has a Zoom meeting' : 'Zoom meeting created successfully',
             'event'        => $this->formatEvent($event->load('organizer'), Auth::user()->effective_timezone),
             'meeting_link' => $outcome['meeting']['join_url'],
             'start_link'   => $outcome['meeting']['start_url'],
@@ -396,11 +396,34 @@ class EventController extends Controller
             $event->update(['event_start_link' => $meeting['start_url']]);
         }
 
-        return response()->json([
+        $response = [
             'message'      => 'Start link retrieved successfully',
             'start_link'   => $meeting['start_url'] ?? null,
             'meeting_link' => $meeting['join_url'] ?? $event->event_meet_link,
-        ]);
+        ];
+
+        // Zoom refuses to start a meeting while its host account is in another one, and
+        // the teacher only finds out after clicking the link. Say so up front.
+        try {
+            $blocking = $zoom->liveMeetingBlockingStart($event->meetingAccount, (string) $event->zoom_meeting_id);
+
+            if ($blocking !== null) {
+                $response['start_warning'] = 'The Zoom account for this meeting is currently in another meeting'
+                    . (!empty($blocking['topic']) ? ' ("' . $blocking['topic'] . '")' : '')
+                    . '. Zoom will not let this one start until that meeting is ended.';
+                $response['blocking_meeting'] = [
+                    'id'    => $blocking['id'] ?? null,
+                    'topic' => $blocking['topic'] ?? null,
+                ];
+            }
+        } catch (\Throwable $e) {
+            // The link itself is valid; failing to look for a conflict must not withhold it.
+            Log::warning('Could not check for a live meeting before handing out a start link for event ' . $event->id, [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return response()->json($response);
     }
 
     /**

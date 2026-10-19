@@ -40,5 +40,24 @@ return [
          * Meetings at or under the cap are unaffected.
          */
         'max_meeting_minutes' => (int) env('ZOOM_MAX_MEETING_MINUTES', 240),
+
+        /*
+         * How long, from now, a live meeting with no start_time/duration (an instant
+         * meeting or Personal Meeting Room) is assumed to keep its account busy.
+         *
+         * Zoom reports no end for these, so this only guards events that start almost
+         * immediately. Events further out are not blocked by them.
+         */
+        'live_unknown_window_minutes' => (int) env('ZOOM_LIVE_UNKNOWN_WINDOW_MINUTES', 30),
+
+        /*
+         * How long after its scheduled start a meeting that is not live is still
+         * assumed to be about to begin (a host running late).
+         *
+         * Zoom's scheduled list keeps meetings from the past month and does not say
+         * whether they ran. Once a meeting is this far past its start and not live, it
+         * has ended or never started, so it stops blocking its account.
+         */
+        'no_show_grace_minutes' => (int) env('ZOOM_NO_SHOW_GRACE_MINUTES', 15),
     ],
 ];

@@ -215,7 +215,11 @@ A failure response also includes `busy_accounts`, `error_accounts` and the `chec
 
 A meeting already in progress counts against an account only when it actually overlaps the requested window — including when it has run past its scheduled end, in which case it holds the account until it really finishes. A meeting running right now does not block a slot next week.
 
-An in-progress meeting is only weighed when Zoom reports **both** a `start_time` and a `duration` for it. Zoom's live list also returns Personal Meeting Rooms and instant meetings with neither field — usually rooms someone opened and never ended, carrying Zoom's default topic. Those describe no window, so they are ignored rather than treated as occupying the present moment.
+Zoom's live list also returns Personal Meeting Rooms and instant meetings with neither a `start_time` nor a `duration` — usually rooms someone opened and never ended. They still hold the host (Zoom will not start another meeting on that account), but describe no window, so they are assumed to occupy the account for `ZOOM_LIVE_UNKNOWN_WINDOW_MINUTES` (default `30`) from now. They block events about to start, not later ones.
+
+A scheduled meeting that began more than `ZOOM_NO_SHOW_GRACE_MINUTES` (default `15`) ago and is not live has ended or never started, and stops blocking its account; Zoom's scheduled list keeps such meetings for a month and does not say whether they ran.
+
+**Idempotent**: if the event already has a Zoom meeting that still exists on Zoom, that meeting is returned (message `"This event already has a Zoom meeting"`) instead of booking a second one. A new meeting is booked only when Zoom reports the old one as gone. Bookings are serialised, so two simultaneous requests cannot take the same account for the same slot; a request that waits too long for its turn gets a `502` and can be retried.
 
 Each entry in `busy_accounts` carries a `conflict_source` of `scheduled` or `live`, saying which check flagged it.
 
@@ -243,6 +247,8 @@ Fetches a freshly issued host start URL from Zoom and refreshes the stored `even
   "meeting_link": "https://us05web.zoom.us/j/12345678?pwd=..."
 }
 ```
+
+When the meeting's Zoom account is already in another meeting, Zoom will refuse to start this one. The response then also includes `start_warning` (text) and `blocking_meeting` (`{ "id", "topic" }`); both are absent when nothing is blocking.
 
 **Errors**:
 - `404` — event not found

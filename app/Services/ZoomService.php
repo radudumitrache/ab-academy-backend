@@ -5,6 +5,10 @@ namespace App\Services;
 use App\Helpers\TimezoneHelper;
 use App\Models\Event;
 use App\Models\MeetingAccount;
+use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -14,6 +18,80 @@ class ZoomService
 {
     /** Safety stop for list pagination, so a bad next_page_token cannot loop forever. */
     private const MAX_LIST_PAGES = 20;
+
+    /** Seconds to wait for Zoom before giving up on one call. */
+    private const HTTP_TIMEOUT = 20;
+    private const HTTP_CONNECT_TIMEOUT = 5;
+
+    /** Attempts per call and the pause between them, in milliseconds. */
+    private const HTTP_TRIES = 3;
+    private const HTTP_RETRY_DELAY_MS = 600;
+
+    /** Booking lock: how long it may be held, and how long a request waits for it. */
+    private const BOOKING_LOCK_SECONDS = 120;
+    private const BOOKING_LOCK_WAIT_SECONDS = 25;
+
+    /**
+     * Meeting lists already fetched by this instance, keyed "<account id>:<type>".
+     *
+     * One request can ask about the same account many times (the recurrence endpoint
+     * books a whole month of copies), and each ask costs a live list plus a scheduled
+     * list per account. Entries are dropped whenever this instance changes an account's
+     * meetings, so a booking is never invisible to the next check in the same request.
+     */
+    private array $listCache = [];
+
+    /**
+     * An HTTP client with timeouts and retries for transient Zoom failures.
+     *
+     * Without a timeout one hung connection stalls the whole account-selection pass,
+     * which walks every account in turn. Rate limits (429) and 5xx responses are
+     * retried; connection errors are retried only when the call is safe to repeat,
+     * because a create that timed out may still have succeeded on Zoom's side and
+     * repeating it would book a second meeting.
+     */
+    private function client(bool $repeatable = true): PendingRequest
+    {
+        return Http::timeout(self::HTTP_TIMEOUT)
+            ->connectTimeout(self::HTTP_CONNECT_TIMEOUT)
+            ->retry(
+                self::HTTP_TRIES,
+                self::HTTP_RETRY_DELAY_MS,
+                function ($exception) use ($repeatable) {
+                    if ($exception instanceof ConnectionException) {
+                        return $repeatable;
+                    }
+
+                    if ($exception instanceof RequestException) {
+                        $status = $exception->response->status();
+
+                        return $status === 429 || ($repeatable && $status >= 500);
+                    }
+
+                    return false;
+                },
+                false // hand back the last response instead of throwing; callers inspect it
+            );
+    }
+
+    /** Parse a timestamp Zoom sent, or null when it is missing or unreadable. */
+    private function parseZoomTime(mixed $value): ?\Carbon\Carbon
+    {
+        if (!is_string($value) || $value === '') {
+            return null;
+        }
+
+        try {
+            return \Carbon\Carbon::parse($value)->utc();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function forgetLists(MeetingAccount $account): void
+    {
+        unset($this->listCache[$account->id . ':live'], $this->listCache[$account->id . ':scheduled']);
+    }
 
     /**
      * Obtain a short-lived bearer token via Server-to-Server OAuth.
@@ -42,7 +120,8 @@ class ZoomService
             'forced'       => $fresh,
         ]);
 
-        $response = Http::withBasicAuth($account->client_id, $account->client_secret)
+        $response = $this->client()
+            ->withBasicAuth($account->client_id, $account->client_secret)
             ->asForm()
             ->post('https://zoom.us/oauth/token', [
                 'grant_type' => 'account_credentials',
@@ -96,7 +175,10 @@ class ZoomService
      */
     private function request(MeetingAccount $account, string $method, string $url, array $payload): Response
     {
-        $response = Http::withToken($this->getAccessToken($account))->{$method}($url, $payload);
+        // A POST creates something, so a dropped connection must not be repeated blindly.
+        $repeatable = strtolower($method) !== 'post';
+
+        $response = $this->client($repeatable)->withToken($this->getAccessToken($account))->{$method}($url, $payload);
 
         if ($response->status() === 401) {
             Log::debug('Zoom rejected the cached token — retrying with a fresh one', [
@@ -104,7 +186,7 @@ class ZoomService
                 'account_name' => $account->name ?? null,
             ]);
 
-            $response = Http::withToken($this->getAccessToken($account, true))->{$method}($url, $payload);
+            $response = $this->client($repeatable)->withToken($this->getAccessToken($account, true))->{$method}($url, $payload);
         }
 
         return $response;
@@ -166,6 +248,9 @@ class ZoomService
             ],
         ]);
 
+        // Whatever happened, this account's meetings may have changed.
+        $this->forgetLists($account);
+
         if (!$response->successful()) {
             throw new \RuntimeException(
                 'Zoom meeting creation failed: ' . $response->body()
@@ -192,7 +277,8 @@ class ZoomService
 
         if (!$response->successful()) {
             throw new \RuntimeException(
-                'Zoom meeting fetch failed: ' . $response->body()
+                'Zoom meeting fetch failed: ' . $response->body(),
+                $response->status()
             );
         }
 
@@ -215,6 +301,8 @@ class ZoomService
             'duration'   => $this->durationFor($event),
         ]);
 
+        $this->forgetLists($account);
+
         // 404 means the meeting is already gone from Zoom — nothing left to update.
         if (!$response->successful() && $response->status() !== 404) {
             throw new \RuntimeException(
@@ -233,6 +321,8 @@ class ZoomService
     {
         $response = $this->request($account, 'delete', 'https://api.zoom.us/v2/meetings/' . $meetingId, []);
 
+        $this->forgetLists($account);
+
         // 404 means it is already deleted, which is the outcome we wanted anyway.
         if (!$response->successful() && $response->status() !== 404) {
             throw new \RuntimeException(
@@ -249,14 +339,35 @@ class ZoomService
      * Live (in-progress) meetings are weighed too, but only when they actually occupy
      * the host during the requested window — a meeting running right now says nothing
      * about a slot next week.
+     *
+     * @param  string|null  $ignoreMeetingId  A Zoom meeting id to disregard, so an event's
+     *                                        own meeting never conflicts with itself.
      */
-    public function findOverlappingMeeting(MeetingAccount $account, \Carbon\Carbon $eventStart, int $durationMinutes): ?array
-    {
+    public function findOverlappingMeeting(
+        MeetingAccount $account,
+        \Carbon\Carbon $eventStart,
+        int $durationMinutes,
+        ?string $ignoreMeetingId = null
+    ): ?array {
         $bufferMinutes = (int) config('services.zoom.buffer_minutes', 20);
-        $eventEnd      = $eventStart->copy()->addMinutes($durationMinutes);
+        $eventEnd      = $eventStart->copy()->addMinutes(max(1, $durationMinutes));
         $now           = \Carbon\Carbon::now('UTC');
+        $liveIds       = [];
 
         foreach ($this->listLiveMeetings($account) as $live) {
+            $liveId = isset($live['id']) ? (string) $live['id'] : null;
+
+            if ($liveId !== null) {
+                $liveIds[$liveId] = true;
+            }
+
+            if ($ignoreMeetingId !== null && $liveId === $ignoreMeetingId) {
+                continue;
+            }
+
+            $lStart    = $this->parseZoomTime($live['start_time'] ?? null);
+            $lDuration = (int) ($live['duration'] ?? 0);
+
             /*
              * Zoom's live list includes Personal Meeting Rooms and instant meetings that
              * report neither a start_time nor a duration — typically rooms someone opened
@@ -264,15 +375,17 @@ class ZoomService
              * meeting on the account while one is live, which is what teachers hit when
              * the account was booked anyway.
              *
-             * With no window to go on, assume the meeting occupies the account from now
-             * until the meeting cap. Bounding it keeps such a room from blocking slots
-             * days away, which is what skipping them originally avoided.
+             * With no window to go on, all that is known is that the host is busy right
+             * now, so it only blocks events about to start. Assuming it lasts as long as
+             * a full meeting (the cap, 4h) made a single open room take an account out of
+             * service for the whole afternoon, and with a few such rooms around every
+             * account looked busy and teachers could not book at all.
              */
-            if (empty($live['start_time']) || empty($live['duration'])) {
+            if ($lStart === null || $lDuration <= 0) {
                 $lStart = $now->copy();
-                $lEnd   = $now->copy()->addMinutes((int) config('services.zoom.max_meeting_minutes', 240));
+                $lEnd   = $now->copy()->addMinutes((int) config('services.zoom.live_unknown_window_minutes', 30));
 
-                Log::debug('Zoom live meeting has no usable window — treating it as occupying the account until now + cap', [
+                Log::debug('Zoom live meeting has no usable window — treating it as occupying the account for a short window from now', [
                     'account_id'      => $account->id,
                     'account_name'    => $account->name ?? null,
                     'zoom_meeting_id' => $live['id'] ?? null,
@@ -281,8 +394,7 @@ class ZoomService
                     'duration'        => $live['duration'] ?? null,
                 ]);
             } else {
-                $lStart = \Carbon\Carbon::parse($live['start_time'])->utc();
-                $lEnd   = $this->occupiedUntil($lStart, (int) $live['duration'], $account, $live);
+                $lEnd = $this->occupiedUntil($lStart, $lDuration, $account, $live);
 
                 // Still live past its scheduled end — it holds the host until at least now.
                 if ($lEnd->lt($now)) {
@@ -310,6 +422,7 @@ class ZoomService
         }
 
         $meetings = $this->listMeetings($account);
+        $grace    = (int) config('services.zoom.no_show_grace_minutes', 15);
 
         Log::debug('Zoom overlap check', [
             'account_id'    => $account->id,
@@ -321,12 +434,34 @@ class ZoomService
         ]);
 
         foreach ($meetings as $meeting) {
-            if (empty($meeting['start_time']) || empty($meeting['duration'])) {
+            $meetingId = isset($meeting['id']) ? (string) $meeting['id'] : null;
+
+            // The ignored meeting, and live ones (already weighed above with their live window).
+            if ($meetingId !== null && ($meetingId === $ignoreMeetingId || isset($liveIds[$meetingId]))) {
                 continue;
             }
-            $mStart          = \Carbon\Carbon::parse($meeting['start_time'])->utc();
-            $mEnd            = $this->occupiedUntil($mStart, (int) $meeting['duration'], $account, $meeting);
-            $mEndWithBuffer  = $mEnd->copy()->addMinutes($bufferMinutes);
+
+            $mStart    = $this->parseZoomTime($meeting['start_time'] ?? null);
+            $mDuration = (int) ($meeting['duration'] ?? 0);
+
+            if ($mStart === null || $mDuration <= 0) {
+                continue;
+            }
+
+            /*
+             * Zoom's "scheduled" list also returns meetings from the past month, and it
+             * knows nothing about whether they actually ran. A meeting that began more
+             * than the grace period ago and is not live has ended, been abandoned, or
+             * never started — either way it is not holding the host. Counting its full
+             * scheduled length made an account look busy for hours after a class that
+             * finished early, which is a common way for free accounts to look booked.
+             */
+            if ($mStart->copy()->addMinutes($grace)->lt($now)) {
+                continue;
+            }
+
+            $mEnd           = $this->occupiedUntil($mStart, $mDuration, $account, $meeting);
+            $mEndWithBuffer = $mEnd->copy()->addMinutes($bufferMinutes);
 
             // Conflict if the existing meeting (plus buffer) overlaps the new event window.
             if ($this->windowsConflict($mStart, $mEnd, $eventStart, $eventEnd, $bufferMinutes)) {
@@ -336,7 +471,7 @@ class ZoomService
                     'conflicting_start'      => $mStart->toIso8601String(),
                     'conflicting_end'        => $mEnd->toIso8601String(),
                     'conflicting_end_buffer' => $mEndWithBuffer->toIso8601String(),
-                    'raw_duration_min'       => (int) $meeting['duration'],
+                    'raw_duration_min'       => $mDuration,
                 ]);
 
                 // Hand back the effective window alongside the raw meeting, so the
@@ -346,6 +481,27 @@ class ZoomService
                     'effective_end'          => $mEnd->toIso8601String(),
                     'effective_duration_min' => $mStart->diffInMinutes($mEnd),
                 ];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * A live meeting on this account other than the given one, or null if the host is
+     * free to start it.
+     *
+     * Zoom refuses to start a meeting while its host is in another one, and the start
+     * link only fails once the teacher has clicked it. Callers use this when handing out
+     * a start link so they can say why it will not work.
+     */
+    public function liveMeetingBlockingStart(MeetingAccount $account, string $meetingId): ?array
+    {
+        $this->forgetLists($account);
+
+        foreach ($this->listLiveMeetings($account) as $live) {
+            if ((string) ($live['id'] ?? '') !== $meetingId) {
+                return $live;
             }
         }
 
@@ -433,7 +589,9 @@ class ZoomService
      */
     private function pickAccount(\Carbon\Carbon $eventStart, int $durationMinutes, ?callable $onPick = null): array
     {
-        $accounts = MeetingAccount::where('is_active', true)->get();
+        // Fixed order, so the same account is preferred every time rather than whichever
+        // row the database happens to return first.
+        $accounts = MeetingAccount::where('is_active', true)->orderBy('id')->get();
         $busy     = [];
         $errors   = [];
 
@@ -505,13 +663,51 @@ class ZoomService
     /**
      * Select a free account and create this event's Zoom meeting on it.
      *
-     * @return array{account: ?MeetingAccount, meeting: ?array, busy: array, errors: array, total: int}
+     * If the event already has a live Zoom meeting it is returned as is (with
+     * 'reused' => true) rather than booking a second one and orphaning the first, which
+     * would keep blocking its slot. Only when Zoom says the old meeting is gone is a new
+     * one booked.
+     *
+     * Bookings run one at a time. Selection reads the accounts' current meetings and the
+     * booking writes to them, so two requests racing for the same slot would both see an
+     * account as free and book it twice — and the second teacher could not start.
+     *
+     * @return array{account: ?MeetingAccount, meeting: ?array, busy: array, errors: array, total: int, reused?: bool}
      */
     public function bookMeetingFor(Event $event): array
     {
+        try {
+            return $this->withBookingLock(fn () => $this->bookMeetingUnlocked($event));
+        } catch (LockTimeoutException) {
+            Log::warning('Zoom booking lock not acquired in time', ['event_id' => $event->id]);
+
+            return [
+                'account' => null,
+                'meeting' => null,
+                'busy'    => [],
+                'errors'  => [[
+                    'account_id'   => null,
+                    'account_name' => null,
+                    'error'        => 'Another meeting is being booked right now — please retry in a few seconds',
+                ]],
+                'total'   => max(1, MeetingAccount::where('is_active', true)->count()),
+            ];
+        }
+    }
+
+    private function bookMeetingUnlocked(Event $event): array
+    {
+        if ($event->zoom_meeting_id && $event->meetingAccount) {
+            $existing = $this->reuseExistingMeeting($event);
+
+            if ($existing !== null) {
+                return $existing;
+            }
+        }
+
         $outcome = $this->pickAccount(
             $this->eventStartUtc($event),
-            (int) $event->event_duration,
+            $this->durationFor($event),
             fn (MeetingAccount $account) => $this->createMeeting($account, $event)
         );
 
@@ -519,6 +715,83 @@ class ZoomService
         unset($outcome['result']);
 
         return $outcome;
+    }
+
+    /**
+     * Hand back the event's current Zoom meeting, or null when a new one must be booked.
+     *
+     * Null only when Zoom reports the meeting as gone (404). Any other failure means
+     * "we do not know", and booking a replacement then could duplicate a meeting that is
+     * still there, so it is reported as an unreachable account for the caller to retry.
+     */
+    private function reuseExistingMeeting(Event $event): ?array
+    {
+        $account = $event->meetingAccount;
+
+        try {
+            $meeting = $this->getMeeting($account, (string) $event->zoom_meeting_id);
+        } catch (\Throwable $e) {
+            if ($e->getCode() === 404) {
+                Log::info('Event\'s Zoom meeting no longer exists — booking a new one', [
+                    'event_id'        => $event->id,
+                    'zoom_meeting_id' => $event->zoom_meeting_id,
+                ]);
+
+                return null;
+            }
+
+            Log::warning('Could not check the event\'s existing Zoom meeting', [
+                'event_id'        => $event->id,
+                'zoom_meeting_id' => $event->zoom_meeting_id,
+                'error'           => $e->getMessage(),
+            ]);
+
+            return [
+                'account' => null,
+                'meeting' => null,
+                'busy'    => [],
+                'errors'  => [[
+                    'account_id'   => $account->id,
+                    'account_name' => $account->name ?? null,
+                    'error'        => $e->getMessage(),
+                ]],
+                'total'   => 1,
+            ];
+        }
+
+        return [
+            'account' => $account,
+            'meeting' => [
+                'meeting_id' => (string) $event->zoom_meeting_id,
+                'join_url'   => $meeting['join_url'] ?? $event->event_meet_link,
+                'start_url'  => $meeting['start_url'] ?? $event->event_start_link,
+            ],
+            'busy'    => [],
+            'errors'  => [],
+            'total'   => 1,
+            'reused'  => true,
+        ];
+    }
+
+    /**
+     * Run the callback while holding the global booking lock.
+     *
+     * A cache store that cannot lock (or a broken one) must not stop teachers booking,
+     * so those cases run unlocked — the same behaviour as before the lock existed.
+     *
+     * @throws LockTimeoutException when another booking holds the lock for too long
+     */
+    private function withBookingLock(callable $callback): array
+    {
+        try {
+            $lock = Cache::lock('zoom:booking', self::BOOKING_LOCK_SECONDS);
+        } catch (\Throwable $e) {
+            Log::warning('Zoom booking lock unavailable — booking without it', ['error' => $e->getMessage()]);
+
+            return $callback();
+        }
+
+        return $lock->block(self::BOOKING_LOCK_WAIT_SECONDS, $callback);
     }
 
     /**
@@ -559,6 +832,12 @@ class ZoomService
      */
     private function listMeetingsOfType(MeetingAccount $account, string $type, string $errorPrefix): array
     {
+        $cacheKey = $account->id . ':' . $type;
+
+        if (isset($this->listCache[$cacheKey])) {
+            return $this->listCache[$cacheKey];
+        }
+
         $meetings  = [];
         $pageToken = '';
         $pages     = 0;
@@ -594,6 +873,6 @@ class ZoomService
             ]);
         }
 
-        return $meetings;
+        return $this->listCache[$cacheKey] = $meetings;
     }
 }
