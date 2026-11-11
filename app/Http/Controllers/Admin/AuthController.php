@@ -41,7 +41,9 @@ class AuthController extends Controller
                     $token = $superAdmin->createToken('super-admin-token')->accessToken;
                     
                     Log::info('Super admin token generated successfully');
-                    DatabaseLog::logAction('login', Admin::class, 0, 'Super admin logged in');
+                    if (config('logging.database_auth_events')) {
+                        DatabaseLog::logAction('login', Admin::class, 0, 'Super admin logged in');
+                    }
 
                     return response()->json([
                         'message' => 'Super admin login successful',
@@ -88,7 +90,9 @@ class AuthController extends Controller
                 $token = $user->createToken('admin-token')->accessToken;
                 
                 Log::info('Admin token generated successfully for user: ' . $user->username);
-                DatabaseLog::logAction('login', Admin::class, $user->id, "Admin '{$user->username}' logged in");
+                if (config('logging.database_auth_events')) {
+                    DatabaseLog::logAction('login', Admin::class, $user->id, "Admin '{$user->username}' logged in");
+                }
 
                 // Return successful response with token
                 return response()->json([
@@ -130,7 +134,9 @@ class AuthController extends Controller
             
             $userId = $user->id ?? null;
             $request->user()->token()->revoke();
-            DatabaseLog::logAction('logout', Admin::class, $userId, "Admin '{$username}' logged out");
+            if (config('logging.database_auth_events')) {
+                DatabaseLog::logAction('logout', Admin::class, $userId, "Admin '{$username}' logged out");
+            }
 
             Log::info('Admin logged out successfully: ' . $username);
             

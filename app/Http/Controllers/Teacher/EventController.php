@@ -9,6 +9,7 @@ use App\Models\Group;
 use App\Helpers\TimezoneHelper;
 use App\Models\MeetingAccount;
 use App\Models\User;
+use App\Services\EventAuditLogger;
 use App\Services\ZoomService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -154,19 +155,25 @@ class EventController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'title'           => 'required|string|max:255',
-            'type'            => ['required', Rule::in(['class', 'meeting', 'other'])],
-            'event_date'      => 'required|date',
-            'event_time'      => 'required|date_format:H:i',
-            'event_duration'  => 'required|integer|min:1|max:' . config('services.zoom.max_meeting_minutes', 240),
-            'guests'          => 'nullable|array',
-            'guests.*'        => 'integer|exists:users,id',
-            'guest_groups'    => 'nullable|array',
-            'guest_groups.*'  => 'integer|exists:groups,group_id',
-            'event_meet_link' => 'nullable|url|max:2048',
-            'event_notes'     => 'nullable|string',
-        ]);
+        try {
+            $validated = $request->validate([
+                'title'           => 'required|string|max:255',
+                'type'            => ['required', Rule::in(['class', 'meeting', 'other'])],
+                'event_date'      => 'required|date',
+                'event_time'      => 'required|date_format:H:i',
+                'event_duration'  => 'required|integer|min:1|max:' . config('services.zoom.max_meeting_minutes', 240),
+                'guests'          => 'nullable|array',
+                'guests.*'        => 'integer|exists:users,id',
+                'guest_groups'    => 'nullable|array',
+                'guest_groups.*'  => 'integer|exists:groups,group_id',
+                'event_meet_link' => 'nullable|url|max:2048',
+                'event_notes'     => 'nullable|string',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            EventAuditLogger::eventAttempt('teacher', $request, null, 422, ['message' => $e->getMessage(), 'errors' => $e->errors()], $e);
+
+            throw $e;
+        }
 
         $validated['event_organizer'] = Auth::id();
 
@@ -177,12 +184,22 @@ class EventController extends Controller
             $validated['event_time'] = $utc->format('H:i');
         }
 
-        $event = Event::create($validated);
+        try {
+            $event = Event::create($validated);
+        } catch (\Throwable $e) {
+            EventAuditLogger::eventAttempt('teacher', $request, null, 500, ['message' => $e->getMessage()], $e);
 
-        return response()->json([
+            throw $e;
+        }
+
+        $response = response()->json([
             'message' => 'Event created successfully',
             'event'   => $this->formatEvent($event->load('organizer'), Auth::user()->effective_timezone, true),
         ], 201);
+
+        EventAuditLogger::eventAttempt('teacher', $request, $event, 201, $response->getData(true));
+
+        return $response;
     }
 
     /**
@@ -416,29 +433,46 @@ class EventController extends Controller
             return response()->json(['message' => 'Event not found'], 404);
         }
 
+        $before = EventAuditLogger::meetingSnapshot($event);
+
         if (!$this->canManageEvent($event, Auth::id())) {
-            return response()->json(['message' => 'Unauthorized — only the event organizer or an assistant teacher of the event\'s groups can create a Zoom meeting'], 403);
+            $response = response()->json(['message' => 'Unauthorized — only the event organizer or an assistant teacher of the event\'s groups can create a Zoom meeting'], 403);
+            EventAuditLogger::zoomAttempt('teacher', $event, null, $before, 403, $response->getData(true));
+
+            return $response;
         }
 
-        $outcome = $zoom->bookMeetingFor($event);
+        $outcome = null;
 
-        if (!$outcome['account']) {
-            return $this->noAccountResponse($zoom, $event, $outcome);
+        try {
+            $outcome = $zoom->bookMeetingFor($event);
+
+            if (!$outcome['account']) {
+                $response = $this->noAccountResponse($zoom, $event, $outcome);
+            } else {
+                $event->update([
+                    'meeting_account_id' => $outcome['account']->id,
+                    'zoom_meeting_id'    => $outcome['meeting']['meeting_id'],
+                    'event_meet_link'    => $outcome['meeting']['join_url'],
+                    'event_start_link'   => $outcome['meeting']['start_url'],
+                ]);
+
+                $response = response()->json([
+                    'message'      => !empty($outcome['reused']) ? 'This event already has a Zoom meeting' : 'Zoom meeting created successfully',
+                    'event'        => $this->formatEvent($event->fresh('organizer'), Auth::user()->effective_timezone, true),
+                    'meeting_link' => $outcome['meeting']['join_url'],
+                    'start_link'   => $outcome['meeting']['start_url'],
+                ]);
+            }
+        } catch (\Throwable $e) {
+            EventAuditLogger::zoomAttempt('teacher', $event, $outcome, $before, 500, ['message' => $e->getMessage()], $e);
+
+            throw $e;
         }
 
-        $event->update([
-            'meeting_account_id' => $outcome['account']->id,
-            'zoom_meeting_id'    => $outcome['meeting']['meeting_id'],
-            'event_meet_link'    => $outcome['meeting']['join_url'],
-            'event_start_link'   => $outcome['meeting']['start_url'],
-        ]);
+        EventAuditLogger::zoomAttempt('teacher', $event, $outcome, $before, $response->getStatusCode(), $response->getData(true));
 
-        return response()->json([
-            'message'      => !empty($outcome['reused']) ? 'This event already has a Zoom meeting' : 'Zoom meeting created successfully',
-            'event'        => $this->formatEvent($event->fresh('organizer'), Auth::user()->effective_timezone, true),
-            'meeting_link' => $outcome['meeting']['join_url'],
-            'start_link'   => $outcome['meeting']['start_url'],
-        ]);
+        return $response;
     }
 
     /**
