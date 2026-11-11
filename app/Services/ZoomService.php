@@ -497,9 +497,21 @@ class ZoomService
      */
     public function liveMeetingBlockingStart(MeetingAccount $account, string $meetingId): ?array
     {
+        return $this->otherLiveMeeting($this->currentLiveMeetings($account), $meetingId);
+    }
+
+    /** The account's live meetings right now, always read fresh from Zoom. */
+    public function currentLiveMeetings(MeetingAccount $account): array
+    {
         $this->forgetLists($account);
 
-        foreach ($this->listLiveMeetings($account) as $live) {
+        return $this->listLiveMeetings($account);
+    }
+
+    /** The first live meeting that is not the given one, or null. */
+    public function otherLiveMeeting(array $liveMeetings, string $meetingId): ?array
+    {
+        foreach ($liveMeetings as $live) {
             if ((string) ($live['id'] ?? '') !== $meetingId) {
                 return $live;
             }

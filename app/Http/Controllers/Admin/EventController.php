@@ -402,7 +402,10 @@ class EventController extends Controller
         }
 
         if (!$event->zoom_meeting_id || !$event->meetingAccount) {
-            return response()->json(['message' => 'This event has no Zoom meeting to start'], 422);
+            $response = response()->json(['message' => 'This event has no Zoom meeting to start'], 422);
+            EventAuditLogger::startLinkAttempt('admin', $event, null, null, null, 422, $response->getData(true));
+
+            return $response;
         }
 
         try {
@@ -413,16 +416,21 @@ class EventController extends Controller
                 'error'           => $e->getMessage(),
             ]);
 
-            return response()->json([
+            $response = response()->json([
                 'message' => 'Could not retrieve a start link from Zoom: ' . $e->getMessage(),
             ], 502);
+
+            EventAuditLogger::startLinkAttempt('admin', $event, null, null, null, 502, $response->getData(true), $e);
+
+            return $response;
         }
 
+        // Keep the stored copy in step so listings show the newest link we have seen.
         if (!empty($meeting['start_url'])) {
             $event->update(['event_start_link' => $meeting['start_url']]);
         }
 
-        $response = [
+        $payload = [
             'message'      => 'Start link retrieved successfully',
             'start_link'   => $meeting['start_url'] ?? null,
             'meeting_link' => $meeting['join_url'] ?? $event->event_meet_link,
@@ -430,26 +438,37 @@ class EventController extends Controller
 
         // Zoom refuses to start a meeting while its host account is in another one, and
         // the teacher only finds out after clicking the link. Say so up front.
+        $liveMeetings   = null;
+        $blocking       = null;
+        $liveCheckError = null;
+
         try {
-            $blocking = $zoom->liveMeetingBlockingStart($event->meetingAccount, (string) $event->zoom_meeting_id);
+            $liveMeetings = $zoom->currentLiveMeetings($event->meetingAccount);
+            $blocking     = $zoom->otherLiveMeeting($liveMeetings, (string) $event->zoom_meeting_id);
 
             if ($blocking !== null) {
-                $response['start_warning'] = 'The Zoom account for this meeting is currently in another meeting'
+                $payload['start_warning'] = 'The Zoom account for this meeting is currently in another meeting'
                     . (!empty($blocking['topic']) ? ' ("' . $blocking['topic'] . '")' : '')
                     . '. Zoom will not let this one start until that meeting is ended.';
-                $response['blocking_meeting'] = [
+                $payload['blocking_meeting'] = [
                     'id'    => $blocking['id'] ?? null,
                     'topic' => $blocking['topic'] ?? null,
                 ];
             }
         } catch (\Throwable $e) {
             // The link itself is valid; failing to look for a conflict must not withhold it.
+            $liveCheckError = $e;
+
             Log::warning('Could not check for a live meeting before handing out a start link for event ' . $event->id, [
                 'error' => $e->getMessage(),
             ]);
         }
 
-        return response()->json($response);
+        $response = response()->json($payload);
+
+        EventAuditLogger::startLinkAttempt('admin', $event, $meeting, $liveMeetings, $blocking, 200, $response->getData(true), null, $liveCheckError);
+
+        return $response;
     }
 
     /**
