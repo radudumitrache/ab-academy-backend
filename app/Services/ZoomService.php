@@ -587,17 +587,25 @@ class ZoomService
     }
 
     /**
-     * Walk the active accounts in order and stop at the first one free for this window.
+     * Walk the active accounts in order and pick one that is free for this window.
      *
      * Busy accounts and unreachable accounts are tracked separately, because they are
      * different answers: a full pool means "pick another slot", while an unreachable
      * pool means "we do not know yet, retry". Folding the two together is what made a
      * rate-limited account look like a fully booked one.
      *
+     * Free for the window is not the whole story. A host account can run one meeting at
+     * a time, and teachers open the host link as soon as the meeting is created — often
+     * well before the class. An account that is free at 14:30 but in the middle of
+     * another class at 12:52 would be picked, and Zoom then refuses to start the new
+     * meeting ("You have a meeting that is currently in progress"). So accounts that are
+     * also idle right now are preferred; ones in a meeting now are only used when no
+     * idle account is left, in the same id order.
+     *
      * @param  callable|null  $onPick  Run against the chosen account while still inside
      *                                 the try block, so a failure there records an error
      *                                 and moves on to the next candidate.
-     * @return array{account: ?MeetingAccount, result: mixed, busy: array, errors: array, total: int}
+     * @return array{account: ?MeetingAccount, result: mixed, busy: array, errors: array, total: int, skipped_live_now: array, used_live_now_fallback: bool}
      */
     private function pickAccount(\Carbon\Carbon $eventStart, int $durationMinutes, ?callable $onPick = null): array
     {
@@ -606,6 +614,22 @@ class ZoomService
         $accounts = MeetingAccount::where('is_active', true)->orderBy('id')->get();
         $busy     = [];
         $errors   = [];
+        $inMeetingNow = [];   // free for the window, but hosting a meeting right now
+
+        // By reference: the lists keep growing after this is defined, and an arrow
+        // function would freeze them as they are now (all empty).
+        $outcome = function (?MeetingAccount $account, mixed $result, bool $fallback) use (&$busy, &$errors, &$inMeetingNow, $accounts) {
+            return [
+                'account'                => $account,
+                'result'                 => $result,
+                'busy'                   => $busy,
+                'errors'                 => $errors,
+                'total'                  => $accounts->count(),
+                // Accounts passed over because they were in a meeting at this moment.
+                'skipped_live_now'       => array_values(array_map(fn ($row) => $row['info'], $inMeetingNow)),
+                'used_live_now_fallback' => $fallback,
+            ];
+        };
 
         foreach ($accounts as $candidate) {
             try {
@@ -628,13 +652,26 @@ class ZoomService
                     continue;
                 }
 
-                return [
-                    'account' => $candidate,
-                    'result'  => $onPick ? $onPick($candidate) : null,
-                    'busy'    => $busy,
-                    'errors'  => $errors,
-                    'total'   => $accounts->count(),
-                ];
+                // Free for the window. Is the host in a meeting right now? The live list
+                // was just read by the overlap check, so this costs no extra Zoom call.
+                $live = $this->listLiveMeetings($candidate);
+
+                if ($live !== []) {
+                    $inMeetingNow[] = [
+                        'account' => $candidate,
+                        'info'    => [
+                            'account_id'   => $candidate->id,
+                            'account_name' => $candidate->name ?? null,
+                            'live_meetings' => array_map(fn ($m) => [
+                                'id'    => $m['id'] ?? null,
+                                'topic' => $m['topic'] ?? null,
+                            ], $live),
+                        ],
+                    ];
+                    continue;
+                }
+
+                return $outcome($candidate, $onPick ? $onPick($candidate) : null, false);
             } catch (\Throwable $e) {
                 Log::warning('Zoom account unavailable during account selection', [
                     'account_id'   => $candidate->id,
@@ -650,13 +687,35 @@ class ZoomService
             }
         }
 
-        return [
-            'account' => null,
-            'result'  => null,
-            'busy'    => $busy,
-            'errors'  => $errors,
-            'total'   => $accounts->count(),
-        ];
+        // No idle account worked. Fall back to the ones that are free for the window but
+        // in a meeting now: the booking is still valid for its slot, and the start-link
+        // endpoint warns the teacher if they try to open it too early.
+        foreach ($inMeetingNow as $i => $row) {
+            $candidate = $row['account'];
+
+            try {
+                $result = $onPick ? $onPick($candidate) : null;
+
+                // The account actually used is no longer a "skipped" one.
+                unset($inMeetingNow[$i]);
+
+                return $outcome($candidate, $result, true);
+            } catch (\Throwable $e) {
+                Log::warning('Zoom account unavailable during account selection', [
+                    'account_id'   => $candidate->id,
+                    'account_name' => $candidate->name ?? null,
+                    'error'        => $e->getMessage(),
+                ]);
+
+                $errors[] = [
+                    'account_id'   => $candidate->id,
+                    'account_name' => $candidate->name ?? null,
+                    'error'        => $e->getMessage(),
+                ];
+            }
+        }
+
+        return $outcome(null, null, false);
     }
 
     /**

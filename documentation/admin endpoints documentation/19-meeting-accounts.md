@@ -202,6 +202,7 @@ Two details shape the result:
 - Personal Meeting Rooms and instant meetings that are live come back with no `start_time`/`duration`. They still hold the host, so they are assumed to occupy the account for `ZOOM_LIVE_UNKNOWN_WINDOW_MINUTES` (default `30`) from now — enough to stop an imminent event being booked on that account without taking it out of service for the afternoon.
 - A scheduled meeting that started more than `ZOOM_NO_SHOW_GRACE_MINUTES` (default `15`) ago and is not live has ended or never started, and no longer blocks the account.
 - A meeting counts as occupying its account for at most `ZOOM_MAX_MEETING_MINUTES` (default `240`, i.e. 4 hours). Some accounts hold meetings created with placeholder durations of 9999 or 999999 minutes, which taken literally would block them for weeks or years.
+- Among accounts free for the requested window, one with no meeting in progress right now is preferred. An account that is free for the window but currently hosting a meeting is only suggested when no idle account is left.
 - An account needs `ZOOM_MEETING_BUFFER_MINUTES` (default `20`) of clearance *after* an existing meeting ends before it can host the next one. Any non-zero value prevents back-to-back bookings on a single account; set it to `0` if lessons are scheduled on the hour.
 
 - **URL**: `GET /api/admin/meeting-accounts/suggest-account`

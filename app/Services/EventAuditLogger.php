@@ -103,6 +103,10 @@ class EventAuditLogger
                         'active_accounts' => $outcome['total'] ?? null,
                         'busy'            => $outcome['busy'] ?? [],
                         'errors'          => $outcome['errors'] ?? [],
+                        // Free for the slot but in a meeting at that moment, so passed over.
+                        'skipped_live_now' => $outcome['skipped_live_now'] ?? [],
+                        // True when every free account was in a meeting now and one had to be used.
+                        'used_live_now_fallback' => $outcome['used_live_now_fallback'] ?? false,
                     ],
                     'chosen'      => [
                         'account_id'      => $outcome['account']->id ?? null,

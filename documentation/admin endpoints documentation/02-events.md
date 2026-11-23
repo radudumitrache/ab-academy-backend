@@ -221,6 +221,8 @@ A scheduled meeting that began more than `ZOOM_NO_SHOW_GRACE_MINUTES` (default `
 
 **Idempotent**: if the event already has a Zoom meeting that still exists on Zoom, that meeting is returned (message `"This event already has a Zoom meeting"`) instead of booking a second one. A new meeting is booked only when Zoom reports the old one as gone. Bookings are serialised, so two simultaneous requests cannot take the same account for the same slot; a request that waits too long for its turn gets a `502` and can be retried.
 
+**Idle accounts are preferred.** A host account can run only one meeting at a time, and hosts usually open the start link as soon as the meeting is created, often well before the class. So among accounts free for the event's slot, the first one with no meeting in progress *right now* is used. An account that is free for the slot but currently in a meeting is only used if no idle account is left, in the same id order. This is what stops "You have a meeting that is currently in progress" when a teacher creates a meeting for a later class while another class is still running on the first account.
+
 Each entry in `busy_accounts` carries a `conflict_source` of `scheduled` or `live`, saying which check flagged it.
 
 Unreachable accounts are **not** silently skipped. Busy accounts land in `busy_accounts` and unreachable ones in `error_accounts`, and the status code says which happened: `422` means the pool is genuinely full, `502` means the answer is inconclusive and the request should be retried.
