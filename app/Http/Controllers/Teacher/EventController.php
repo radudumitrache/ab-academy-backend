@@ -458,7 +458,7 @@ class EventController extends Controller
                 ]);
 
                 $response = response()->json([
-                    'message'      => !empty($outcome['reused']) ? 'This event already has a Zoom meeting' : 'Zoom meeting created successfully',
+                    'message'      => !empty($outcome['reused']) ? 'This event\'s Zoom meeting is already running' : 'Zoom meeting created successfully',
                     'event'        => $this->formatEvent($event->fresh('organizer'), Auth::user()->effective_timezone, true),
                     'meeting_link' => $outcome['meeting']['join_url'],
                     'start_link'   => $outcome['meeting']['start_url'],

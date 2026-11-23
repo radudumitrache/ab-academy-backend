@@ -57,13 +57,14 @@ class EventAuditLogger
             $result = match (true) {
                 $error !== null                 => 'exception',
                 $status === 403                 => 'forbidden',
-                !empty($outcome['reused'])      => 'reused_existing',
+                !empty($outcome['reused'])      => 'reused_running_meeting',
+                !empty($outcome['replaced_meeting']) => 'replaced_existing',
                 !empty($outcome['account'])     => 'created',
                 !empty($outcome['errors'])      => 'accounts_unreachable',
                 default                         => 'no_free_account',
             };
 
-            $ok = in_array($result, ['created', 'reused_existing'], true);
+            $ok = in_array($result, ['created', 'replaced_existing', 'reused_running_meeting'], true);
 
             $now    = Carbon::now('UTC');
             $window = self::window($event, $now);
@@ -113,6 +114,8 @@ class EventAuditLogger
                         'account_name'    => $outcome['account']->name ?? null,
                         'zoom_meeting_id' => $outcome['meeting']['meeting_id'] ?? null,
                     ],
+                    // The meeting this event had before, and what happened to it.
+                    'replaced_meeting' => $outcome['replaced_meeting'] ?? null,
                     'api_response' => self::redact($body),
                     'exception'    => $error ? ['class' => get_class($error), 'message' => $error->getMessage()] : null,
                     'request'      => self::requestContext(),

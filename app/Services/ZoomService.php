@@ -199,9 +199,20 @@ class ZoomService
      * returns whatever was written ("HH:MM"). Normalising to HH:MM first keeps the
      * result valid on both.
      */
-    private function startTimeFor(Event $event): string
+    private function startTimeFor(Event $event, ?\Carbon\Carbon $notBefore = null): string
     {
-        return $event->event_date->format('Y-m-d') . 'T' . substr($event->event_time, 0, 5) . ':00';
+        $scheduled = $event->event_date->format('Y-m-d') . 'T' . substr($event->event_time, 0, 5) . ':00';
+
+        if ($notBefore === null) {
+            return $scheduled;
+        }
+
+        // A meeting booked after its event's start time is scheduled from now instead.
+        // Left in the past, it would be ignored as one that never started, and the next
+        // booking could take the same account while its host is about to open it.
+        return \Carbon\Carbon::parse($scheduled, 'UTC')->lt($notBefore)
+            ? $notBefore->copy()->utc()->format('Y-m-d\TH:i:s')
+            : $scheduled;
     }
 
     /**
@@ -235,12 +246,12 @@ class ZoomService
      * Create a scheduled Zoom meeting for the given event.
      * Returns ['meeting_id' => ..., 'join_url' => ..., 'start_url' => ...].
      */
-    public function createMeeting(MeetingAccount $account, Event $event): array
+    public function createMeeting(MeetingAccount $account, Event $event, ?\Carbon\Carbon $notBefore = null): array
     {
         $response = $this->request($account, 'post', 'https://api.zoom.us/v2/users/me/meetings', [
             'topic'      => $event->title,
             'type'       => 2, // scheduled
-            'start_time' => $this->startTimeFor($event),
+            'start_time' => $this->startTimeFor($event, $notBefore),
             'timezone'   => 'UTC', // start_time is always stored and sent as UTC
             'duration'   => $this->durationFor($event),
             'settings'   => [
@@ -605,9 +616,11 @@ class ZoomService
      * @param  callable|null  $onPick  Run against the chosen account while still inside
      *                                 the try block, so a failure there records an error
      *                                 and moves on to the next candidate.
+     * @param  string|null  $ignoreMeetingId  A meeting that must not count as a conflict (the
+     *                                        event's own meeting, which is being replaced).
      * @return array{account: ?MeetingAccount, result: mixed, busy: array, errors: array, total: int, skipped_live_now: array, used_live_now_fallback: bool}
      */
-    private function pickAccount(\Carbon\Carbon $eventStart, int $durationMinutes, ?callable $onPick = null): array
+    private function pickAccount(\Carbon\Carbon $eventStart, int $durationMinutes, ?callable $onPick = null, ?string $ignoreMeetingId = null): array
     {
         // Fixed order, so the same account is preferred every time rather than whichever
         // row the database happens to return first.
@@ -633,7 +646,7 @@ class ZoomService
 
         foreach ($accounts as $candidate) {
             try {
-                $conflict = $this->findOverlappingMeeting($candidate, $eventStart, $durationMinutes);
+                $conflict = $this->findOverlappingMeeting($candidate, $eventStart, $durationMinutes, $ignoreMeetingId);
 
                 if ($conflict !== null) {
                     $busy[] = [
@@ -732,18 +745,21 @@ class ZoomService
     }
 
     /**
-     * Select a free account and create this event's Zoom meeting on it.
+     * Select a free account and create a new Zoom meeting for this event on it.
      *
-     * If the event already has a live Zoom meeting it is returned as is (with
-     * 'reused' => true) rather than booking a second one and orphaning the first, which
-     * would keep blocking its slot. Only when Zoom says the old meeting is gone is a new
-     * one booked.
+     * Every call books a fresh meeting. Teachers click "create Zoom link" each time they
+     * start a class, including on events that already carry a meeting from an earlier
+     * session; handing that old meeting back pinned the class to whatever account it was
+     * booked on weeks ago, with no check of what that account is doing now, so the host
+     * was often refused ("You have a meeting that is currently in progress"). The old
+     * meeting is deleted once the new one exists, unless it is running right now: then it
+     * is returned unchanged, so a class in progress is never stranded.
      *
      * Bookings run one at a time. Selection reads the accounts' current meetings and the
      * booking writes to them, so two requests racing for the same slot would both see an
      * account as free and book it twice — and the second teacher could not start.
      *
-     * @return array{account: ?MeetingAccount, meeting: ?array, busy: array, errors: array, total: int, reused?: bool}
+     * @return array{account: ?MeetingAccount, meeting: ?array, busy: array, errors: array, total: int, reused?: bool, replaced_meeting?: array}
      */
     public function bookMeetingFor(Event $event): array
     {
@@ -768,28 +784,101 @@ class ZoomService
 
     private function bookMeetingUnlocked(Event $event): array
     {
-        if ($event->zoom_meeting_id && $event->meetingAccount) {
-            $existing = $this->reuseExistingMeeting($event);
+        $previous = ($event->zoom_meeting_id && $event->meetingAccount)
+            ? ['account' => $event->meetingAccount, 'meeting_id' => (string) $event->zoom_meeting_id]
+            : null;
 
-            if ($existing !== null) {
-                return $existing;
+        // The class is in progress on its current meeting: leave it alone.
+        if ($previous !== null && $this->isMeetingLive($previous['account'], $previous['meeting_id'])) {
+            $running = $this->reuseExistingMeeting($event);
+
+            if ($running !== null) {
+                return $running;
             }
         }
 
+        // The slot to protect starts now at the earliest. For a late start, or an old
+        // event used again, the event's own time is in the past and a check against it
+        // would never see a class that is running at this moment.
+        $now         = \Carbon\Carbon::now('UTC');
+        $scheduled   = $this->eventStartUtc($event);
+        $windowStart = $scheduled->lt($now) ? $now : $scheduled;
+
         $outcome = $this->pickAccount(
-            $this->eventStartUtc($event),
+            $windowStart,
             $this->durationFor($event),
-            fn (MeetingAccount $account) => $this->createMeeting($account, $event)
+            fn (MeetingAccount $account) => $this->createMeeting($account, $event, $windowStart),
+            $previous['meeting_id'] ?? null
         );
 
         $outcome['meeting'] = $outcome['result'];
         unset($outcome['result']);
 
+        if ($previous !== null && $outcome['account'] !== null) {
+            $outcome['replaced_meeting'] = $this->releaseReplacedMeeting($previous['account'], $previous['meeting_id'], $event);
+        }
+
         return $outcome;
     }
 
+    /** Is this Zoom meeting running right now? A failed check counts as "no". */
+    private function isMeetingLive(MeetingAccount $account, string $meetingId): bool
+    {
+        try {
+            foreach ($this->currentLiveMeetings($account) as $live) {
+                if ((string) ($live['id'] ?? '') === $meetingId) {
+                    return true;
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Could not check whether the event\'s current Zoom meeting is live', [
+                'account_id'      => $account->id,
+                'zoom_meeting_id' => $meetingId,
+                'error'           => $e->getMessage(),
+            ]);
+        }
+
+        return false;
+    }
+
     /**
-     * Hand back the event's current Zoom meeting, or null when a new one must be booked.
+     * Delete the meeting an event has just been moved off, so it stops holding a slot.
+     *
+     * Never fails the booking: the new meeting already exists and is what the event now
+     * points at. A meeting that is live is kept, since someone may be in it.
+     *
+     * @return array{account_id: int, zoom_meeting_id: string, deleted: bool, reason: ?string}
+     */
+    private function releaseReplacedMeeting(MeetingAccount $account, string $meetingId, Event $event): array
+    {
+        $result = ['account_id' => $account->id, 'zoom_meeting_id' => $meetingId, 'deleted' => false, 'reason' => null];
+
+        try {
+            if ($this->isMeetingLive($account, $meetingId)) {
+                $result['reason'] = 'live';
+
+                return $result;
+            }
+
+            $this->deleteMeeting($account, $meetingId);
+            $result['deleted'] = true;
+        } catch (\Throwable $e) {
+            $result['reason'] = $e->getMessage();
+
+            Log::warning('Could not delete the Zoom meeting an event was moved off', [
+                'event_id'        => $event->id,
+                'account_id'      => $account->id,
+                'zoom_meeting_id' => $meetingId,
+                'error'           => $e->getMessage(),
+            ]);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Hand back the event's current Zoom meeting as it is: used only while that meeting is running.
+     * Null when Zoom reports it as gone (404), in which case a new one is booked.
      *
      * Null only when Zoom reports the meeting as gone (404). Any other failure means
      * "we do not know", and booking a replacement then could duplicate a meeting that is
