@@ -208,13 +208,15 @@ class EventAuditLogger
         int $status,
         mixed $body,
         ?\Throwable $fetchError = null,
-        ?\Throwable $liveCheckError = null
+        ?\Throwable $liveCheckError = null,
+        ?array $move = null
     ): void {
         try {
             $result = match (true) {
                 $status === 403                => 'forbidden',
                 $status === 422                => 'no_meeting_to_start',
                 $fetchError !== null           => 'zoom_fetch_failed',
+                !empty($move['moved'])         => 'moved_to_free_account',
                 $blocking !== null             => 'blocked_by_live_meeting',
                 $liveCheckError !== null       => 'live_check_failed',
                 default                        => 'ok',
@@ -226,7 +228,7 @@ class EventAuditLogger
             $account    = $event->meetingAccount;
 
             DatabaseLog::logAction(
-                $result === 'ok' ? 'zoom_start_ok' : 'zoom_start_failed',
+                in_array($result, ['ok', 'moved_to_free_account'], true) ? 'zoom_start_ok' : 'zoom_start_failed',
                 Event::class,
                 $event->id,
                 sprintf(
@@ -266,6 +268,9 @@ class EventAuditLogger
                         $liveMeetings
                     ),
                     'blocking_meeting' => $blocking ? self::describeLiveMeeting($blocking, $now) : null,
+                    // Whether a blocked class was moved to another account, and if not, why.
+                    // The meeting URLs are left out: they carry credentials.
+                    'move'        => $move ? array_diff_key($move, ['meeting' => true]) : null,
                     // The same account's other events around this time, from our own database.
                     'account_events_nearby' => self::eventsNearby($event),
                     'api_response' => self::redact($body),

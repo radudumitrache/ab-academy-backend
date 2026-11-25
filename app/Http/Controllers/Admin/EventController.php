@@ -441,12 +441,28 @@ class EventController extends Controller
         $liveMeetings   = null;
         $blocking       = null;
         $liveCheckError = null;
+        $move           = null;
 
         try {
             $liveMeetings = $zoom->currentLiveMeetings($event->meetingAccount);
             $blocking     = $zoom->otherLiveMeeting($liveMeetings, (string) $event->zoom_meeting_id);
 
             if ($blocking !== null) {
+                // Zoom would refuse this start, so try to move the class somewhere free.
+                $move = $zoom->moveBlockedMeeting($event);
+            }
+
+            if ($move !== null && $move['moved']) {
+                $payload['start_link']    = $move['meeting']['start_url'];
+                $payload['meeting_link']  = $move['meeting']['join_url'];
+                $payload['meeting_moved'] = true;
+            } elseif ($move !== null && $move['reason'] === 'not_blocked') {
+                // Freed up, or already moved by a parallel request: hand out what the event points at now.
+                $current = $zoom->getMeeting($event->meetingAccount, (string) $event->zoom_meeting_id);
+
+                $payload['start_link']   = $current['start_url'] ?? $payload['start_link'];
+                $payload['meeting_link'] = $current['join_url'] ?? $payload['meeting_link'];
+            } elseif ($blocking !== null) {
                 $payload['start_warning'] = 'The Zoom account for this meeting is currently in another meeting'
                     . (!empty($blocking['topic']) ? ' ("' . $blocking['topic'] . '")' : '')
                     . '. Zoom will not let this one start until that meeting is ended.';
@@ -466,7 +482,7 @@ class EventController extends Controller
 
         $response = response()->json($payload);
 
-        EventAuditLogger::startLinkAttempt('admin', $event, $meeting, $liveMeetings, $blocking, 200, $response->getData(true), null, $liveCheckError);
+        EventAuditLogger::startLinkAttempt('admin', $event, $meeting, $liveMeetings, $blocking, 200, $response->getData(true), null, $liveCheckError, $move);
 
         return $response;
     }

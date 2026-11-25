@@ -425,7 +425,9 @@ Fetches a freshly issued host start URL for the event's Zoom meeting, and refres
     "meeting_link": "https://us05web.zoom.us/j/12345678?pwd=..."
   }
   ```
-  When the meeting's Zoom account is already in another meeting, Zoom will refuse to start this one ("You have a meeting that is currently in-progress"). The response then also carries a warning so the UI can say so before the host clicks:
+  **Blocked accounts are moved automatically.** When the meeting's account is in another meeting and this event's own meeting is not running, a new meeting is booked on an account with nothing running, the event is updated with the new links, and the old meeting is deleted. The response then carries the new `start_link` and `meeting_link` plus `"meeting_moved": true`. The student join link changes, so clients should re-fetch the event.
+
+  If no account is idle (or the move fails), the original link is returned with a warning, since Zoom will refuse to start it:
   ```json
   {
     "start_warning": "The Zoom account for this meeting is currently in another meeting (\"Some topic\"). Zoom will not let this one start until that meeting is ended.",

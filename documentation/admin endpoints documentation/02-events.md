@@ -250,7 +250,9 @@ Fetches a freshly issued host start URL from Zoom and refreshes the stored `even
 }
 ```
 
-When the meeting's Zoom account is already in another meeting, Zoom will refuse to start this one. The response then also includes `start_warning` (text) and `blocking_meeting` (`{ "id", "topic" }`); both are absent when nothing is blocking.
+**Blocked accounts are moved automatically.** When the meeting's account is in another meeting and this event's own meeting is not running, a new meeting is booked on an account with nothing running, the event is updated, the old meeting is deleted, and the response carries the new `start_link` and `meeting_link` with `"meeting_moved": true`. The student join link changes.
+
+If no account is idle (or the move fails), the original link is returned, Zoom will refuse to start it, and the response also includes `start_warning` (text) and `blocking_meeting` (`{ "id", "topic" }`); both are absent when nothing is blocking.
 
 **Errors**:
 - `404` — event not found

@@ -618,9 +618,10 @@ class ZoomService
      *                                 and moves on to the next candidate.
      * @param  string|null  $ignoreMeetingId  A meeting that must not count as a conflict (the
      *                                        event's own meeting, which is being replaced).
+     * @param  bool  $idleOnly  Never fall back to an account that is in a meeting right now.
      * @return array{account: ?MeetingAccount, result: mixed, busy: array, errors: array, total: int, skipped_live_now: array, used_live_now_fallback: bool}
      */
-    private function pickAccount(\Carbon\Carbon $eventStart, int $durationMinutes, ?callable $onPick = null, ?string $ignoreMeetingId = null): array
+    private function pickAccount(\Carbon\Carbon $eventStart, int $durationMinutes, ?callable $onPick = null, ?string $ignoreMeetingId = null, bool $idleOnly = false): array
     {
         // Fixed order, so the same account is preferred every time rather than whichever
         // row the database happens to return first.
@@ -703,7 +704,7 @@ class ZoomService
         // No idle account worked. Fall back to the ones that are free for the window but
         // in a meeting now: the booking is still valid for its slot, and the start-link
         // endpoint warns the teacher if they try to open it too early.
-        foreach ($inMeetingNow as $i => $row) {
+        foreach ($idleOnly ? [] : $inMeetingNow as $i => $row) {
             $candidate = $row['account'];
 
             try {
@@ -819,6 +820,113 @@ class ZoomService
         }
 
         return $outcome;
+    }
+
+    /**
+     * Move an event whose host account is in another meeting onto an idle account.
+     *
+     * Teachers often press "start" on a meeting booked long before, sometimes for an
+     * earlier session of the same event. Its account may be hosting someone else's class
+     * by then, and Zoom refuses the start. Rather than hand out a link that cannot work,
+     * a new meeting is booked on an account with nothing running, the event is pointed
+     * at it, and the old meeting is deleted.
+     *
+     * Nothing moves when the event's own meeting is running, when its account turns out
+     * not to be blocked, or when no account is idle — swapping one blocked account for
+     * another would only change the join link for no gain.
+     *
+     * Runs under the booking lock and re-reads the event inside it, so a double tap
+     * cannot book two replacements. The given model is refreshed in place.
+     *
+     * Reasons when not moved: no_meeting, own_meeting_live, not_blocked,
+     * no_idle_account, booking_in_progress.
+     *
+     * @return array{moved: bool, reason: ?string, meeting?: array, from?: array, to?: array, old_meeting?: array, busy?: array, errors?: array, skipped_live_now?: array}
+     */
+    public function moveBlockedMeeting(Event $event): array
+    {
+        try {
+            return $this->withBookingLock(fn () => $this->moveBlockedMeetingUnlocked($event));
+        } catch (LockTimeoutException) {
+            Log::warning('Zoom booking lock not acquired in time while moving a blocked meeting', ['event_id' => $event->id]);
+
+            return ['moved' => false, 'reason' => 'booking_in_progress'];
+        }
+    }
+
+    private function moveBlockedMeetingUnlocked(Event $event): array
+    {
+        $event->refresh();
+        $event->load('meetingAccount');
+
+        $account   = $event->meetingAccount;
+        $meetingId = (string) $event->zoom_meeting_id;
+
+        if (!$account || $meetingId === '') {
+            return ['moved' => false, 'reason' => 'no_meeting'];
+        }
+
+        $live = $this->currentLiveMeetings($account);
+
+        foreach ($live as $meeting) {
+            if ((string) ($meeting['id'] ?? '') === $meetingId) {
+                return ['moved' => false, 'reason' => 'own_meeting_live'];
+            }
+        }
+
+        if ($this->otherLiveMeeting($live, $meetingId) === null) {
+            return ['moved' => false, 'reason' => 'not_blocked'];
+        }
+
+        // The host wants in now, so the new account must be free from now. For an early
+        // start that stretches to the scheduled end of the class.
+        $now       = \Carbon\Carbon::now('UTC');
+        $scheduled = $this->eventStartUtc($event);
+        $duration  = $this->durationFor($event);
+
+        if ($scheduled->gt($now)) {
+            $cap      = (int) config('services.zoom.max_meeting_minutes', 240);
+            $duration = (int) ceil($now->diffInSeconds($scheduled->copy()->addMinutes($duration)) / 60);
+            $duration = $cap > 0 ? min($duration, $cap) : $duration;
+        }
+
+        $outcome = $this->pickAccount(
+            $now,
+            $duration,
+            fn (MeetingAccount $candidate) => $this->createMeeting($candidate, $event, $now),
+            $meetingId,
+            true
+        );
+
+        $detail = [
+            'busy'             => $outcome['busy'],
+            'errors'           => $outcome['errors'],
+            'skipped_live_now' => $outcome['skipped_live_now'],
+        ];
+
+        if (!$outcome['account']) {
+            return ['moved' => false, 'reason' => 'no_idle_account'] + $detail;
+        }
+
+        $target  = $outcome['account'];
+        $created = $outcome['result'];
+
+        $event->update([
+            'meeting_account_id' => $target->id,
+            'zoom_meeting_id'    => $created['meeting_id'],
+            'event_meet_link'    => $created['join_url'],
+            'event_start_link'   => $created['start_url'],
+        ]);
+        $event->load('meetingAccount');
+
+        return [
+            'moved'       => true,
+            'reason'      => null,
+            'meeting'     => $created,
+            'from'        => ['account_id' => $account->id, 'account_name' => $account->name, 'zoom_meeting_id' => $meetingId],
+            'to'          => ['account_id' => $target->id, 'account_name' => $target->name, 'zoom_meeting_id' => $created['meeting_id']],
+            'old_meeting' => $this->releaseReplacedMeeting($account, $meetingId, $event),
+        ] + $detail;
     }
 
     /** Is this Zoom meeting running right now? A failed check counts as "no". */
